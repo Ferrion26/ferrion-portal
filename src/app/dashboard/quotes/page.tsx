@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth";
+import { getT } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { quoteStatusBadge } from "@/components/ui/Badge";
@@ -7,6 +8,7 @@ export const metadata = { title: "Angebote — Ferrion Portal" };
 
 export default async function QuotesPage() {
   const session = await getSession();
+  const t = getT().dashboard;
   const quotes = await prisma.quote.findMany({
     where: { customerId: session!.user.id },
     orderBy: { createdAt: "desc" },
@@ -14,17 +16,16 @@ export default async function QuotesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-6">Angebote</h1>
-
+      <h1 className="text-2xl font-bold text-white mb-6">{t.quotes}</h1>
       <div className="bg-[#111827] border border-white/10 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/10 text-left text-gray-500">
-              <th className="px-6 py-3 font-medium">Referenz</th>
-              <th className="px-6 py-3 font-medium">Datum</th>
-              <th className="px-6 py-3 font-medium">Betrag</th>
-              <th className="px-6 py-3 font-medium">Gültig bis</th>
-              <th className="px-6 py-3 font-medium">Status</th>
+              <th className="px-6 py-3 font-medium">{t.reference}</th>
+              <th className="px-6 py-3 font-medium">{t.date}</th>
+              <th className="px-6 py-3 font-medium">{t.amount}</th>
+              <th className="px-6 py-3 font-medium">{t.validUntil}</th>
+              <th className="px-6 py-3 font-medium">{t.status}</th>
             </tr>
           </thead>
           <tbody>
@@ -38,11 +39,7 @@ export default async function QuotesPage() {
               </tr>
             ))}
             {quotes.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                  Keine Angebote vorhanden.
-                </td>
-              </tr>
+              <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">{t.noQuotes}</td></tr>
             )}
           </tbody>
         </table>
