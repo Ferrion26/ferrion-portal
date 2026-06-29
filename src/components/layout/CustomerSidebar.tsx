@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
 const nav = [
-  { href: "/dashboard", label: "Overview", icon: "▦" },
-  { href: "/dashboard/orders", label: "Orders", icon: "📦" },
-  { href: "/dashboard/quotes", label: "Quotes", icon: "📋" },
-  { href: "/dashboard/documents", label: "Documents", icon: "📄" },
+  { href: "/dashboard", label: "Übersicht", icon: "▦" },
+  { href: "/dashboard/orders", label: "Bestellungen", icon: "📦" },
+  { href: "/dashboard/quotes", label: "Angebote", icon: "📋" },
+  { href: "/dashboard/documents", label: "Dokumente", icon: "📄" },
   { href: "/dashboard/tickets", label: "Support", icon: "🎟" },
 ];
 
@@ -17,10 +16,9 @@ export default function CustomerSidebar({ userName }: { userName?: string }) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-60 shrink-0 border-r border-gray-200 bg-white flex flex-col h-screen sticky top-0">
-      <div className="px-5 py-5 border-b border-gray-100">
-        <span className="text-lg font-bold text-brand-700">Ferrion</span>
-        <p className="text-xs text-gray-400 mt-0.5">Customer Portal</p>
+    <aside className="w-56 shrink-0 border-r border-white/10 bg-[#111827] flex flex-col min-h-[calc(100vh-4rem)] sticky top-16">
+      <div className="px-4 py-5 border-b border-white/10">
+        <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Kundenbereich</p>
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-0.5">
@@ -29,26 +27,20 @@ export default function CustomerSidebar({ userName }: { userName?: string }) {
             key={href}
             href={href}
             className={cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors",
               pathname === href
-                ? "bg-brand-50 text-brand-700"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                ? "bg-[#c9a84c]/10 text-[#c9a84c] border-l-2 border-[#c9a84c]"
+                : "text-gray-400 hover:bg-white/5 hover:text-white"
             )}
           >
-            <span className="text-base">{icon}</span>
+            <span className="text-base opacity-80">{icon}</span>
             {label}
           </Link>
         ))}
       </nav>
 
-      <div className="px-5 py-4 border-t border-gray-100">
-        <p className="text-xs text-gray-500 truncate mb-2">{userName}</p>
-        <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="text-xs text-gray-400 hover:text-red-600 transition-colors"
-        >
-          Sign out
-        </button>
+      <div className="px-4 py-4 border-t border-white/10">
+        <p className="text-[10px] text-gray-600 truncate">{userName}</p>
       </div>
     </aside>
   );

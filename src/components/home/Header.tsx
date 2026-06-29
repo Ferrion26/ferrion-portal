@@ -29,7 +29,11 @@ export default function Header() {
       setError("Ungültige Anmeldedaten.");
       return;
     }
-    window.location.href = "/";
+    // Get role from session to redirect correctly
+    const res = await fetch("/api/auth/session");
+    const sess = await res.json();
+    const role = sess?.user?.role;
+    window.location.href = role === "ADMIN" ? "/admin" : "/dashboard";
   }
 
   return (
