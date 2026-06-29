@@ -66,7 +66,7 @@ export default function Hero({ locale }: { locale: Locale }) {
             <h1 className="text-4xl lg:text-5xl font-bold leading-tight mb-6 text-[#c9a84c]">{h.headline2}</h1>
             <p className="text-gray-300 text-sm leading-relaxed mb-8 max-w-lg">{h.sub}</p>
             <div className="flex flex-wrap gap-4">
-              <Link href="#kontakt" className="border border-[#c9a84c] text-[#c9a84c] hover:bg-[#c9a84c] hover:text-black transition-colors px-5 py-2.5 text-xs font-bold tracking-widest uppercase">
+              <Link href="/beratung" className="border border-[#c9a84c] text-[#c9a84c] hover:bg-[#c9a84c] hover:text-black transition-colors px-5 py-2.5 text-xs font-bold tracking-widest uppercase">
                 {h.cta1}
               </Link>
               <Link href="#loesungen" className="border border-white/30 text-white hover:border-white/60 transition-colors px-5 py-2.5 text-xs font-bold tracking-widest uppercase">

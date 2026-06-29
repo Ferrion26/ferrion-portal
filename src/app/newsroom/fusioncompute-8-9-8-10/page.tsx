@@ -371,7 +371,7 @@ export default function FusionComputeArticle() {
               <p className="text-gray-500 text-xs">Ferrion — IT-Systemhaus · Huawei Gold Partner</p>
             </div>
             <Link
-              href="/#kontakt"
+              href="/beratung"
               className="shrink-0 border border-[#c9a84c] text-[#c9a84c] hover:bg-[#c9a84c] hover:text-black transition-colors px-5 py-2.5 text-xs font-bold tracking-widest uppercase"
             >
               {t.conclusion.ctaBtn}
