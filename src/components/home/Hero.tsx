@@ -86,9 +86,7 @@ export default function Hero() {
                   key={p.name}
                   className="bg-black/40 backdrop-blur-sm border border-white/15 p-4 flex flex-col items-center text-center hover:bg-black/60 transition-colors"
                 >
-                  <div className="bg-white rounded p-1.5 w-14 h-14 flex items-center justify-center mb-2">
-                    <img src={p.logo} alt={p.name} className="w-10 h-10 object-contain" />
-                  </div>
+                  <img src={p.logo} alt={p.name} className="w-12 h-12 object-contain mb-2" />
                   <p className="text-white font-bold text-[10px] tracking-wide mb-0.5">{p.name}</p>
                   <p className="text-[#c9a84c] text-[9px] font-medium mb-1.5">{p.badge}</p>
                   <p className="text-gray-300 text-[9px] leading-relaxed">{p.desc}</p>
