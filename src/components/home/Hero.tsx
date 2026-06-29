@@ -5,19 +5,19 @@ import Link from "next/link";
 const partners = [
   {
     name: "HUAWEI",
-    logo: "/logos/huawei.svg",
+    logo: "/logos/Huawei_Standard_logo.svg.png",
     badge: "Gold Partner",
     desc: "Innovative Infrastruktur für eine vernetzte Welt.",
   },
   {
     name: "PURE STORAGE",
-    logo: "/logos/purestorage.svg",
+    logo: "/logos/Pure Storage Bug Orange_undefined.PNG",
     badge: "Elite Partner",
     desc: "All-Flash Performance für Ihre Daten.",
   },
   {
     name: "COMMVAULT",
-    logo: "/logos/commvault.svg",
+    logo: "/logos/cropped-favicon-commvault-1.png",
     badge: "Strategic Partner",
     desc: "Zuverlässiger Schutz Ihrer Daten. Immer.",
   },
@@ -31,9 +31,21 @@ const services = [
 ];
 
 const newsItems = [
-  { date: "15. Mai 2024", title: "Huawei stellt neue All-Flash Storage Serie vor" },
-  { date: "06. Mai 2024", title: "Backup Best Practices für 2024" },
-  { date: "30. April 2024", title: "Erfolgreiche Modernisierung bei Kunde X" },
+  {
+    date: "15. Mai 2024",
+    title: "Huawei stellt neue All-Flash Storage Serie vor",
+    img: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&q=70",
+  },
+  {
+    date: "06. Mai 2024",
+    title: "Backup Best Practices für 2024",
+    img: "https://images.unsplash.com/photo-1597852074816-d933c7d2b988?w=400&q=70",
+  },
+  {
+    date: "30. April 2024",
+    title: "Erfolgreiche Modernisierung bei Kunde X",
+    img: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&q=70",
+  },
 ];
 
 export default function Hero() {
@@ -44,12 +56,11 @@ export default function Hero() {
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: "url('/images/hero.jpg')" }}
       />
-      {/* Dark overlay */}
-      <div className="absolute inset-0 bg-black/55" />
+      <div className="absolute inset-0 bg-black/50" />
 
       {/* Main hero content */}
       <div className="relative flex-1 flex items-center pt-16">
-        <div className="max-w-7xl mx-auto px-8 w-full grid lg:grid-cols-2 gap-8 items-center">
+        <div className="max-w-7xl mx-auto px-8 w-full grid lg:grid-cols-2 gap-8 items-start pt-4">
 
           {/* Left — headline + CTAs */}
           <div>
@@ -57,7 +68,7 @@ export default function Hero() {
               Technologie, die verbindet.<br />
               Lösungen, die bleiben.
             </h1>
-            <p className="text-gray-300 text-base leading-relaxed mb-8 max-w-lg">
+            <p className="text-gray-300 text-sm leading-relaxed mb-8 max-w-lg">
               Wir kombinieren führende Technologien mit umfassendem Know-how –
               für IT-Lösungen, die heute überzeugen und morgen tragen.
             </p>
@@ -77,38 +88,47 @@ export default function Hero() {
             </div>
           </div>
 
-          {/* Right — partner cards + newsroom */}
-          <div className="flex flex-col gap-4">
-            {/* Partner cards */}
-            <div className="grid grid-cols-3 gap-3">
+          {/* Right — partners (no boxes) + newsroom */}
+          <div className="flex flex-col gap-5">
+            {/* Partner logos — transparent, no cards */}
+            <div className="grid grid-cols-3 gap-6">
               {partners.map((p) => (
-                <div
-                  key={p.name}
-                  className="bg-black/40 backdrop-blur-sm border border-white/15 p-4 flex flex-col items-center text-center hover:bg-black/60 transition-colors"
-                >
-                  <img src={p.logo} alt={p.name} className="w-12 h-12 object-contain mb-2" />
-                  <p className="text-white font-bold text-[10px] tracking-wide mb-0.5">{p.name}</p>
-                  <p className="text-[#c9a84c] text-[9px] font-medium mb-1.5">{p.badge}</p>
-                  <p className="text-gray-300 text-[9px] leading-relaxed">{p.desc}</p>
+                <div key={p.name} className="flex flex-col items-center text-center">
+                  <img
+                    src={p.logo}
+                    alt={p.name}
+                    className="h-12 w-auto object-contain mb-2"
+                    style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))" }}
+                  />
+                  <p className="text-[#c9a84c] text-[10px] font-medium tracking-wide">{p.badge}</p>
+                  <p className="text-gray-300 text-[9px] leading-relaxed mt-1">{p.desc}</p>
                 </div>
               ))}
             </div>
 
-            {/* Newsroom overlay */}
-            <div className="bg-black/40 backdrop-blur-sm border border-white/15 p-4">
-              <div className="flex items-center justify-between mb-3">
+            {/* Newsroom — white cards with images */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
                 <p className="text-white font-bold text-xs tracking-widest uppercase">Newsroom</p>
-                <Link href="#newsroom" className="text-[10px] text-[#c9a84c] hover:underline tracking-widest uppercase">
+                <Link href="#newsroom" className="text-[10px] text-[#c9a84c] tracking-widest uppercase hover:underline">
                   Alle News →
                 </Link>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 {newsItems.map((n) => (
-                  <div key={n.title} className="group cursor-pointer">
-                    <p className="text-gray-400 text-[9px] mb-1">{n.date}</p>
-                    <p className="text-white text-[10px] font-medium leading-snug group-hover:text-[#c9a84c] transition-colors">
-                      {n.title}
-                    </p>
+                  <div key={n.title} className="bg-white group cursor-pointer overflow-hidden">
+                    <img
+                      src={n.img}
+                      alt={n.title}
+                      className="w-full h-16 object-cover"
+                      crossOrigin="anonymous"
+                    />
+                    <div className="p-2">
+                      <p className="text-gray-400 text-[9px] mb-1">{n.date}</p>
+                      <p className="text-gray-800 text-[10px] font-medium leading-snug group-hover:text-[#c9a84c] transition-colors">
+                        {n.title}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -117,8 +137,8 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Services bar at bottom */}
-      <div className="relative bg-white/10 backdrop-blur-md border-t border-white/20">
+      {/* Services bar — lighter/frosted */}
+      <div className="relative bg-white/15 backdrop-blur-md border-t border-white/30">
         <div className="max-w-7xl mx-auto px-8">
           <div className="grid grid-cols-4">
             {services.map((s, i) => (
@@ -128,10 +148,10 @@ export default function Hero() {
                   i < 3 ? "border-r border-white/20" : ""
                 }`}
               >
-                <span className="text-xl shrink-0">{s.icon}</span>
+                <span className="text-xl shrink-0 opacity-80">{s.icon}</span>
                 <div>
                   <p className="text-white font-bold text-xs">{s.title}</p>
-                  <p className="text-gray-300 text-[10px] leading-snug mt-0.5">{s.desc}</p>
+                  <p className="text-gray-200 text-[10px] leading-snug mt-0.5">{s.desc}</p>
                 </div>
               </div>
             ))}
@@ -140,7 +160,7 @@ export default function Hero() {
       </div>
 
       {/* Contact strip */}
-      <div className="relative bg-black/60 backdrop-blur-md border-t border-white/10 py-2.5">
+      <div className="relative bg-black/50 backdrop-blur-md border-t border-white/10 py-2.5">
         <div className="max-w-7xl mx-auto px-8 flex items-center gap-8 text-[11px] text-gray-400">
           <span>📞 +49 123 456789-0</span>
           <span>✉ info@ferrion.de</span>
