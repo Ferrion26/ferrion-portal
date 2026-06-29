@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Uncomment directUrl when using Supabase pgbouncer (transaction pooler) as DATABASE_URL.
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String
+  role          Role      @default(CUSTOMER)
+  company       String?
+  phone         String?
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  orders        Order[]
+  quotes        Quote[]
+  documents     Document[]
+  tickets       SupportTicket[]
+  messages      TicketMessage[]
+
+  @@index([email])
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  reference   String      @unique
+  status      OrderStatus @default(PENDING)
+  totalAmount Decimal     @db.Decimal(12, 2)
+  currency    String      @default("EUR")
+  lineItems   Json        // [{sku, description, qty, unitPrice}]
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  customerId  String
+  customer    User        @relation(fields: [customerId], references: [id])
+
+  documents   Document[]
+
+  @@index([customerId])
+  @@index([reference])
+}
+
+model Quote {
+  id          String      @id @default(cuid())
+  reference   String      @unique
+  status      QuoteStatus @default(DRAFT)
+  totalAmount Decimal     @db.Decimal(12, 2)
+  currency    String      @default("EUR")
+  lineItems   Json
+  validUntil  DateTime?
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  customerId  String
+  customer    User        @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
+}
+
+model Document {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  storagePath  String   // path inside Supabase Storage bucket
+  mimeType     String
+  sizeBytes    Int
+  createdAt    DateTime @default(now())
+
+  customerId   String?
+  customer     User?    @relation(fields: [customerId], references: [id])
+
+  orderId      String?
+  order        Order?   @relation(fields: [orderId], references: [id])
+
+  @@index([customerId])
+  @@index([orderId])
+}
+
+model SupportTicket {
+  id          String         @id @default(cuid())
+  subject     String
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  customerId  String
+  customer    User           @relation(fields: [customerId], references: [id])
+
+  messages    TicketMessage[]
+
+  @@index([customerId])
+  @@index([status])
+}
+
+model TicketMessage {
+  id        String   @id @default(cuid())
+  body      String
+  createdAt DateTime @default(now())
+
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  authorId  String
+  author    User          @relation(fields: [authorId], references: [id])
+
+  @@index([ticketId])
+}
