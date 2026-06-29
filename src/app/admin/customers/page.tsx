@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 
-export const metadata = { title: "Customers — Admin" };
+export const metadata = { title: "Kunden — Admin" };
 
 export default async function CustomersPage() {
   const customers = await prisma.user.findMany({
@@ -15,35 +15,35 @@ export default async function CustomersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Customers</h1>
+      <h1 className="text-2xl font-bold text-white mb-6">Kunden</h1>
 
-      <div className="card overflow-hidden">
+      <div className="bg-[#111827] border border-white/10 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-100 text-left text-gray-500 bg-gray-50">
+            <tr className="border-b border-white/10 text-left text-gray-500">
               <th className="px-6 py-3 font-medium">Name</th>
-              <th className="px-6 py-3 font-medium">Email</th>
-              <th className="px-6 py-3 font-medium">Company</th>
-              <th className="px-6 py-3 font-medium">Orders</th>
+              <th className="px-6 py-3 font-medium">E-Mail</th>
+              <th className="px-6 py-3 font-medium">Unternehmen</th>
+              <th className="px-6 py-3 font-medium">Bestellungen</th>
               <th className="px-6 py-3 font-medium">Tickets</th>
               <th className="px-6 py-3 font-medium">Status</th>
-              <th className="px-6 py-3 font-medium">Joined</th>
+              <th className="px-6 py-3 font-medium">Seit</th>
             </tr>
           </thead>
           <tbody>
             {customers.map((c) => (
-              <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="px-6 py-4 font-medium">{c.name ?? "—"}</td>
-                <td className="px-6 py-4 text-gray-500">{c.email}</td>
-                <td className="px-6 py-4 text-gray-500">{c.company ?? "—"}</td>
-                <td className="px-6 py-4">{c._count.orders}</td>
-                <td className="px-6 py-4">{c._count.tickets}</td>
+              <tr key={c.id} className="border-b border-white/5 hover:bg-white/5">
+                <td className="px-6 py-4 font-medium text-gray-300">{c.name ?? "—"}</td>
+                <td className="px-6 py-4 text-gray-400">{c.email}</td>
+                <td className="px-6 py-4 text-gray-400">{c.company ?? "—"}</td>
+                <td className="px-6 py-4 text-gray-300">{c._count.orders}</td>
+                <td className="px-6 py-4 text-gray-300">{c._count.tickets}</td>
                 <td className="px-6 py-4">
                   <Badge variant={c.active ? "green" : "red"}>
-                    {c.active ? "Active" : "Inactive"}
+                    {c.active ? "Aktiv" : "Inaktiv"}
                   </Badge>
                 </td>
-                <td className="px-6 py-4 text-gray-500">{formatDate(c.createdAt)}</td>
+                <td className="px-6 py-4 text-gray-400">{formatDate(c.createdAt)}</td>
               </tr>
             ))}
           </tbody>

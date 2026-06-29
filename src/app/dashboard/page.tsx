@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
 
-export const metadata = { title: "Dashboard — Ferrion Portal" };
+export const metadata = { title: "Übersicht — Ferrion Portal" };
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -21,54 +21,58 @@ export default async function DashboardPage() {
   ]);
 
   const stats = [
-    { label: "Total Orders", value: orderCount, href: "/dashboard/orders" },
-    { label: "Active Quotes", value: quoteCount, href: "/dashboard/quotes" },
-    { label: "Open Tickets", value: openTickets, href: "/dashboard/tickets" },
+    { label: "Bestellungen", value: orderCount, href: "/dashboard/orders" },
+    { label: "Aktive Angebote", value: quoteCount, href: "/dashboard/quotes" },
+    { label: "Offene Tickets", value: openTickets, href: "/dashboard/tickets" },
   ];
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">
-        Welcome back, {session!.user.name ?? "Customer"}
+      <h1 className="text-2xl font-bold text-white mb-1">
+        Willkommen, {session!.user.name ?? "Kunde"}
       </h1>
-      <p className="text-gray-500 mb-8">Here&apos;s an overview of your account.</p>
+      <p className="text-gray-400 mb-8">Hier ist eine Übersicht Ihres Kontos.</p>
 
       <div className="grid grid-cols-3 gap-6 mb-10">
         {stats.map((s) => (
-          <Link key={s.href} href={s.href} className="card p-6 hover:shadow-md transition-shadow">
-            <p className="text-sm text-gray-500">{s.label}</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">{s.value}</p>
+          <Link
+            key={s.href}
+            href={s.href}
+            className="bg-[#111827] border border-white/10 p-6 hover:border-[#c9a84c]/40 transition-colors"
+          >
+            <p className="text-sm text-gray-400">{s.label}</p>
+            <p className="text-3xl font-bold text-[#c9a84c] mt-1">{s.value}</p>
           </Link>
         ))}
       </div>
 
-      <div className="card">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-800">Recent Orders</h2>
-          <Link href="/dashboard/orders" className="text-sm text-brand-600 hover:underline">
-            View all
+      <div className="bg-[#111827] border border-white/10">
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+          <h2 className="font-semibold text-white">Letzte Bestellungen</h2>
+          <Link href="/dashboard/orders" className="text-sm text-[#c9a84c] hover:underline">
+            Alle anzeigen
           </Link>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-100 text-left text-gray-500">
-              <th className="px-6 py-3 font-medium">Reference</th>
-              <th className="px-6 py-3 font-medium">Amount</th>
+            <tr className="border-b border-white/10 text-left text-gray-500">
+              <th className="px-6 py-3 font-medium">Referenz</th>
+              <th className="px-6 py-3 font-medium">Betrag</th>
               <th className="px-6 py-3 font-medium">Status</th>
             </tr>
           </thead>
           <tbody>
             {recentOrders.map((o) => (
-              <tr key={o.id} className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="px-6 py-3 font-mono">{o.reference}</td>
-                <td className="px-6 py-3">{formatCurrency(Number(o.totalAmount), o.currency)}</td>
-                <td className="px-6 py-3">{o.status}</td>
+              <tr key={o.id} className="border-b border-white/5 hover:bg-white/5">
+                <td className="px-6 py-3 font-mono text-gray-300">{o.reference}</td>
+                <td className="px-6 py-3 text-gray-300">{formatCurrency(Number(o.totalAmount), o.currency)}</td>
+                <td className="px-6 py-3 text-gray-400">{o.status}</td>
               </tr>
             ))}
             {recentOrders.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-6 py-6 text-center text-gray-400">
-                  No orders yet.
+                <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
+                  Noch keine Bestellungen vorhanden.
                 </td>
               </tr>
             )}

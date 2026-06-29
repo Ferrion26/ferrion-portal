@@ -59,12 +59,6 @@ export default function Header() {
 
         {/* Right side */}
         <div className="flex items-center gap-4">
-          <div className="hidden lg:flex items-center gap-2 text-xs text-gray-400">
-            <button className="hover:text-white transition-colors font-medium">DE</button>
-            <span>|</span>
-            <button className="hover:text-white transition-colors">EN</button>
-          </div>
-
           {/* Login button + dropdown */}
           <div className="relative">
             <button
