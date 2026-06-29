@@ -16,7 +16,7 @@ const content = {
     contact: "Kontakt",
     founders: "Gründer",
     copyright: "Ferrion IT Systemhaus. Alle Rechte vorbehalten.",
-    legal: ["Impressum", "Datenschutz", "AGB"],
+    legal: [{ label: "Impressum", href: "/impressum" }, { label: "Datenschutz", href: "/datenschutz" }, { label: "AGB", href: "#" }],
     madeWith: "— build to endure",
   },
   en: {
@@ -33,7 +33,7 @@ const content = {
     contact: "Contact",
     founders: "Founders",
     copyright: "Ferrion IT Systemhaus. All rights reserved.",
-    legal: ["Imprint", "Privacy Policy", "Terms"],
+    legal: [{ label: "Imprint", href: "/impressum" }, { label: "Privacy Policy", href: "/datenschutz" }, { label: "Terms", href: "#" }],
     madeWith: "— build to endure",
   },
 };
@@ -110,7 +110,7 @@ export default function Footer({ locale = "de" }: { locale?: Locale }) {
           </p>
           <div className="flex gap-6">
             {t.legal.map((l) => (
-              <Link key={l} href="#" className="text-gray-600 text-xs hover:text-gray-400 transition-colors">{l}</Link>
+              <Link key={l.label} href={l.href} className="text-gray-600 text-xs hover:text-gray-400 transition-colors">{l.label}</Link>
             ))}
           </div>
         </div>

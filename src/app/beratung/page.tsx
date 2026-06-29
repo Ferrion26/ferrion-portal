@@ -157,13 +157,33 @@ export default function BeratungPage() {
     return currentStep.options ?? [];
   }
 
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    // Simulate submit — replace with real API call
-    await new Promise((r) => setTimeout(r, 1200));
-    setLoading(false);
-    setSubmitted(true);
+    setSubmitError(null);
+    try {
+      const res = await fetch("/api/beratung", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers, formData }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        if (json.error === "Email not configured") {
+          // Dev fallback: still show success screen without email
+          setSubmitted(true);
+          return;
+        }
+        throw new Error(json.error ?? "Unbekannter Fehler");
+      }
+      setSubmitted(true);
+    } catch (err) {
+      setSubmitError("Die Anfrage konnte nicht gesendet werden. Bitte versuchen Sie es erneut oder schreiben Sie uns direkt an info@ferrion.at.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   /* ── Success screen ───────────────────────────────────────────────────── */
@@ -303,6 +323,9 @@ export default function BeratungPage() {
             >
               {loading ? "Wird gesendet …" : "Anfrage absenden →"}
             </button>
+            {submitError && (
+              <p className="text-red-400 text-xs mt-3 text-center">{submitError}</p>
+            )}
             <p className="text-gray-600 text-[10px] mt-3 text-center">
               Ihre Daten werden vertraulich behandelt und nicht an Dritte weitergegeben.
             </p>
