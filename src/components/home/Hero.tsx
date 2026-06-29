@@ -39,12 +39,12 @@ const newsItems = [
   {
     date: "06. Mai 2024",
     title: "Backup Best Practices für 2024",
-    img: "https://images.unsplash.com/photo-1597852074816-d933c7d2b988?w=400&q=70",
+    img: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&q=70",
   },
   {
     date: "30. April 2024",
     title: "Erfolgreiche Modernisierung bei Kunde X",
-    img: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&q=70",
+    img: "https://images.unsplash.com/photo-1573164713988-8665fc963095?w=400&q=70",
   },
 ];
 

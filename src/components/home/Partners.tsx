@@ -1,7 +1,7 @@
 const partners = [
-  { name: "Huawei", logo: "/logos/huawei.svg" },
-  { name: "Pure Storage", logo: "/logos/purestorage.svg" },
-  { name: "Commvault", logo: "/logos/commvault.svg" },
+  { name: "Huawei", logo: "/logos/Huawei_Standard_logo.svg.png" },
+  { name: "Pure Storage", logo: "/logos/Pure Storage Bug Orange_undefined.PNG" },
+  { name: "Commvault", logo: "/logos/cropped-favicon-commvault-1.png" },
 ];
 
 export default function Partners() {
@@ -11,18 +11,15 @@ export default function Partners() {
         <p className="text-center text-xs font-bold tracking-widest text-gray-500 uppercase mb-8">
           Unsere Partner
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-14">
+        <div className="flex flex-wrap items-center justify-center gap-16">
           {partners.map((p) => (
-            <div
-              key={p.name}
-              className="flex items-center gap-3 opacity-60 hover:opacity-100 transition-opacity"
-            >
-              <div className="bg-white rounded p-1.5 w-10 h-10 flex items-center justify-center">
-                <img src={p.logo} alt={p.name} className="w-8 h-8 object-contain" />
-              </div>
-              <span className="text-gray-300 font-bold text-sm tracking-wide uppercase">
-                {p.name}
-              </span>
+            <div key={p.name} className="opacity-60 hover:opacity-100 transition-opacity">
+              <img
+                src={p.logo}
+                alt={p.name}
+                className="h-10 w-auto object-contain"
+                style={{ mixBlendMode: "screen" }}
+              />
             </div>
           ))}
         </div>
