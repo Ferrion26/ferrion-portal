@@ -1,0 +1,37 @@
+<svg viewBox="0 0 260 80" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <!-- F swoosh mark -->
+  <g transform="translate(4, 4)">
+    <!-- Outer gold arc -->
+    <path d="M36 36 C36 16 52 4 68 8 C80 11 84 20 80 30 C76 40 62 44 50 40 C42 37 36 36 36 36Z" fill="url(#gold1)"/>
+    <!-- Inner silver sweep -->
+    <path d="M36 36 C36 50 44 60 56 58 C64 57 68 50 64 44 C60 38 48 36 36 36Z" fill="url(#silver1)"/>
+    <!-- Thin gold arc across -->
+    <path d="M10 52 Q36 28 72 20" stroke="url(#gold2)" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <!-- FERRION text -->
+  <text x="90" y="42" font-family="'Times New Roman', serif" font-size="28" font-weight="700" letter-spacing="8" fill="url(#goldText)">FERRION</text>
+  <!-- Subtitle -->
+  <text x="90" y="58" font-family="Arial, sans-serif" font-size="6.5" letter-spacing="2.5" fill="#a08c5a">IT SYSTEMHAUS  |  SERVICES  |  MANAGED SERVICES</text>
+  <defs>
+    <linearGradient id="gold1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d4a843"/>
+      <stop offset="50%" stop-color="#f0d080"/>
+      <stop offset="100%" stop-color="#a07830"/>
+    </linearGradient>
+    <linearGradient id="silver1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c0c0c0"/>
+      <stop offset="50%" stop-color="#e8e8e8"/>
+      <stop offset="100%" stop-color="#909090"/>
+    </linearGradient>
+    <linearGradient id="gold2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a07830" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#f0d080"/>
+      <stop offset="100%" stop-color="#a07830" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="goldText" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e8c96a"/>
+      <stop offset="50%" stop-color="#f5e090"/>
+      <stop offset="100%" stop-color="#b8952a"/>
+    </linearGradient>
+  </defs>
+</svg>

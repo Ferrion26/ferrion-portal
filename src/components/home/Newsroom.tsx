@@ -24,14 +24,14 @@ export default function Newsroom() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between mb-10">
           <div>
-            <p className="text-[#4ade80] text-xs font-bold tracking-widest uppercase mb-2">
+            <p className="text-[#c9a84c] text-xs font-bold tracking-widest uppercase mb-2">
               Aktuelles
             </p>
             <h2 className="text-4xl font-bold text-white">Newsroom</h2>
           </div>
           <Link
             href="#"
-            className="text-xs font-bold tracking-widest text-[#4ade80] uppercase border border-[#4ade80]/40 px-4 py-2 hover:bg-[#4ade80] hover:text-black transition-colors"
+            className="text-xs font-bold tracking-widest text-[#c9a84c] uppercase border border-[#c9a84c]/40 px-4 py-2 hover:bg-[#c9a84c] hover:text-black transition-colors"
           >
             Alle News →
           </Link>
@@ -41,15 +41,15 @@ export default function Newsroom() {
           {news.map((n) => (
             <article
               key={n.title}
-              className="bg-[#111820] border border-white/10 p-6 hover:border-[#4ade80]/30 transition-colors group cursor-pointer"
+              className="bg-[#111820] border border-white/10 p-6 hover:border-[#c9a84c]/30 transition-colors group cursor-pointer"
             >
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs text-gray-500">{n.date}</span>
-                <span className="text-[10px] text-[#4ade80] border border-[#4ade80]/30 px-2 py-0.5">
+                <span className="text-[10px] text-[#c9a84c] border border-[#c9a84c]/30 px-2 py-0.5">
                   {n.tag}
                 </span>
               </div>
-              <h3 className="text-white font-bold text-sm leading-snug group-hover:text-[#4ade80] transition-colors">
+              <h3 className="text-white font-bold text-sm leading-snug group-hover:text-[#c9a84c] transition-colors">
                 {n.title}
               </h3>
             </article>

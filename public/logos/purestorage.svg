@@ -1,0 +1,29 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Pure Storage logo: angular P / hexagon-cut shape in orange -->
+  <!-- Main body: a hexagon with bottom-left cut -->
+  <path d="
+    M 20,10
+    L 80,10
+    L 95,37
+    L 95,63
+    L 65,90
+    L 20,90
+    L 5,63
+    L 5,37
+    Z
+  " fill="#E8501A"/>
+  <!-- Inner white hexagon cutout -->
+  <path d="
+    M 32,28
+    L 68,28
+    L 76,42
+    L 68,56
+    L 32,56
+    L 24,42
+    Z
+  " fill="white"/>
+  <!-- Bottom notch cutout that creates the P-tail opening -->
+  <rect x="24" y="56" width="22" height="34" fill="#E8501A"/>
+  <!-- Re-fill left part below hex to make solid body -->
+  <rect x="5" y="56" width="19" height="34" fill="#E8501A"/>
+</svg>

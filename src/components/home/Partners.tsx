@@ -1,10 +1,7 @@
 const partners = [
-  { name: "Huawei", color: "#e31937" },
-  { name: "Pure Storage", color: "#ff6600" },
-  { name: "Commvault", color: "#0066cc" },
-  { name: "VMware", color: "#607078" },
-  { name: "Microsoft", color: "#0078d4" },
-  { name: "Veeam", color: "#00b336" },
+  { name: "Huawei", logo: "/logos/huawei.svg" },
+  { name: "Pure Storage", logo: "/logos/purestorage.svg" },
+  { name: "Commvault", logo: "/logos/commvault.svg" },
 ];
 
 export default function Partners() {
@@ -14,14 +11,14 @@ export default function Partners() {
         <p className="text-center text-xs font-bold tracking-widest text-gray-500 uppercase mb-8">
           Unsere Partner
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-10">
+        <div className="flex flex-wrap items-center justify-center gap-14">
           {partners.map((p) => (
-            <div key={p.name} className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
-              <div
-                className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold"
-                style={{ backgroundColor: p.color }}
-              >
-                {p.name[0]}
+            <div
+              key={p.name}
+              className="flex items-center gap-3 opacity-60 hover:opacity-100 transition-opacity"
+            >
+              <div className="bg-white rounded p-1.5 w-10 h-10 flex items-center justify-center">
+                <img src={p.logo} alt={p.name} className="w-8 h-8 object-contain" />
               </div>
               <span className="text-gray-300 font-bold text-sm tracking-wide uppercase">
                 {p.name}

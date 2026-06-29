@@ -1,0 +1,16 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer hexagon -->
+  <polygon points="50,4 93,27.5 93,72.5 50,96 7,72.5 7,27.5" fill="#7B4FA6"/>
+  <!-- White border gap -->
+  <polygon points="50,11 87,31 87,69 50,89 13,69 13,31" fill="white"/>
+  <!-- Inner hexagon filled -->
+  <polygon points="50,18 81,35.5 81,66.5 50,82 19,66.5 19,35.5" fill="#7B4FA6"/>
+  <!-- 3D cube top face -->
+  <polygon points="50,26 68,36 50,46 32,36" fill="white"/>
+  <!-- 3D cube left face -->
+  <polygon points="32,36 50,46 50,68 32,58" fill="rgba(255,255,255,0.55)"/>
+  <!-- 3D cube right face (play arrow shape) -->
+  <polygon points="50,46 68,36 68,58 50,68" fill="rgba(255,255,255,0.8)"/>
+  <!-- Play arrow on right face -->
+  <polygon points="54,48 64,54 54,60" fill="#7B4FA6"/>
+</svg>

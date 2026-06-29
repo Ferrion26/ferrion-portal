@@ -1,0 +1,33 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Huawei flower logo - 8 petals -->
+  <g transform="translate(100,95)">
+    <!-- Top petal -->
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(0)"/>
+    <!-- Top-right petal -->
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(45)"/>
+    <!-- Right petal -->
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(90)"/>
+    <!-- Bottom-right petal -->
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(135)"/>
+    <!-- Bottom petal -->
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(180)"/>
+    <!-- Bottom-left petal -->
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(225)"/>
+    <!-- Left petal -->
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(270)"/>
+    <!-- Top-left petal -->
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(315)"/>
+    <!-- White center gaps - radial lines -->
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(22.5)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(67.5)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(112.5)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(157.5)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(202.5)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(247.5)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(292.5)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(337.5)"/>
+    <circle cx="0" cy="0" r="11" fill="white"/>
+  </g>
+  <!-- HUAWEI text -->
+  <text x="100" y="168" font-family="Arial Black, Arial, sans-serif" font-size="22" font-weight="900" fill="#1a1a1a" text-anchor="middle" letter-spacing="2">HUAWEI</text>
+</svg>

@@ -1,20 +1,45 @@
 import Link from "next/link";
 
+const partners = [
+  {
+    name: "HUAWEI",
+    logo: "/logos/huawei.svg",
+    badge: "Gold Partner",
+    desc: "Innovative Infrastruktur für eine vernetzte Welt.",
+    bg: "bg-white",
+  },
+  {
+    name: "PURE STORAGE",
+    logo: "/logos/purestorage.svg",
+    badge: "Elite Partner",
+    desc: "All-Flash Performance für Ihre Daten.",
+    bg: "bg-white",
+  },
+  {
+    name: "COMMVAULT",
+    logo: "/logos/commvault.svg",
+    badge: "Strategic Partner",
+    desc: "Zuverlässiger Schutz Ihrer Daten. Immer.",
+    bg: "bg-white",
+  },
+];
+
 export default function Hero() {
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden pt-16">
-      {/* Background gradient simulating the mountain image */}
+      {/* Background */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0"
         style={{
           background:
             "linear-gradient(135deg, #0d1117 0%, #0f1f2e 40%, #112233 60%, #0d1520 100%)",
         }}
       />
-      {/* Subtle overlay pattern */}
-      <div className="absolute inset-0 opacity-20"
+      <div
+        className="absolute inset-0 opacity-20"
         style={{
-          backgroundImage: "radial-gradient(circle at 70% 60%, #1a4a2e 0%, transparent 60%)",
+          backgroundImage:
+            "radial-gradient(circle at 70% 60%, #1a4a2e 0%, transparent 60%)",
         }}
       />
 
@@ -23,18 +48,18 @@ export default function Hero() {
         <div>
           <h1 className="text-5xl lg:text-6xl font-bold leading-tight mb-6">
             Technologie,{" "}
-            <span className="text-[#4ade80]">die verbindet.</span>
+            <span className="text-[#c9a84c]">die verbindet.</span>
             <br />
             Lösungen, die bleiben.
           </h1>
           <p className="text-gray-400 text-lg leading-relaxed mb-10 max-w-xl">
-            Wir kombinieren führende Technologien mit umfassendem Know-how – für IT-Lösungen,
-            die heute überzeugen und morgen tragen.
+            Wir kombinieren führende Technologien mit umfassendem Know-how – für
+            IT-Lösungen, die heute überzeugen und morgen tragen.
           </p>
           <div className="flex flex-wrap gap-4">
             <Link
               href="#kontakt"
-              className="border border-[#4ade80] text-[#4ade80] hover:bg-[#4ade80] hover:text-black transition-colors px-6 py-3 text-sm font-bold tracking-widest uppercase"
+              className="border border-[#c9a84c] text-[#c9a84c] hover:bg-[#c9a84c] hover:text-black transition-colors px-6 py-3 text-sm font-bold tracking-widest uppercase"
             >
               Beratung anfragen →
             </Link>
@@ -49,39 +74,17 @@ export default function Hero() {
 
         {/* Right — partner cards */}
         <div className="grid grid-cols-3 gap-4">
-          {[
-            {
-              name: "HUAWEI",
-              badge: "Gold Partner",
-              desc: "Innovative Infrastruktur für eine vernetzte Welt.",
-              color: "#e31937",
-            },
-            {
-              name: "PURE STORAGE",
-              badge: "Elite Partner",
-              desc: "All-Flash Performance für Ihre Daten.",
-              color: "#ff6600",
-            },
-            {
-              name: "COMMVAULT",
-              badge: "Strategic Partner",
-              desc: "Zuverlässiger Schutz Ihrer Daten. Immer.",
-              color: "#0066cc",
-            },
-          ].map((p) => (
+          {partners.map((p) => (
             <div
               key={p.name}
-              className="bg-white/5 border border-white/10 p-4 flex flex-col items-center text-center hover:bg-white/10 transition-colors"
+              className="bg-white/5 border border-white/10 p-5 flex flex-col items-center text-center hover:bg-white/10 transition-colors"
             >
-              <div
-                className="w-10 h-10 rounded-full mb-3 flex items-center justify-center text-white font-bold text-xs"
-                style={{ backgroundColor: p.color }}
-              >
-                {p.name[0]}
+              <div className="bg-white rounded p-2 mb-3 w-16 h-16 flex items-center justify-center">
+                <img src={p.logo} alt={p.name} className="w-12 h-12 object-contain" />
               </div>
-              <p className="text-white font-bold text-xs tracking-wide mb-1">{p.name}</p>
-              <p className="text-[#4ade80] text-[10px] font-medium mb-2">{p.badge}</p>
-              <p className="text-gray-400 text-[10px] leading-relaxed">{p.desc}</p>
+              <p className="text-white font-bold text-[10px] tracking-wide mb-1">{p.name}</p>
+              <p className="text-[#c9a84c] text-[9px] font-medium mb-2">{p.badge}</p>
+              <p className="text-gray-400 text-[9px] leading-relaxed">{p.desc}</p>
             </div>
           ))}
         </div>

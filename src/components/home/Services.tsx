@@ -30,7 +30,7 @@ export default function Services() {
     <section id="loesungen" className="bg-[#111820] py-24">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-14">
-          <p className="text-[#4ade80] text-xs font-bold tracking-widest uppercase mb-3">
+          <p className="text-[#c9a84c] text-xs font-bold tracking-widest uppercase mb-3">
             Unsere Lösungen
           </p>
           <h2 className="text-4xl font-bold text-white">
@@ -42,10 +42,10 @@ export default function Services() {
           {services.map((s) => (
             <div
               key={s.title}
-              className="bg-[#0d1117] border border-white/10 p-6 hover:border-[#4ade80]/40 transition-colors group"
+              className="bg-[#0d1117] border border-white/10 p-6 hover:border-[#c9a84c]/40 transition-colors group"
             >
               <div className="text-3xl mb-4">{s.icon}</div>
-              <h3 className="text-white font-bold mb-2 text-sm group-hover:text-[#4ade80] transition-colors">
+              <h3 className="text-white font-bold mb-2 text-sm group-hover:text-[#c9a84c] transition-colors">
                 {s.title}
               </h3>
               <p className="text-gray-400 text-sm leading-relaxed">{s.desc}</p>

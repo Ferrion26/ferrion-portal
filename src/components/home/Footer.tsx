@@ -7,14 +7,9 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-10 mb-12">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded bg-[#4ade80] flex items-center justify-center">
-                <span className="text-black font-bold text-xs">F</span>
-              </div>
-              <span className="font-bold text-white tracking-widest text-sm">FERRION</span>
-            </div>
-            <p className="text-gray-500 text-xs leading-relaxed">
-              IT SYSTEMHAUS | SERVICES | MANAGED SERVICES
+            <img src="/logos/ferrion.svg" alt="Ferrion" className="h-9 w-auto mb-4" />
+            <p className="text-gray-500 text-xs leading-relaxed mt-2">
+              Ihr Partner für IT-Infrastruktur,<br/>Services & Managed Services.
             </p>
           </div>
 
@@ -24,7 +19,7 @@ export default function Footer() {
             <ul className="space-y-2">
               {["Cloud & Virtualisierung", "Storage & Data Management", "Backup & Security", "Managed Services"].map((l) => (
                 <li key={l}>
-                  <Link href="#" className="text-gray-500 text-xs hover:text-[#4ade80] transition-colors">
+                  <Link href="#" className="text-gray-500 text-xs hover:text-[#c9a84c] transition-colors">
                     {l}
                   </Link>
                 </li>
@@ -38,7 +33,7 @@ export default function Footer() {
             <ul className="space-y-2">
               {["Über uns", "Newsroom", "Karriere", "Kundenbereich"].map((l) => (
                 <li key={l}>
-                  <Link href="#" className="text-gray-500 text-xs hover:text-[#4ade80] transition-colors">
+                  <Link href="#" className="text-gray-500 text-xs hover:text-[#c9a84c] transition-colors">
                     {l}
                   </Link>
                 </li>
