@@ -86,8 +86,8 @@ export default function Footer({ locale = "de" }: { locale?: Locale }) {
             </ul>
             <p className="text-white font-bold text-xs tracking-widest uppercase mb-3">{t.founders}</p>
             <ul className="space-y-1 text-gray-500 text-xs">
-              <li>Alexander Popek — Sales & Alliances</li>
-              <li>Peter Häusler — Technik & Pre-Sales</li>
+              <li>Geschäftsführer A — Sales & Alliances</li>
+              <li>Geschäftsführer B — Technik & Pre-Sales</li>
             </ul>
           </div>
         </div>
