@@ -1,9 +1,25 @@
-import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import Header from "@/components/home/Header";
+import Hero from "@/components/home/Hero";
+import Partners from "@/components/home/Partners";
+import Services from "@/components/home/Services";
+import Newsroom from "@/components/home/Newsroom";
+import Footer from "@/components/home/Footer";
 
-export default async function RootPage() {
-  const session = await getSession();
-  if (!session) redirect("/login");
-  if (session.user.role === "ADMIN") redirect("/admin");
-  redirect("/dashboard");
+export const metadata = {
+  title: "Ferrion IT Systemhaus — Technologie, die verbindet.",
+  description:
+    "Ferrion IT Systemhaus: Cloud & Virtualisierung, Storage, Backup & Security und Managed Services für Ihr Unternehmen.",
+};
+
+export default function HomePage() {
+  return (
+    <div className="min-h-screen bg-[#0d1117] text-white">
+      <Header />
+      <Hero />
+      <Partners />
+      <Services />
+      <Newsroom />
+      <Footer />
+    </div>
+  );
 }

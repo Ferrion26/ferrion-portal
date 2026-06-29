@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -25,12 +28,23 @@ export default function LoginForm() {
     setLoading(false);
 
     if (result?.error) {
-      setError("Invalid email or password.");
+      setError("Ungültige E-Mail oder Passwort.");
       return;
     }
 
-    // Let the server redirect based on role
-    router.push("/");
+    // Fetch the session to determine role for redirect
+    const sessionRes = await fetch("/api/auth/session");
+    const session = await sessionRes.json();
+    const role = session?.user?.role;
+
+    if (callbackUrl && !callbackUrl.includes("/login")) {
+      router.push(callbackUrl);
+    } else if (role === "ADMIN") {
+      router.push("/admin");
+    } else {
+      router.push("/dashboard");
+    }
+
     router.refresh();
   }
 
@@ -38,7 +52,7 @@ export default function LoginForm() {
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="email">
-          Email address
+          E-Mail
         </label>
         <input
           id="email"
@@ -53,7 +67,7 @@ export default function LoginForm() {
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="password">
-          Password
+          Passwort
         </label>
         <input
           id="password"
@@ -73,7 +87,7 @@ export default function LoginForm() {
       )}
 
       <button type="submit" disabled={loading} className="btn-primary w-full">
-        {loading ? "Signing in…" : "Sign in"}
+        {loading ? "Anmelden…" : "Anmelden"}
       </button>
     </form>
   );
