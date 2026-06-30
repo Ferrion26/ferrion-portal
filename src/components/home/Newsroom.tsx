@@ -3,6 +3,12 @@ import { type Locale } from "@/lib/i18n/translations";
 
 const news = [
   {
+    date: { de: "1. Oktober 2025", en: "October 1, 2025" },
+    title: { de: "Huawei OceanStor Dorado V7: Die neue Benchmark für All-Flash-Storage in der KI-Ära", en: "Huawei OceanStor Dorado V7: The New Benchmark for All-Flash Storage in the AI Era" },
+    tag: "Huawei",
+    href: "/newsroom/huawei-dorado-v7",
+  },
+  {
     date: { de: "22. März 2024", en: "March 22, 2024" },
     title: { de: "500 TB in 68 Stunden: Zero-Downtime-Migration auf Pure Storage FlashArray", en: "500 TB in 68 Hours: Zero-Downtime Migration to Pure Storage FlashArray" },
     tag: "Storage",
@@ -45,7 +51,7 @@ export default function Newsroom({ locale }: { locale: Locale }) {
             {isEn ? "All News →" : "Alle News →"}
           </Link>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {news.map((n) => (
             <Link key={n.title.de} href={n.href}>
               <article className="bg-[#111820] border border-white/10 p-6 hover:border-[#c9a84c]/30 transition-colors group cursor-pointer h-full">
