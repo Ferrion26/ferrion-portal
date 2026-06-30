@@ -68,8 +68,22 @@ export default function KontaktClient({ locale }: { locale: Locale }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus("sending");
-    await new Promise((r) => setTimeout(r, 900));
-    setStatus("success");
+    try {
+      const res = await fetch("/api/kontakt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fields),
+      });
+      // 503 = email not configured yet (dev/staging) — treat as success so the
+      // user still gets feedback; the submission is logged server-side.
+      if (res.ok || res.status === 503) {
+        setStatus("success");
+      } else {
+        setStatus("error");
+      }
+    } catch {
+      setStatus("error");
+    }
   }
 
   return (

@@ -9,6 +9,7 @@ import LocaleSwitcher from "@/components/ui/LocaleSwitcher";
 export default function Header({ locale }: { locale: Locale }) {
   const t = translations[locale];
   const [loginOpen, setLoginOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -59,7 +60,19 @@ export default function Header({ locale }: { locale: Locale }) {
         <div className="flex items-center gap-4">
           <LocaleSwitcher current={locale} />
 
-          <div className="relative">
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setMobileOpen((v) => !v)}
+            className="lg:hidden flex flex-col gap-1.5 p-1"
+            aria-label="Menu"
+            aria-expanded={mobileOpen}
+          >
+            <span className={`block w-5 h-0.5 bg-[#c9a84c] transition-transform ${mobileOpen ? "translate-y-2 rotate-45" : ""}`} />
+            <span className={`block w-5 h-0.5 bg-[#c9a84c] transition-opacity ${mobileOpen ? "opacity-0" : ""}`} />
+            <span className={`block w-5 h-0.5 bg-[#c9a84c] transition-transform ${mobileOpen ? "-translate-y-2 -rotate-45" : ""}`} />
+          </button>
+
+          <div className="relative hidden sm:block">
             <button
               onClick={() => setLoginOpen((v) => !v)}
               className="flex items-center gap-2 border border-[#c9a84c] text-[#c9a84c] hover:bg-[#c9a84c] hover:text-black transition-colors px-4 py-1.5 text-xs font-bold tracking-widest uppercase"
@@ -121,6 +134,31 @@ export default function Header({ locale }: { locale: Locale }) {
           </div>
         </div>
       </div>
+
+      {/* Mobile menu panel */}
+      {mobileOpen && (
+        <div className="lg:hidden border-t border-white/10 bg-[#0d1117]/98 backdrop-blur-md">
+          <nav className="max-w-7xl mx-auto px-6 py-5 flex flex-col gap-1">
+            {nav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className="text-sm font-medium tracking-widest text-gray-300 hover:text-white transition-colors uppercase py-3 border-b border-white/5"
+              >
+                {item.label}
+              </Link>
+            ))}
+            <Link
+              href="/login"
+              onClick={() => setMobileOpen(false)}
+              className="mt-4 text-center border border-[#c9a84c] text-[#c9a84c] hover:bg-[#c9a84c] hover:text-black transition-colors px-4 py-3 text-xs font-bold tracking-widest uppercase"
+            >
+              {t.login.button}
+            </Link>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

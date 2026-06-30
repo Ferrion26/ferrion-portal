@@ -29,6 +29,6 @@ export const config = {
      * - /_next/* (static assets)
      * - /logos, /images, /favicon.ico (public files)
      */
-    "/((?!login|api/auth|_next/static|_next/image|logos|images|favicon\\.ico).*)",
+    "/((?!login|api/auth|_next/static|_next/image|logos|images|favicon\\.ico|sitemap\\.xml|robots\\.txt).*)",
   ],
 };

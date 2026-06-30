@@ -49,7 +49,7 @@ export default function Hero({ locale }: { locale: Locale }) {
   const h = heroCopy[locale];
 
   return (
-    <section className="relative h-screen flex flex-col overflow-hidden">
+    <section className="relative min-h-screen lg:h-screen flex flex-col overflow-hidden">
       <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/images/hero.jpg')" }} />
       <div className="absolute inset-0 bg-black/55" />
 
@@ -111,9 +111,9 @@ export default function Hero({ locale }: { locale: Locale }) {
       {/* Services bar */}
       <div className="relative bg-white/15 backdrop-blur-md border-t border-white/30">
         <div className="max-w-7xl mx-auto px-8">
-          <div className="grid grid-cols-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4">
             {h.services.map((s, i) => (
-              <div key={s.title} className={`flex items-center gap-3 py-4 px-4 hover:bg-white/10 transition-colors cursor-pointer ${i < 3 ? "border-r border-white/20" : ""}`}>
+              <div key={s.title} className={`flex items-center gap-3 py-4 px-4 hover:bg-white/10 transition-colors cursor-pointer border-b border-white/10 lg:border-b-0 ${i < 3 ? "lg:border-r lg:border-white/20" : ""}`}>
                 <span className="text-xl shrink-0 opacity-80">{s.icon}</span>
                 <div>
                   <p className="text-white font-bold text-xs">{s.title}</p>

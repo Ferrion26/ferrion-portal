@@ -6,6 +6,7 @@ import Partners from "@/components/home/Partners";
 import Services from "@/components/home/Services";
 import AboutUs from "@/components/home/AboutUs";
 import Testimonials from "@/components/home/Testimonials";
+import FAQ from "@/components/home/FAQ";
 import Newsroom from "@/components/home/Newsroom";
 import Footer from "@/components/home/Footer";
 import CookieBanner from "@/components/home/CookieBanner";
@@ -31,6 +32,7 @@ export default function HomePage() {
       <AboutUs locale={locale} />
       <Testimonials locale={locale} />
       <Newsroom locale={locale} />
+      <FAQ locale={locale} />
       <Footer locale={locale} />
       <CookieBanner locale={locale} />
     </div>

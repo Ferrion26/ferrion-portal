@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { type Locale } from "@/lib/i18n/translations";
 
 const PILLAR_IMAGES = [
@@ -41,7 +42,16 @@ const content = {
         icon: "🔄",
       },
     ],
+    detailLabel: "Lösungen im Detail",
+    detailLearn: "Mehr erfahren →",
+    details: [
+      { icon: "🗄", title: "Storage & Infrastruktur", slug: "storage" },
+      { icon: "🛡", title: "Backup & Security", slug: "backup" },
+      { icon: "🤖", title: "AI-Infrastruktur", slug: "ai-infrastruktur" },
+      { icon: "⚙", title: "Managed Services", slug: "managed-services" },
+    ],
     aiLabel: "AI-Infrastruktur",
+    aiMore: "AI-Infrastruktur im Detail →",
     aiDesc: "Wir begleiten Ihr Unternehmen auf dem Weg in die KI — von der Infrastruktur bis zum Betrieb.",
     aiItems: [
       { icon: "🖥", title: "GPU Server & Private AI Cluster", desc: "NVIDIA-Infrastruktur für anspruchsvolle AI-Workloads." },
@@ -77,7 +87,16 @@ const content = {
         icon: "🔄",
       },
     ],
+    detailLabel: "Solutions in Detail",
+    detailLearn: "Learn more →",
+    details: [
+      { icon: "🗄", title: "Storage & Infrastructure", slug: "storage" },
+      { icon: "🛡", title: "Backup & Security", slug: "backup" },
+      { icon: "🤖", title: "AI Infrastructure", slug: "ai-infrastruktur" },
+      { icon: "⚙", title: "Managed Services", slug: "managed-services" },
+    ],
     aiLabel: "AI Infrastructure",
+    aiMore: "AI Infrastructure in detail →",
     aiDesc: "We guide your company on the journey into AI — from infrastructure to operations.",
     aiItems: [
       { icon: "🖥", title: "GPU Servers & Private AI Clusters", desc: "NVIDIA infrastructure for demanding AI workloads." },
@@ -134,6 +153,9 @@ export default function Services({ locale }: { locale: Locale }) {
           <div className="flex items-center gap-3 mb-2">
             <span className="text-2xl">🤖</span>
             <p className="text-[#c9a84c] font-bold text-sm tracking-widest uppercase">{t.aiLabel}</p>
+            <Link href="/loesungen/ai-infrastruktur" className="ml-auto text-[10px] text-[#c9a84c] tracking-widest uppercase hover:underline">
+              {t.aiMore}
+            </Link>
           </div>
           <p className="text-gray-400 text-sm mb-8 ml-9">{t.aiDesc}</p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -153,6 +175,24 @@ export default function Services({ locale }: { locale: Locale }) {
                   <p className="text-gray-500 text-xs leading-relaxed">{item.desc}</p>
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Detail links */}
+        <div className="mt-16">
+          <p className="text-gray-500 text-[10px] font-bold tracking-widest uppercase mb-6">{t.detailLabel}</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {t.details.map((d) => (
+              <Link
+                key={d.slug}
+                href={`/loesungen/${d.slug}`}
+                className="bg-[#0d1117] border border-white/10 hover:border-[#c9a84c]/40 transition-colors group p-6 flex flex-col"
+              >
+                <span className="text-2xl mb-3">{d.icon}</span>
+                <p className="text-white font-bold text-sm mb-3 group-hover:text-[#c9a84c] transition-colors">{d.title}</p>
+                <span className="text-[#c9a84c] text-[10px] tracking-widest uppercase mt-auto">{t.detailLearn}</span>
+              </Link>
             ))}
           </div>
         </div>

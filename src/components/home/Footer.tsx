@@ -5,13 +5,19 @@ const content = {
   de: {
     tagline: "Inhabergeführtes IT-Systemhaus mit Fokus auf Infrastruktur, Datenbank-Expertise und Managed Services.",
     solutions: "Lösungen",
-    solutionLinks: ["Storage & Data Management", "Backup & Security", "Managed Services", "AI-Infrastruktur", "Datenbankservices"],
+    solutionLinks: [
+      { label: "Storage & Infrastruktur", href: "/loesungen/storage" },
+      { label: "Backup & Security", href: "/loesungen/backup" },
+      { label: "AI-Infrastruktur", href: "/loesungen/ai-infrastruktur" },
+      { label: "Managed Services", href: "/loesungen/managed-services" },
+    ],
     company: "Unternehmen",
     companyLinks: [
-      { label: "Über uns", href: "#ueber-uns" },
-      { label: "Newsroom", href: "#newsroom" },
-      { label: "Partner", href: "#partner" },
-      { label: "Kundenbereich", href: "/dashboard" },
+      { label: "Über uns", href: "/#ueber-uns" },
+      { label: "Newsroom", href: "/#newsroom" },
+      { label: "Karriere", href: "/karriere" },
+      { label: "FAQ", href: "/#faq" },
+      { label: "Kontakt", href: "/kontakt" },
     ],
     contact: "Kontakt",
     founders: "Gründer",
@@ -22,13 +28,19 @@ const content = {
   en: {
     tagline: "Owner-managed IT systems house focused on infrastructure, database expertise and managed services.",
     solutions: "Solutions",
-    solutionLinks: ["Storage & Data Management", "Backup & Security", "Managed Services", "AI Infrastructure", "Database Services"],
+    solutionLinks: [
+      { label: "Storage & Infrastructure", href: "/loesungen/storage" },
+      { label: "Backup & Security", href: "/loesungen/backup" },
+      { label: "AI Infrastructure", href: "/loesungen/ai-infrastruktur" },
+      { label: "Managed Services", href: "/loesungen/managed-services" },
+    ],
     company: "Company",
     companyLinks: [
-      { label: "About Us", href: "#ueber-uns" },
-      { label: "Newsroom", href: "#newsroom" },
-      { label: "Partners", href: "#partner" },
-      { label: "Customer Area", href: "/dashboard" },
+      { label: "About Us", href: "/#ueber-uns" },
+      { label: "Newsroom", href: "/#newsroom" },
+      { label: "Careers", href: "/karriere" },
+      { label: "FAQ", href: "/#faq" },
+      { label: "Contact", href: "/kontakt" },
     ],
     contact: "Contact",
     founders: "Founders",
@@ -58,8 +70,8 @@ export default function Footer({ locale = "de" }: { locale?: Locale }) {
             <p className="text-white font-bold text-xs tracking-widest uppercase mb-4">{t.solutions}</p>
             <ul className="space-y-2">
               {t.solutionLinks.map((l) => (
-                <li key={l}>
-                  <Link href="#loesungen" className="text-gray-500 text-xs hover:text-[#c9a84c] transition-colors">{l}</Link>
+                <li key={l.label}>
+                  <Link href={l.href} className="text-gray-500 text-xs hover:text-[#c9a84c] transition-colors">{l.label}</Link>
                 </li>
               ))}
             </ul>

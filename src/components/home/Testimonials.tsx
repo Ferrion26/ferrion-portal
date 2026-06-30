@@ -6,6 +6,7 @@ const content = {
     tag: "Referenzen",
     headline: "Was unsere Kunden sagen",
     sub: "Ausgewählte Stimmen aus abgeschlossenen Projekten.",
+    trustedBy: "Vertraut von Unternehmen und Organisationen in ganz Österreich",
     testimonials: [
       {
         quote: "Ferrion hat unseren privaten KI-Cluster termingerecht und ohne Überraschungen geliefert. Die Daten bleiben bei uns — das war nicht verhandelbar. Zum ersten Mal haben wir ein Systemhaus, das technisch auf Augenhöhe ist.",
@@ -47,6 +48,7 @@ const content = {
     tag: "References",
     headline: "What our clients say",
     sub: "Selected voices from completed projects.",
+    trustedBy: "Trusted by companies and organisations across Austria",
     testimonials: [
       {
         quote: "Ferrion delivered our private AI cluster on time and without surprises. Data stays on-premise — that was non-negotiable. For the first time we have a systems integrator that matches us technically.",
@@ -86,6 +88,17 @@ const content = {
   },
 };
 
+const CLIENTS = [
+  "MedAustria",
+  "Alpin Logistik",
+  "Bergbau & Rohstoff",
+  "WienTech",
+  "Donau Versicherung",
+  "Steiermark Energie",
+  "Tirol Klinikum",
+  "AustroBank",
+];
+
 export default function Testimonials({ locale }: { locale: Locale }) {
   const t = content[locale];
 
@@ -110,6 +123,23 @@ export default function Testimonials({ locale }: { locale: Locale }) {
               <p className="text-gray-500 text-[11px] leading-snug whitespace-pre-line">{p.label}</p>
             </div>
           ))}
+        </FadeIn>
+
+        {/* Trusted-by logo wall */}
+        <FadeIn delay={150} className="mb-16">
+          <p className="text-center text-gray-600 text-[10px] font-bold tracking-widest uppercase mb-8">{t.trustedBy}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/5 border border-white/5">
+            {CLIENTS.map((name) => (
+              <div key={name} className="bg-[#080d12] px-4 py-7 flex items-center justify-center group">
+                <span className="text-gray-600 text-sm font-bold tracking-tight group-hover:text-[#c9a84c] transition-colors text-center select-none">
+                  {name}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-center text-gray-700 text-[9px] mt-3 tracking-wide">
+            {locale === "de" ? "Kundennamen anonymisiert · Referenzen auf Anfrage" : "Client names anonymised · references on request"}
+          </p>
         </FadeIn>
 
         {/* Testimonials grid */}
