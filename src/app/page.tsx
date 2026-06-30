@@ -1,6 +1,7 @@
 import { getLocale } from "@/lib/i18n";
 import Header from "@/components/home/Header";
 import Hero from "@/components/home/Hero";
+import Showreel from "@/components/home/Showreel";
 import Partners from "@/components/home/Partners";
 import Services from "@/components/home/Services";
 import AboutUs from "@/components/home/AboutUs";
@@ -22,6 +23,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#0d1117] text-white">
       <Header locale={locale} />
       <Hero locale={locale} />
+      <Showreel locale={locale} />
       <Partners locale={locale} />
       <Services locale={locale} />
       <AboutUs locale={locale} />
