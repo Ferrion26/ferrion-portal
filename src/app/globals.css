@@ -8,6 +8,72 @@
   }
 }
 
+/* ── Hero ambient light animation (mountain background) ─────────── */
+@keyframes ferrion-kenburns {
+  0%   { transform: scale(1.05) translate(0, 0); }
+  50%  { transform: scale(1.12) translate(-1.5%, -1%); }
+  100% { transform: scale(1.05) translate(0, 0); }
+}
+
+/* Sun breaking through clouds: warm glow that brightens & drifts */
+@keyframes ferrion-sun {
+  0%   { opacity: 0.35; transform: translate(0, 0) scale(1); }
+  50%  { opacity: 0.85; transform: translate(2%, 1.5%) scale(1.15); }
+  100% { opacity: 0.35; transform: translate(0, 0) scale(1); }
+}
+
+/* God rays: light shafts pulsing in intensity */
+@keyframes ferrion-rays {
+  0%   { opacity: 0.10; transform: translateX(0) rotate(0deg); }
+  50%  { opacity: 0.30; transform: translateX(2%) rotate(0.6deg); }
+  100% { opacity: 0.10; transform: translateX(0) rotate(0deg); }
+}
+
+.hero-kenburns {
+  animation: ferrion-kenburns 38s ease-in-out infinite;
+  will-change: transform;
+}
+
+.hero-sun {
+  background: radial-gradient(
+    circle at 62% 30%,
+    rgba(255, 235, 190, 0.55) 0%,
+    rgba(255, 215, 150, 0.22) 22%,
+    rgba(255, 200, 120, 0.05) 45%,
+    transparent 65%
+  );
+  mix-blend-mode: screen;
+  animation: ferrion-sun 16s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+
+.hero-rays {
+  background: repeating-linear-gradient(
+    108deg,
+    transparent 0px,
+    transparent 22px,
+    rgba(255, 240, 205, 0.07) 22px,
+    rgba(255, 240, 205, 0.07) 26px
+  );
+  -webkit-mask-image: radial-gradient(circle at 62% 22%, black 0%, transparent 60%);
+  mask-image: radial-gradient(circle at 62% 22%, black 0%, transparent 60%);
+  filter: blur(6px);
+  mix-blend-mode: screen;
+  animation: ferrion-rays 12s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-kenburns,
+  .hero-sun,
+  .hero-rays {
+    animation: none;
+  }
+  .hero-kenburns { transform: scale(1.05); }
+  .hero-sun { opacity: 0.5; }
+  .hero-rays { opacity: 0.18; }
+}
+
 @layer components {
   .btn-primary {
     @apply inline-flex items-center justify-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors;

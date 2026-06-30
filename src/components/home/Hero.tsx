@@ -50,8 +50,12 @@ export default function Hero({ locale }: { locale: Locale }) {
 
   return (
     <section className="relative min-h-screen lg:h-screen flex flex-col overflow-hidden">
-      <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/images/hero.jpg')" }} />
+      <div className="hero-kenburns absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/images/hero.jpg')" }} />
       <div className="absolute inset-0 bg-black/55" />
+
+      {/* Ambient light — sun breaking through the clouds */}
+      <div className="hero-sun absolute inset-0 pointer-events-none" />
+      <div className="hero-rays absolute inset-0 pointer-events-none" />
 
       {/* Main content */}
       <div className="relative flex-1 flex items-center pt-16">
