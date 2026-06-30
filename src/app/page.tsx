@@ -1,4 +1,5 @@
-import { getLocale } from "@/lib/i18n";
+import { resolveLocale } from "@/lib/i18n";
+import { pageMetadata } from "@/lib/seo";
 import { getHeroLight } from "@/lib/settings";
 import Header from "@/components/home/Header";
 import Hero from "@/components/home/Hero";
@@ -14,14 +15,21 @@ import CookieBanner from "@/components/home/CookieBanner";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Ferrion IT Systemhaus — Infrastruktur, die trägt.",
-  description:
-    "Ferrion IT Systemhaus Wien: Infrastruktur, Datenbank-Expertise und Managed Services. Partner von Huawei, Pure Storage und Commvault.",
-};
+type SP = { searchParams: { [key: string]: string | string[] | undefined } };
 
-export default async function HomePage() {
-  const locale = getLocale();
+export function generateMetadata({ searchParams }: SP) {
+  return pageMetadata({
+    path: "/",
+    locale: resolveLocale(searchParams),
+    titleDe: "Ferrion IT Systemhaus — Infrastruktur, die trägt.",
+    titleEn: "Ferrion IT Systems House — Infrastructure that endures.",
+    descDe: "Ferrion IT Systemhaus Wien: Storage, Backup & Security, AI-Infrastruktur und Managed Services. Zertifizierter Partner von Huawei, Pure Storage und Commvault.",
+    descEn: "Ferrion IT Systems House Vienna: storage, backup & security, AI infrastructure and managed services. Certified partner of Huawei, Pure Storage and Commvault.",
+  });
+}
+
+export default async function HomePage({ searchParams }: SP) {
+  const locale = resolveLocale(searchParams);
   const heroLight = await getHeroLight();
 
   return (

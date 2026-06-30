@@ -61,6 +61,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="de">
       <head>
+        <link rel="preconnect" href="https://images.unsplash.com" />
+        <link rel="preload" as="image" href="/images/hero.jpg" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}

@@ -1,11 +1,15 @@
 import Link from "next/link";
-import { getLocale } from "@/lib/i18n";
+import { resolveLocale } from "@/lib/i18n";
+import { articleMetadata } from "@/lib/seo";
+import ArticleJsonLd from "@/components/ArticleJsonLd";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "FusionCompute 8.9 & 8.10 — Ferrion Newsroom",
-};
+type SP = { searchParams: { [key: string]: string | string[] | undefined } };
+
+export function generateMetadata({ searchParams }: SP) {
+  return articleMetadata("fusioncompute-8-9-8-10", searchParams);
+}
 
 const content = {
   de: {
@@ -242,12 +246,13 @@ const content = {
   },
 };
 
-export default function FusionComputeArticle() {
-  const locale = getLocale();
+export default function FusionComputeArticle({ searchParams }: SP) {
+  const locale = resolveLocale(searchParams);
   const t = content[locale];
 
   return (
     <div className="min-h-screen bg-[#0d1117]">
+      <ArticleJsonLd slug="fusioncompute-8-9-8-10" locale={locale} />
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0d1117]/95 backdrop-blur-md border-b border-white/10 h-16 flex items-center px-6">
         <Link href="/" className="mr-6">
           <img src="/logos/ferrion.svg" alt="Ferrion" className="h-9 w-auto" />

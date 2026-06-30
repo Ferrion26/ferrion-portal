@@ -1,31 +1,38 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { type Locale } from "@/lib/i18n/translations";
+import { resolveLocale } from "@/lib/i18n";
+import { pageMetadata } from "@/lib/seo";
 import Header from "@/components/home/Header";
 import Footer from "@/components/home/Footer";
 import { SOLUTIONS, getSolution } from "../solutions-data";
 
 export const dynamic = "force-dynamic";
 
+type SP = { searchParams: { [key: string]: string | string[] | undefined } };
+
 export function generateStaticParams() {
   return SOLUTIONS.map((s) => ({ slug: s.slug }));
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }) {
+export function generateMetadata({ params, searchParams }: { params: { slug: string } } & SP) {
   const sol = getSolution(params.slug);
   if (!sol) return {};
-  return {
-    title: `${sol.eyebrow.de} — Ferrion IT Systemhaus`,
-    description: sol.lead.de,
-  };
+  return pageMetadata({
+    path: `/loesungen/${sol.slug}`,
+    locale: resolveLocale(searchParams),
+    titleDe: `${sol.eyebrow.de} — Ferrion IT Systemhaus`,
+    titleEn: `${sol.eyebrow.en} — Ferrion IT Systems House`,
+    descDe: sol.lead.de,
+    descEn: sol.lead.en,
+  });
 }
 
-export default function SolutionPage({ params }: { params: { slug: string } }) {
+export default function SolutionPage({ params, searchParams }: { params: { slug: string } } & SP) {
   const sol = getSolution(params.slug);
   if (!sol) notFound();
 
-  const locale = (cookies().get("locale")?.value === "en" ? "en" : "de") as Locale;
+  const locale: Locale = resolveLocale(searchParams);
   const others = SOLUTIONS.filter((s) => s.slug !== sol.slug);
   const backLabel = locale === "de" ? "← Alle Lösungen" : "← All Solutions";
   const moreLabel = locale === "de" ? "Weitere Lösungen" : "More Solutions";

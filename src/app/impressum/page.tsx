@@ -1,7 +1,21 @@
 import Link from "next/link";
-import { getLocale } from "@/lib/i18n";
+import { resolveLocale } from "@/lib/i18n";
+import { pageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+type SP = { searchParams: { [key: string]: string | string[] | undefined } };
+
+export function generateMetadata({ searchParams }: SP) {
+  return pageMetadata({
+    path: "/impressum",
+    locale: resolveLocale(searchParams),
+    titleDe: "Impressum — Ferrion IT Systemhaus",
+    titleEn: "Legal Notice — Ferrion IT Systems House",
+    descDe: "Impressum und rechtliche Informationen der Ferrion IT Systemhaus GmbH.",
+    descEn: "Legal notice and company information of Ferrion IT Systemhaus GmbH.",
+  });
+}
 
 const content = {
   de: {
@@ -108,8 +122,8 @@ const content = {
   },
 };
 
-export default function ImpressumPage() {
-  const locale = getLocale();
+export default function ImpressumPage({ searchParams }: SP) {
+  const locale = resolveLocale(searchParams);
   const t = content[locale];
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { translations, type Locale } from "@/lib/i18n/translations";
 import { type HeroLightSettings, DEFAULT_HERO_LIGHT, heroLightToCssVars } from "@/lib/heroLight";
 
@@ -103,7 +104,9 @@ export default function Hero({ locale, light = DEFAULT_HERO_LIGHT }: { locale: L
               <div className="grid grid-cols-3 gap-3">
                 {newsItems.map((n) => (
                   <div key={n.title.de} className="bg-white group cursor-pointer overflow-hidden">
-                    <img src={n.img} alt={n.title[locale]} className="w-full h-16 object-cover" crossOrigin="anonymous" />
+                    <div className="relative w-full h-16">
+                      <Image src={n.img} alt={n.title[locale]} fill sizes="(max-width: 1024px) 33vw, 120px" className="object-cover" />
+                    </div>
                     <div className="p-2">
                       <p className="text-gray-400 text-[9px] mb-1">{n.date[locale]}</p>
                       <p className="text-gray-800 text-[10px] font-medium leading-snug group-hover:text-[#c9a84c] transition-colors">{n.title[locale]}</p>

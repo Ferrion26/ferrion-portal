@@ -1,10 +1,24 @@
 import Link from "next/link";
-import { getLocale } from "@/lib/i18n";
+import { resolveLocale } from "@/lib/i18n";
+import { pageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
-export default function DatenschutzPage() {
-  const locale = getLocale();
+type SP = { searchParams: { [key: string]: string | string[] | undefined } };
+
+export function generateMetadata({ searchParams }: SP) {
+  return pageMetadata({
+    path: "/datenschutz",
+    locale: resolveLocale(searchParams),
+    titleDe: "Datenschutz — Ferrion IT Systemhaus",
+    titleEn: "Privacy Policy — Ferrion IT Systems House",
+    descDe: "Datenschutzerklärung der Ferrion IT Systemhaus GmbH gemäß DSGVO / DSG 2018.",
+    descEn: "Privacy policy of Ferrion IT Systemhaus GmbH in accordance with GDPR / Austrian DSG 2018.",
+  });
+}
+
+export default function DatenschutzPage({ searchParams }: SP) {
+  const locale = resolveLocale(searchParams);
 
   const t = locale === "en" ? en : de;
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { type Locale } from "@/lib/i18n/translations";
 
 const PILLAR_IMAGES = [
@@ -127,11 +128,12 @@ export default function Services({ locale }: { locale: Locale }) {
             {t.pillars.map((p, i) => (
               <div key={p.num} className="bg-[#0d1117] border border-white/10 hover:border-[#c9a84c]/40 transition-colors group relative overflow-hidden flex flex-col">
                 <div className="relative h-44 overflow-hidden shrink-0">
-                  <img
+                  <Image
                     src={PILLAR_IMAGES[i]}
                     alt={p.title}
-                    className="w-full h-full object-cover opacity-60 group-hover:opacity-75 group-hover:scale-105 transition-all duration-500"
-                    crossOrigin="anonymous"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="object-cover opacity-60 group-hover:opacity-75 group-hover:scale-105 transition-all duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0d1117]" />
                   <span className="absolute top-4 right-5 text-5xl font-black text-white/10 select-none">{p.num}</span>
@@ -162,11 +164,12 @@ export default function Services({ locale }: { locale: Locale }) {
             {t.aiItems.map((item, i) => (
               <div key={item.title} className="bg-[#111820] border border-white/10 hover:border-[#c9a84c]/30 transition-colors group overflow-hidden">
                 <div className="relative h-28 overflow-hidden">
-                  <img
+                  <Image
                     src={AI_IMAGES[i]}
                     alt={item.title}
-                    className="w-full h-full object-cover opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-500"
-                    crossOrigin="anonymous"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 25vw"
+                    className="object-cover opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#111820]" />
                 </div>

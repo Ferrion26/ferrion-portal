@@ -1,10 +1,18 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
 import { type Locale } from "@/lib/i18n/translations";
+import { resolveLocale } from "@/lib/i18n";
+import { articleMetadata } from "@/lib/seo";
+import ArticleJsonLd from "@/components/ArticleJsonLd";
 import Header from "@/components/home/Header";
 import Footer from "@/components/home/Footer";
 
 export const dynamic = "force-dynamic";
+
+type SP = { searchParams: { [key: string]: string | string[] | undefined } };
+
+export function generateMetadata({ searchParams }: SP) {
+  return articleMetadata("huawei-dorado-v7", searchParams);
+}
 
 const content = {
   de: {
@@ -108,13 +116,14 @@ function renderBody(text: string) {
   });
 }
 
-export default function DoradoV7Article() {
-  const locale = (cookies().get("locale")?.value === "en" ? "en" : "de") as Locale;
+export default function DoradoV7Article({ searchParams }: SP) {
+  const locale: Locale = resolveLocale(searchParams);
   const t = content[locale];
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-white">
       <Header locale={locale} />
+      <ArticleJsonLd slug="huawei-dorado-v7" locale={locale} />
       <main className="pt-24 pb-24">
         <div className="max-w-3xl mx-auto px-6">
           <Link href="/newsroom" className="text-[#c9a84c] text-xs font-bold tracking-widest uppercase hover:underline mb-10 block">

@@ -1,15 +1,24 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
 import { type Locale } from "@/lib/i18n/translations";
+import { resolveLocale } from "@/lib/i18n";
+import { pageMetadata } from "@/lib/seo";
 import Header from "@/components/home/Header";
 import Footer from "@/components/home/Footer";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Karriere — Ferrion IT Systemhaus",
-  description: "Werde Teil von Ferrion. Offene Stellen im Bereich Infrastruktur, Storage, AI und Managed Services in Wien.",
-};
+type SP = { searchParams: { [key: string]: string | string[] | undefined } };
+
+export function generateMetadata({ searchParams }: SP) {
+  return pageMetadata({
+    path: "/karriere",
+    locale: resolveLocale(searchParams),
+    titleDe: "Karriere — Ferrion IT Systemhaus",
+    titleEn: "Careers — Ferrion IT Systems House",
+    descDe: "Werde Teil von Ferrion. Offene Stellen im Bereich Infrastruktur, Storage, AI und Managed Services in Wien.",
+    descEn: "Join Ferrion. Open positions in infrastructure, storage, AI and managed services in Vienna.",
+  });
+}
 
 const content = {
   de: {
@@ -110,8 +119,8 @@ const content = {
   },
 };
 
-export default function KarrierePage() {
-  const locale = (cookies().get("locale")?.value === "en" ? "en" : "de") as Locale;
+export default function KarrierePage({ searchParams }: SP) {
+  const locale: Locale = resolveLocale(searchParams);
   const t = content[locale];
 
   return (
