@@ -135,24 +135,6 @@ export default function Showreel({ locale }: { locale: Locale }) {
 
                 {/* Subtle vignette */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none" />
-
-                {/* Ferrion badge top */}
-                <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-                  <div className="bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10">
-                    <span className="text-white text-[10px] font-bold tracking-widest uppercase">Ferrion</span>
-                  </div>
-                  <div className="bg-[#c9a84c]/90 px-2 py-1 rounded-full">
-                    <span className="text-black text-[9px] font-bold tracking-wide uppercase">LIVE</span>
-                  </div>
-                </div>
-
-                {/* Bottom label */}
-                <div className="absolute bottom-4 left-4 right-4">
-                  <div className="bg-black/70 backdrop-blur-sm px-3 py-2 rounded-xl border border-white/10">
-                    <p className="text-white text-[10px] font-bold">IT Systemhaus Wien</p>
-                    <p className="text-[#c9a84c] text-[9px] tracking-wide mt-0.5">build to endure</p>
-                  </div>
-                </div>
               </div>
 
               {/* Decorative lines */}
