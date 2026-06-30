@@ -98,7 +98,7 @@ export default function Hero({ locale, light = DEFAULT_HERO_LIGHT }: { locale: L
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-white font-bold text-xs tracking-widest uppercase">{t.hero.newsroom}</p>
-                <Link href="#newsroom" className="text-[10px] text-[#c9a84c] tracking-widest uppercase hover:underline">{t.hero.allNews}</Link>
+                <Link href="/newsroom" className="text-[10px] text-[#c9a84c] tracking-widest uppercase hover:underline">{t.hero.allNews}</Link>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 {newsItems.map((n) => (

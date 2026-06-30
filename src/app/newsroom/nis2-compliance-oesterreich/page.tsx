@@ -97,7 +97,7 @@ export default function NIS2Article() {
       <main className="pt-24 pb-24">
         <div className="max-w-3xl mx-auto px-6">
           {/* Back */}
-          <Link href="/#newsroom" className="text-[#c9a84c] text-xs font-bold tracking-widest uppercase hover:underline mb-10 block">
+          <Link href="/newsroom" className="text-[#c9a84c] text-xs font-bold tracking-widest uppercase hover:underline mb-10 block">
             {t.back}
           </Link>
 

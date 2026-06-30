@@ -253,7 +253,7 @@ export default function FusionComputeArticle() {
           <img src="/logos/ferrion.svg" alt="Ferrion" className="h-9 w-auto" />
         </Link>
         <div className="h-5 w-px bg-white/20 mr-6" />
-        <Link href="/#newsroom" className="text-xs text-gray-400 hover:text-[#c9a84c] transition-colors tracking-widest uppercase">
+        <Link href="/newsroom" className="text-xs text-gray-400 hover:text-[#c9a84c] transition-colors tracking-widest uppercase">
           {t.back}
         </Link>
       </header>
