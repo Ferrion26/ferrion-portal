@@ -1,5 +1,18 @@
 import { type Locale } from "@/lib/i18n/translations";
 
+const PILLAR_IMAGES = [
+  "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&q=70", // server rack / storage
+  "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600&q=70", // team consulting / architecture
+  "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&q=70", // monitoring dashboard
+];
+
+const AI_IMAGES = [
+  "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=400&q=70", // GPU / chip
+  "https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=400&q=70", // kubernetes / containers
+  "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400&q=70", // data storage / datacenter
+  "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&q=70", // backup / security shield
+];
+
 const content = {
   de: {
     tag: "Unsere Lösungen",
@@ -92,15 +105,25 @@ export default function Services({ locale }: { locale: Locale }) {
         <div className="mb-4">
           <p className="text-gray-500 text-[10px] font-bold tracking-widest uppercase mb-6">{t.pillarsLabel}</p>
           <div className="grid md:grid-cols-3 gap-6 mb-16">
-            {t.pillars.map((p) => (
-              <div key={p.num} className="bg-[#0d1117] border border-white/10 p-7 hover:border-[#c9a84c]/40 transition-colors group relative overflow-hidden">
-                <span className="absolute top-4 right-5 text-5xl font-black text-white/5 select-none">{p.num}</span>
-                <div className="text-3xl mb-4">{p.icon}</div>
-                <span className="inline-block text-[9px] font-bold tracking-widest uppercase text-[#c9a84c] border border-[#c9a84c]/30 px-2 py-0.5 mb-3">
-                  {p.badge}
-                </span>
-                <h3 className="text-white font-bold text-lg mb-2 group-hover:text-[#c9a84c] transition-colors">{p.title}</h3>
-                <p className="text-gray-400 text-sm leading-relaxed">{p.desc}</p>
+            {t.pillars.map((p, i) => (
+              <div key={p.num} className="bg-[#0d1117] border border-white/10 hover:border-[#c9a84c]/40 transition-colors group relative overflow-hidden flex flex-col">
+                <div className="relative h-44 overflow-hidden shrink-0">
+                  <img
+                    src={PILLAR_IMAGES[i]}
+                    alt={p.title}
+                    className="w-full h-full object-cover opacity-60 group-hover:opacity-75 group-hover:scale-105 transition-all duration-500"
+                    crossOrigin="anonymous"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0d1117]" />
+                  <span className="absolute top-4 right-5 text-5xl font-black text-white/10 select-none">{p.num}</span>
+                </div>
+                <div className="p-7 flex-1">
+                  <span className="inline-block text-[9px] font-bold tracking-widest uppercase text-[#c9a84c] border border-[#c9a84c]/30 px-2 py-0.5 mb-3">
+                    {p.badge}
+                  </span>
+                  <h3 className="text-white font-bold text-lg mb-2 group-hover:text-[#c9a84c] transition-colors">{p.title}</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{p.desc}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -114,11 +137,21 @@ export default function Services({ locale }: { locale: Locale }) {
           </div>
           <p className="text-gray-400 text-sm mb-8 ml-9">{t.aiDesc}</p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {t.aiItems.map((item) => (
-              <div key={item.title} className="bg-[#111820] border border-white/10 p-5 hover:border-[#c9a84c]/30 transition-colors">
-                <div className="text-xl mb-3">{item.icon}</div>
-                <p className="text-white text-xs font-bold mb-1">{item.title}</p>
-                <p className="text-gray-500 text-xs leading-relaxed">{item.desc}</p>
+            {t.aiItems.map((item, i) => (
+              <div key={item.title} className="bg-[#111820] border border-white/10 hover:border-[#c9a84c]/30 transition-colors group overflow-hidden">
+                <div className="relative h-28 overflow-hidden">
+                  <img
+                    src={AI_IMAGES[i]}
+                    alt={item.title}
+                    className="w-full h-full object-cover opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-500"
+                    crossOrigin="anonymous"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#111820]" />
+                </div>
+                <div className="p-5">
+                  <p className="text-white text-xs font-bold mb-1">{item.title}</p>
+                  <p className="text-gray-500 text-xs leading-relaxed">{item.desc}</p>
+                </div>
               </div>
             ))}
           </div>
