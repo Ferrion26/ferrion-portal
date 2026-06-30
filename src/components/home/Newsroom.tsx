@@ -21,12 +21,6 @@ const news = [
     href: "/newsroom/pure-storage-migration",
   },
   {
-    date: { de: "30. April 2024", en: "April 30, 2024" },
-    title: { de: "Private AI Cluster für Klinikgruppe: NVIDIA GPU On-Premise statt Cloud", en: "Private AI Cluster for Hospital Group: NVIDIA GPU On-Premise instead of Cloud" },
-    tag: "AI",
-    href: "/newsroom/private-ai-klinik",
-  },
-  {
     date: { de: "06. Mai 2024", en: "May 6, 2024" },
     title: { de: "NIS2-Compliance in 10 Wochen: Von der Risikoanalyse bis zum Audit", en: "NIS2 Compliance in 10 Weeks: From Risk Analysis to Passed Audit" },
     tag: "Backup & Security",
