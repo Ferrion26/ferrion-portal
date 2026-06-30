@@ -4,6 +4,7 @@ import { newsBySlugs } from "@/app/newsroom/news-data";
 
 // Curated selection shown on the homepage (full history lives at /newsroom).
 const FEATURED = [
+  "citrix-netscaler-security-bulletin",
   "pure-storage-ki-plattform",
   "huawei-dorado-v7",
   "pure-storage-migration",

@@ -11,6 +11,18 @@ export type NewsArticle = {
 // Single source of truth for all newsroom articles.
 export const NEWS: NewsArticle[] = [
   {
+    slug: "citrix-netscaler-security-bulletin",
+    href: "/newsroom/citrix-netscaler-security-bulletin",
+    iso: "2026-06-30",
+    date: { de: "30. Juni 2026", en: "June 30, 2026" },
+    tag: "Security",
+    title: { de: "Citrix Security Bulletin: Sechs Schwachstellen in NetScaler ADC & Gateway (CTX696604)", en: "Citrix Security Bulletin: Six Vulnerabilities in NetScaler ADC & Gateway (CTX696604)" },
+    excerpt: {
+      de: "Cloud Software Group adressiert sechs CVEs (CVSS bis 8,8) in NetScaler ADC & Gateway — von DoS bis unauthentifiziertem File Read. Updates stehen bereit; Betreiber sollten zeitnah patchen.",
+      en: "Cloud Software Group addresses six CVEs (CVSS up to 8.8) in NetScaler ADC & Gateway — from DoS to unauthenticated file read. Updates are available; operators should patch promptly.",
+    },
+  },
+  {
     slug: "pure-storage-ki-plattform",
     href: "/newsroom/pure-storage-ki-plattform",
     iso: "2025-10-01",
