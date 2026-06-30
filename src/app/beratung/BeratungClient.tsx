@@ -141,9 +141,9 @@ const STEPS_CONTENT = {
         { name: "message", label: "Zusätzliche Informationen", type: "textarea", placeholder: "Was sollen wir über Ihren Bedarf wissen?", required: false },
       ],
     },
-    topicLabels: { storage: "Storage & Infrastruktur", backup: "Backup & Security", managed: "Managed Services", cloud: "Cloud & Virtualisierung", ai: "AI-Infrastruktur", database: "Datenbank-Services", general: "Allgemeine Beratung" },
-    sizeLabels: { small: "1–50 MA", medium: "51–250 MA", large: "251–1.000 MA", enterprise: "1.000+ MA" },
-    timelineLabels: { urgent: "Sofort", soon: "Kurzfristig", planned: "Mittelfristig", exploring: "Langfristig" },
+    topicLabels: { storage: "Storage & Infrastruktur", backup: "Backup & Security", managed: "Managed Services", cloud: "Cloud & Virtualisierung", ai: "AI-Infrastruktur", database: "Datenbank-Services", general: "Allgemeine Beratung" } as Record<string, string>,
+    sizeLabels: { small: "1–50 MA", medium: "51–250 MA", large: "251–1.000 MA", enterprise: "1.000+ MA" } as Record<string, string>,
+    timelineLabels: { urgent: "Sofort", soon: "Kurzfristig", planned: "Mittelfristig", exploring: "Langfristig" } as Record<string, string>,
   },
   en: {
     topic: {
@@ -238,9 +238,9 @@ const STEPS_CONTENT = {
         { name: "message", label: "Additional Information", type: "textarea", placeholder: "What should we know about your needs?", required: false },
       ],
     },
-    topicLabels: { storage: "Storage & Infrastructure", backup: "Backup & Security", managed: "Managed Services", cloud: "Cloud & Virtualisation", ai: "AI Infrastructure", database: "Database Services", general: "General Consulting" },
-    sizeLabels: { small: "1–50 emp.", medium: "51–250 emp.", large: "251–1,000 emp.", enterprise: "1,000+ emp." },
-    timelineLabels: { urgent: "Immediate", soon: "Short-term", planned: "Medium-term", exploring: "Long-term" },
+    topicLabels: { storage: "Storage & Infrastructure", backup: "Backup & Security", managed: "Managed Services", cloud: "Cloud & Virtualisation", ai: "AI Infrastructure", database: "Database Services", general: "General Consulting" } as Record<string, string>,
+    sizeLabels: { small: "1–50 emp.", medium: "51–250 emp.", large: "251–1,000 emp.", enterprise: "1,000+ emp." } as Record<string, string>,
+    timelineLabels: { urgent: "Immediate", soon: "Short-term", planned: "Medium-term", exploring: "Long-term" } as Record<string, string>,
   },
 };
 
