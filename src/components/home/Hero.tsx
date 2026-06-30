@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { translations, type Locale } from "@/lib/i18n/translations";
+import { type HeroLightSettings, DEFAULT_HERO_LIGHT, heroLightToCssVars } from "@/lib/heroLight";
 
 const partners = [
   { key: "HUAWEI", logo: "/logos/Huawei_Standard_logo.svg.png", badgeKey: "goldBadge" as const, desc: { de: "Leithersteller — Storage & Data Center Infrastruktur.", en: "Lead vendor — Storage & Data Center Infrastructure." } },
@@ -44,12 +45,15 @@ const heroCopy = {
   },
 };
 
-export default function Hero({ locale }: { locale: Locale }) {
+export default function Hero({ locale, light = DEFAULT_HERO_LIGHT }: { locale: Locale; light?: HeroLightSettings }) {
   const t = translations[locale];
   const h = heroCopy[locale];
 
   return (
-    <section className="relative min-h-screen lg:h-screen flex flex-col overflow-hidden">
+    <section
+      className={`relative min-h-screen lg:h-screen flex flex-col overflow-hidden ${light.enabled ? "" : "hero-anim-off"}`}
+      style={heroLightToCssVars(light)}
+    >
       <div className="hero-kenburns absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/images/hero.jpg')" }} />
       <div className="absolute inset-0 bg-black/55" />
 

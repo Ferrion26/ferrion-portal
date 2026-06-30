@@ -1,4 +1,5 @@
 import { getLocale } from "@/lib/i18n";
+import { getHeroLight } from "@/lib/settings";
 import Header from "@/components/home/Header";
 import Hero from "@/components/home/Hero";
 import Showreel from "@/components/home/Showreel";
@@ -19,13 +20,14 @@ export const metadata = {
     "Ferrion IT Systemhaus Wien: Infrastruktur, Datenbank-Expertise und Managed Services. Partner von Huawei, Pure Storage und Commvault.",
 };
 
-export default function HomePage() {
+export default async function HomePage() {
   const locale = getLocale();
+  const heroLight = await getHeroLight();
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-white">
       <Header locale={locale} />
-      <Hero locale={locale} />
+      <Hero locale={locale} light={heroLight} />
       <Showreel locale={locale} />
       <Partners locale={locale} />
       <Services locale={locale} />

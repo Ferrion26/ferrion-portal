@@ -17,6 +17,7 @@ export default function AdminSidebar({ userName, locale }: { userName?: string; 
     { href: "/admin/quotes", label: s.quotes, icon: "📋" },
     { href: "/admin/documents", label: s.documents, icon: "📄" },
     { href: "/admin/tickets", label: s.tickets, icon: "🎟" },
+    { href: "/admin/einstellungen", label: locale === "de" ? "Einstellungen" : "Settings", icon: "⚙" },
   ];
 
   return (

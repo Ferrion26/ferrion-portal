@@ -44,6 +44,12 @@ enum TicketPriority {
   URGENT
 }
 
+model SiteSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
