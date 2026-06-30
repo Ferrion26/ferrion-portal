@@ -5,8 +5,10 @@ import Showreel from "@/components/home/Showreel";
 import Partners from "@/components/home/Partners";
 import Services from "@/components/home/Services";
 import AboutUs from "@/components/home/AboutUs";
+import Testimonials from "@/components/home/Testimonials";
 import Newsroom from "@/components/home/Newsroom";
 import Footer from "@/components/home/Footer";
+import CookieBanner from "@/components/home/CookieBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -27,8 +29,10 @@ export default function HomePage() {
       <Partners locale={locale} />
       <Services locale={locale} />
       <AboutUs locale={locale} />
+      <Testimonials locale={locale} />
       <Newsroom locale={locale} />
       <Footer locale={locale} />
+      <CookieBanner locale={locale} />
     </div>
   );
 }

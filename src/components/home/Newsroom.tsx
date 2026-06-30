@@ -3,22 +3,28 @@ import { type Locale } from "@/lib/i18n/translations";
 
 const news = [
   {
+    date: { de: "22. März 2024", en: "March 22, 2024" },
+    title: { de: "500 TB in 68 Stunden: Zero-Downtime-Migration auf Pure Storage FlashArray", en: "500 TB in 68 Hours: Zero-Downtime Migration to Pure Storage FlashArray" },
+    tag: "Storage",
+    href: "/newsroom/pure-storage-migration",
+  },
+  {
+    date: { de: "30. April 2024", en: "April 30, 2024" },
+    title: { de: "Private AI Cluster für Klinikgruppe: NVIDIA GPU On-Premise statt Cloud", en: "Private AI Cluster for Hospital Group: NVIDIA GPU On-Premise instead of Cloud" },
+    tag: "AI",
+    href: "/newsroom/private-ai-klinik",
+  },
+  {
+    date: { de: "06. Mai 2024", en: "May 6, 2024" },
+    title: { de: "NIS2-Compliance in 10 Wochen: Von der Risikoanalyse bis zum Audit", en: "NIS2 Compliance in 10 Weeks: From Risk Analysis to Passed Audit" },
+    tag: "Backup & Security",
+    href: "/newsroom/nis2-compliance-oesterreich",
+  },
+  {
     date: { de: "15. Mai 2024", en: "May 15, 2024" },
     title: { de: "FusionCompute 8.9 & 8.10: Neuerungen im Überblick", en: "FusionCompute 8.9 & 8.10: Key Updates Overview" },
     tag: "Huawei",
     href: "/newsroom/fusioncompute-8-9-8-10",
-  },
-  {
-    date: { de: "06. Mai 2024", en: "May 6, 2024" },
-    title: { de: "NIS2-Compliance: Was IT-Verantwortliche jetzt wissen müssen", en: "NIS2 Compliance: What IT Decision-Makers Need to Know Now" },
-    tag: "Backup & Security",
-    href: "#newsroom",
-  },
-  {
-    date: { de: "30. April 2024", en: "April 30, 2024" },
-    title: { de: "AI-Infrastruktur: GPU Cluster für Enterprise-Workloads", en: "AI Infrastructure: GPU Clusters for Enterprise Workloads" },
-    tag: "AI",
-    href: "#newsroom",
   },
 ];
 
@@ -39,7 +45,7 @@ export default function Newsroom({ locale }: { locale: Locale }) {
             {isEn ? "All News →" : "Alle News →"}
           </Link>
         </div>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {news.map((n) => (
             <Link key={n.title.de} href={n.href}>
               <article className="bg-[#111820] border border-white/10 p-6 hover:border-[#c9a84c]/30 transition-colors group cursor-pointer h-full">
@@ -50,9 +56,7 @@ export default function Newsroom({ locale }: { locale: Locale }) {
                 <h3 className="text-white font-bold text-sm leading-snug group-hover:text-[#c9a84c] transition-colors">
                   {n.title[locale]}
                 </h3>
-                {n.href !== "#newsroom" && (
-                  <p className="text-[#c9a84c] text-[10px] mt-3 tracking-widest uppercase">Artikel lesen →</p>
-                )}
+                <p className="text-[#c9a84c] text-[10px] mt-3 tracking-widest uppercase">{locale === "de" ? "Artikel lesen →" : "Read Article →"}</p>
               </article>
             </Link>
           ))}

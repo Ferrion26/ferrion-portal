@@ -19,7 +19,7 @@ export default function Header({ locale }: { locale: Locale }) {
     { label: t.nav.about, href: "#ueber-uns" },
     { label: t.nav.newsroom, href: "#newsroom" },
     { label: t.nav.customerArea, href: "/dashboard" },
-    { label: t.nav.contact, href: "#kontakt" },
+    { label: t.nav.contact, href: "/kontakt" },
   ];
 
   async function handleLogin(e: React.FormEvent) {
