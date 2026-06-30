@@ -4,6 +4,12 @@ import { type Locale } from "@/lib/i18n/translations";
 const news = [
   {
     date: { de: "1. Oktober 2025", en: "October 1, 2025" },
+    title: { de: "Pure Storage: Die Plattform für das KI-Zeitalter", en: "Pure Storage: The Platform for the AI Era" },
+    tag: "Pure Storage",
+    href: "/newsroom/pure-storage-ki-plattform",
+  },
+  {
+    date: { de: "1. Oktober 2025", en: "October 1, 2025" },
     title: { de: "Huawei OceanStor Dorado V7: Die neue Benchmark für All-Flash-Storage in der KI-Ära", en: "Huawei OceanStor Dorado V7: The New Benchmark for All-Flash Storage in the AI Era" },
     tag: "Huawei",
     href: "/newsroom/huawei-dorado-v7",

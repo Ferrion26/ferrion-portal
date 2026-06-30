@@ -28,6 +28,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }));
 
   const newsRoutes = [
+    "/newsroom/pure-storage-ki-plattform",
     "/newsroom/huawei-dorado-v7",
     "/newsroom/pure-storage-migration",
     "/newsroom/private-ai-klinik",
