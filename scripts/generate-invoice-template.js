@@ -189,7 +189,7 @@ const sectionH = (t) => p(run(t, { size: 21, bold: true, color: INK, characterSp
 const subH = (t) => p(run(t, { size: 17, bold: true, color: INK }), { spacing: { before: 180, after: 40 } });
 const para = (t) => p(run(t, { size: 16, color: BODY }), { spacing: { after: 70 }, alignment: AlignmentType.JUSTIFIED });
 const bullet = (t) => p([run("▸  ", { color: GOLD, size: 16 }), run(t, { size: 16, color: BODY })], { spacing: { after: 30 }, indent: { left: 220 } });
-const sigRule = () => new Paragraph({ children: [run(" ")], spacing: { before: 380 }, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "9CA3AF", space: 20 } } });
+const sigRule = () => new Paragraph({ children: [run(" ")], spacing: { before: 300 }, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "9CA3AF", space: 20 } } });
 const sigCap = (t) => p(run(t, { size: 13, color: GRAY }), { spacing: { before: 20 } });
 
 const electronicNote = () => new Table({
@@ -362,6 +362,115 @@ function confirmationBody(cfg) {
   ];
 }
 
+// ── Mahnung ─────────────────────────────────────────────────
+const dunningSummary = () => new Table({
+  width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: TCOLS, borders: noBorders,
+  rows: [
+    totalRow("Offener Rechnungsbetrag", "{total} {currency}"),
+    totalRow("Mahnspesen", "{reminder_fee} {currency}"),
+    totalRow("Verzugszinsen", "{interest} {currency}"),
+    totalRow("Gesamt offen", "{amount_due} {currency}", { emphasize: true, band: true }),
+  ],
+});
+function mahnungBody(cfg) {
+  return [
+    headerBand(cfg), goldRule(), issuerMeta(cfg), ...billTo(cfg),
+    p(run(""), { spacing: { after: 120 } }),
+    para("Sehr geehrte Damen und Herren, für die nachstehende Rechnung {invoice_number} vom {invoice_date} konnten wir bis heute leider keinen Zahlungseingang feststellen. Wir ersuchen Sie höflich, den offenen Betrag umgehend zu begleichen."),
+    dunningSummary(),
+    para("Bitte überweisen Sie den Gesamtbetrag von {amount_due} {currency} bis spätestens {due_date} auf unser Konto {issuer_iban} ({issuer_bank}), Verwendungszweck {invoice_number}."),
+    para("Sollte sich Ihre Zahlung mit diesem Schreiben überschnitten haben, betrachten Sie dieses bitte als gegenstandslos. Für Rückfragen erreichen Sie uns unter info@ferrion.at."),
+    p(run(cfg.thanks, { size: 16, italics: true, color: GRAY }), { alignment: AlignmentType.CENTER, spacing: { before: 360, after: 100 } }),
+    hint(),
+  ];
+}
+
+// ── Gutschrift / Storno ─────────────────────────────────────
+function gutschriftBody(cfg) {
+  return [
+    headerBand(cfg), goldRule(), issuerMeta(cfg), ...billTo(cfg),
+    p(run(""), { spacing: { after: 120 } }),
+    para("Hiermit erteilen wir Ihnen zur Rechnung {invoice_number} vom {invoice_date} folgende Gutschrift. Grund der Gutschrift: {credit_reason}."),
+    itemsTable(), totals(),
+    para("Der ausgewiesene Gutschriftsbetrag wird Ihnen rückerstattet bzw. mit offenen Forderungen verrechnet."),
+    p(run(cfg.thanks, { size: 16, italics: true, color: GRAY }), { alignment: AlignmentType.CENTER, spacing: { before: 360, after: 100 } }),
+    hint(),
+  ];
+}
+
+// ── Abnahmeprotokoll ────────────────────────────────────────
+function abnahmeBody(cfg) {
+  return [
+    headerBand(cfg), goldRule(), issuerMeta(cfg), ...billTo(cfg),
+    sectionH("1)  GEGENSTAND DER ABNAHME"),
+    para("Projekt / Leistung: {project_name}"),
+    para("{project_scope}"),
+    sectionH("2)  DURCHGEFÜHRTE LEISTUNGEN"),
+    para("{service_description}"),
+    bullet("Installation und Konfiguration gemäß Auftrag {order_reference}"),
+    bullet("Funktionstests und produktive Inbetriebnahme"),
+    bullet("Einschulung sowie Übergabe der Dokumentation"),
+    sectionH("3)  FESTSTELLUNGEN"),
+    para("[   ]  Abnahme ohne Mängel"),
+    para("[   ]  Abnahme mit geringfügigen Mängeln (siehe Mängelliste)"),
+    para("[   ]  Abnahme verweigert"),
+    subH("Mängelliste / Anmerkungen"),
+    para("{defects}"),
+    sectionH("4)  ABNAHMEERKLÄRUNG"),
+    para("Der Auftraggeber bestätigt mit seiner Unterschrift die vertragsgemäße Erbringung der oben genannten Leistungen. Mit der Abnahme beginnt die Gewährleistungsfrist."),
+    signatures(),
+    p(run(cfg.thanks, { size: 16, italics: true, color: GRAY }), { alignment: AlignmentType.CENTER, spacing: { before: 200, after: 60 } }),
+    hint(),
+  ];
+}
+
+// ── Wartungs-/SLA-Vertrag ───────────────────────────────────
+const SLACOLS = [1900, 4419, 3319];
+const slaTable = () => new Table({
+  width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: SLACOLS, borders: noBorders,
+  rows: [
+    new TableRow({ tableHeader: true, children: [
+      headCell("PRIORITÄT", SLACOLS[0]), headCell("BESCHREIBUNG", SLACOLS[1]), headCell("REAKTIONSZEIT", SLACOLS[2], AlignmentType.RIGHT),
+    ] }),
+    new TableRow({ children: [bodyCell("Kritisch", SLACOLS[0]), bodyCell("Totalausfall / Sicherheitsvorfall", SLACOLS[1]), bodyCell("{sla_critical}", SLACOLS[2], AlignmentType.RIGHT)] }),
+    new TableRow({ children: [bodyCell("Hoch", SLACOLS[0]), bodyCell("Wesentliche Beeinträchtigung", SLACOLS[1]), bodyCell("{sla_high}", SLACOLS[2], AlignmentType.RIGHT)] }),
+    new TableRow({ children: [bodyCell("Mittel", SLACOLS[0]), bodyCell("Eingeschränkte Funktion", SLACOLS[1]), bodyCell("{sla_medium}", SLACOLS[2], AlignmentType.RIGHT)] }),
+    new TableRow({ children: [bodyCell("Niedrig", SLACOLS[0]), bodyCell("Anfrage / Change Request", SLACOLS[1]), bodyCell("{sla_low}", SLACOLS[2], AlignmentType.RIGHT)] }),
+  ],
+});
+function wartungBody(cfg) {
+  return [
+    headerBand(cfg), goldRule(), issuerMeta(cfg), ...billTo(cfg),
+    sectionH("PRÄAMBEL"),
+    para("Zwischen Ferrion IT Systemhaus GmbH (Auftragnehmer) und {customer_company} (Auftraggeber) wird der nachstehende Wartungs- und Servicevertrag geschlossen. Er regelt Betrieb, Wartung und Support der beim Auftraggeber eingesetzten Infrastruktur."),
+    sectionH("1)  LEISTUNGSUMFANG"),
+    para("Der Auftragnehmer erbringt die folgenden wiederkehrenden Leistungen:"),
+    para("{service_description}"),
+    bullet("Proaktives Monitoring und Alerting rund um die Uhr"),
+    bullet("Wartung, Updates und Patch-Management in definierten Wartungsfenstern"),
+    bullet("Störungsbehebung und Support gemäß den vereinbarten Service-Levels"),
+    bullet("Verwaltung von Herstellerverträgen, Renewals und Lizenzen"),
+    sectionH("2)  SERVICE-LEVEL (SLA)"),
+    slaTable(),
+    para("Servicezeiten: {service_hours} · Zielverfügbarkeit: {availability}. Die Reaktionszeit bezeichnet die Zeit bis zur qualifizierten Bearbeitung nach Eingang der Störungsmeldung."),
+    sectionH("3)  VERGÜTUNG"),
+    para("Die Vergütung beträgt {monthly_fee} {currency} pro Monat, netto zuzüglich der gesetzlichen USt. Die Verrechnung erfolgt {billing_cycle}. Nicht im Pauschalumfang enthaltene Leistungen werden nach Aufwand verrechnet."),
+    sectionH("4)  LAUFZEIT & KÜNDIGUNG"),
+    para("Der Vertrag beginnt am {contract_start} und wird auf {contract_term} abgeschlossen. Er verlängert sich automatisch um jeweils zwölf Monate, sofern er nicht mit einer Frist von {notice_period} zum jeweiligen Laufzeitende schriftlich gekündigt wird."),
+    sectionH("5)  MITWIRKUNG DES AUFTRAGGEBERS"),
+    para("Der Auftraggeber stellt die zur Leistungserbringung erforderlichen Zugänge, Informationen und Ansprechpartner zeitgerecht bereit und meldet Störungen über die vereinbarten Kanäle."),
+    sectionH("6)  HAFTUNG & GEWÄHRLEISTUNG"),
+    para("Der Auftragnehmer haftet nur für Vorsatz und grobe Fahrlässigkeit; die Haftung ist der Höhe nach auf die Jahresvergütung begrenzt. Für Datenverlust wird nur gehaftet, sofern der Auftraggeber eine dem Stand der Technik entsprechende Datensicherung sichergestellt hat."),
+    sectionH("7)  DATENSCHUTZ"),
+    para("Die Verarbeitung personenbezogener Daten erfolgt nach der DSGVO auf Grundlage einer gesonderten Auftragsverarbeitungsvereinbarung gemäß Art 28 DSGVO."),
+    sectionH("8)  SCHLUSSBESTIMMUNGEN & GERICHTSSTAND"),
+    para("Änderungen und Ergänzungen bedürfen der Schriftform. Es gilt österreichisches Recht unter Ausschluss des UN-Kaufrechts; ausschließlicher Gerichtsstand ist das sachlich zuständige Gericht in Wien. Sollten einzelne Bestimmungen unwirksam sein, bleibt der übrige Vertrag wirksam."),
+    signatures(),
+    p(run(cfg.thanks, { size: 16, italics: true, color: GRAY }), { alignment: AlignmentType.CENTER, spacing: { before: 360, after: 100 } }),
+    hint(),
+  ];
+}
+
 function buildDoc(cfg) {
   return new Document({
     creator: "Ferrion IT Systemhaus", title: cfg.docTitle,
@@ -373,6 +482,10 @@ function buildDoc(cfg) {
         cfg.mode === "quote" ? quoteBody(cfg)
         : cfg.mode === "delivery" ? deliveryBody(cfg)
         : cfg.mode === "confirmation" ? confirmationBody(cfg)
+        : cfg.mode === "reminder" ? mahnungBody(cfg)
+        : cfg.mode === "credit" ? gutschriftBody(cfg)
+        : cfg.mode === "acceptance" ? abnahmeBody(cfg)
+        : cfg.mode === "maintenance" ? wartungBody(cfg)
         : [
         headerBand(cfg), goldRule(), issuerMeta(cfg), ...billTo(cfg),
         p(run(""), { spacing: { after: 160 } }),
@@ -414,11 +527,40 @@ const CONFIRMATION = {
   file: "Ferrion-Auftragsbestaetigung-Vorlage.docx",
 };
 
+const REMINDER = {
+  mode: "reminder", docTitle: "Mahnung", headTitle: "MAHNUNG", headSub: "PAYMENT REMINDER",
+  metaTitle: "MAHNDATEN", issuerLabel: "ABSENDER", recipientLabel: "EMPFÄNGER",
+  metaRows: [["Mahnnr.", "{reminder_number}"], ["Datum", "{reminder_date}"], ["Rechnungsnr.", "{invoice_number}"], ["Rechnungsdatum", "{invoice_date}"], ["Kundennr.", "{customer_number}"]],
+  thanks: "Mit freundlichen Grüßen — Ferrion IT Systemhaus",
+  file: "Ferrion-Mahnung-Vorlage.docx",
+};
+const CREDIT = {
+  mode: "credit", docTitle: "Gutschrift", headTitle: "GUTSCHRIFT", headSub: "CREDIT NOTE",
+  metaTitle: "GUTSCHRIFTSDATEN", issuerLabel: "RECHNUNGSSTELLER", recipientLabel: "EMPFÄNGER",
+  metaRows: [["Gutschriftsnr.", "{credit_number}"], ["Datum", "{credit_date}"], ["Bezug Rechnung", "{invoice_number}"], ["Rechnungsdatum", "{invoice_date}"], ["Kundennr.", "{customer_number}"]],
+  thanks: "Vielen Dank für Ihr Vertrauen in Ferrion.",
+  file: "Ferrion-Gutschrift-Vorlage.docx",
+};
+const ACCEPTANCE = {
+  mode: "acceptance", docTitle: "Abnahmeprotokoll", headTitle: "ABNAHMEPROTOKOLL", headSub: "ACCEPTANCE PROTOCOL", headSize: 24,
+  metaTitle: "PROTOKOLLDATEN", issuerLabel: "AUFTRAGNEHMER", recipientLabel: "AUFTRAGGEBER",
+  metaRows: [["Protokollnr.", "{protocol_number}"], ["Datum", "{protocol_date}"], ["Projekt / Auftrag", "{order_reference}"], ["Kundennr.", "{customer_number}"]],
+  thanks: "Vielen Dank für die gute Zusammenarbeit.",
+  file: "Ferrion-Abnahmeprotokoll-Vorlage.docx",
+};
+const MAINTENANCE = {
+  mode: "maintenance", docTitle: "Wartungsvertrag", headTitle: "WARTUNGSVERTRAG", headSub: "SERVICE AGREEMENT", headSize: 26,
+  metaTitle: "VERTRAGSDATEN", issuerLabel: "AUFTRAGNEHMER", recipientLabel: "AUFTRAGGEBER",
+  metaRows: [["Vertragsnr.", "{contract_number}"], ["Datum", "{contract_date}"], ["Vertragsbeginn", "{contract_start}"], ["Kundennr.", "{customer_number}"]],
+  thanks: "Wir freuen uns auf die partnerschaftliche Zusammenarbeit.",
+  file: "Ferrion-Wartungsvertrag-Vorlage.docx",
+};
+
 const outDir = path.join(__dirname, "..", "templates");
 fs.mkdirSync(outDir, { recursive: true });
 
 async function main() {
-  for (const cfg of [INVOICE, QUOTE, DELIVERY, CONFIRMATION]) {
+  for (const cfg of [INVOICE, QUOTE, DELIVERY, CONFIRMATION, REMINDER, CREDIT, ACCEPTANCE, MAINTENANCE]) {
     const buf = await Packer.toBuffer(buildDoc(cfg));
     const out = path.join(outDir, cfg.file);
     fs.writeFileSync(out, buf);

@@ -136,10 +136,10 @@ Tailwind-Nutzung als arbitrary values, z. B. `bg-[#0d1117]`, `text-[#c9a84c]`,
 
 ## 8. Dokumente / Print
 
-Vorlagen (Generator: `scripts/generate-invoice-template.js`):
-`Ferrion-Rechnungsvorlage.docx`, `Ferrion-Angebotsvorlage.docx`,
-`Ferrion-Lieferschein-Vorlage.docx`, `Ferrion-Auftragsbestaetigung-Vorlage.docx`.
-Alle teilen Briefkopf, Farbwelt und die Word-Seitenfußzeile.
+Acht Vorlagen aus einem Generator (`scripts/generate-invoice-template.js`),
+alle mit gemeinsamem Briefkopf, Farbwelt und Word-Seitenfußzeile:
+Rechnung, Angebot, Lieferschein, Auftragsbestätigung, **Mahnung**,
+**Gutschrift/Storno**, **Abnahmeprotokoll**, **Wartungs-/SLA-Vertrag**.
 
 - **Druckerfreundlich:** weißer Körper, **kein** dunkler Hintergrund in Kopf/Fuß.
   Logo in heller Variante (dunkler Schriftzug). Gold nur als feine Linien und als
@@ -161,6 +161,14 @@ Alle teilen Briefkopf, Farbwelt und die Word-Seitenfußzeile.
   Menge, Einheit) + Empfangsbestätigung mit Unterschriftsfeld.
 - **Auftragsbestätigung** = Positionen **mit** Preisen + Summen, Konditionsblock
   (Liefertermin, Leistungszeitraum, Zahlungsbedingungen).
+- **Mahnung** = Anschreiben + Betragsübersicht (offen, Mahnspesen, Verzugszinsen,
+  Gesamt) mit Zahlungsaufforderung.
+- **Gutschrift/Storno** = Positionen mit Preisen + Bezug zur Ursprungsrechnung.
+- **Abnahmeprotokoll** = Gegenstand, Leistungen, Feststellungen (Ankreuzfelder),
+  Abnahmeerklärung + Unterschriften.
+- **Wartungs-/SLA-Vertrag** = mehrseitiger Vertrag mit Leistungsumfang,
+  SLA-Reaktionszeiten-Tabelle, Vergütung, Laufzeit/Kündigung, Haftung,
+  Datenschutz, Schlussbestimmungen + Unterschriften.
 
 ---
 
