@@ -152,7 +152,8 @@ Vorlagen: `templates/Ferrion-Rechnungsvorlage.docx`,
 - **Rechnung** = kompaktes 1-Seiten-Layout (Leistung, Preise, Zahlung/Bank).
 - **Angebot** = mehrseitiges Vertragsdokument: Präambel, Angebotsdaten & Preise,
   Leistungsbeschreibung, Allgemeine Bestimmungen (3.1–3.6), Auftrags­verarbeitungs­
-  vereinbarung (4.1–4.7), Gerichtsstand, Schlussbestimmungen, Auftragserteilung mit
+  vereinbarung (4.1–4.7), Zahlungsbedingungen & Vergütung (5.1–5.4),
+  Gerichtsstand, Schlussbestimmungen, Auftragserteilung mit
   Unterschriftsbereich und elektronischer Beauftragung an `order@ferrion.at`.
   Abschnittsüberschriften mit goldener Unterlinie; Rechtstexte sind Mustertexte.
 

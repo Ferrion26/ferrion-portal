@@ -270,6 +270,16 @@ function quoteBody(cfg) {
     subH("4.7  Überprüfung"),
     para("Der Auftragnehmer stellt dem Auftraggeber alle zum Nachweis der Einhaltung erforderlichen Informationen zur Verfügung und ermöglicht angemessene Überprüfungen bzw. Audits nach vorheriger Ankündigung."),
 
+    sectionH("5)  ZAHLUNGSBEDINGUNGEN & VERGÜTUNG"),
+    subH("5.1  Vergütung"),
+    para("Die Vergütung richtet sich nach den in Punkt 1 angeführten Positionen. Alle Preise verstehen sich netto in {currency} zuzüglich der gesetzlichen Umsatzsteuer. Reise-, Fahrt- und Nächtigungskosten werden, sofern nicht anders vereinbart, nach tatsächlichem Aufwand verrechnet."),
+    subH("5.2  Zahlungsbedingungen"),
+    para("Rechnungen sind innerhalb von {payment_terms_days} Tagen ab Rechnungserhalt ohne Abzug zur Zahlung fällig. Bei Projekten kann der Auftragnehmer Teil- oder Anzahlungsrechnungen entsprechend dem Leistungsfortschritt legen. Bei Zahlungsverzug werden Verzugszinsen in gesetzlicher Höhe (bei unternehmerischen Geschäften 9,2 Prozentpunkte über dem Basiszinssatz) sowie angemessene Mahn- und Inkassospesen verrechnet."),
+    subH("5.3  Lieferung & Termine"),
+    para("Die Leistungserbringung beginnt nach Auftragserteilung und Klärung aller technischen Voraussetzungen. Angegebene Liefer- und Leistungstermine ({service_period}) sind, sofern nicht ausdrücklich als verbindlich (Fixtermin) bezeichnet, Richtwerte. Verzögerungen aus der Sphäre des Auftraggebers oder durch höhere Gewalt verlängern die Fristen angemessen."),
+    subH("5.4  Eigentumsvorbehalt"),
+    para("Gelieferte Waren bleiben bis zur vollständigen Bezahlung sämtlicher Forderungen aus der Geschäftsbeziehung im Eigentum des Auftragnehmers."),
+
     sectionH("6)  GERICHTSSTAND"),
     para("Es gilt österreichisches Recht unter Ausschluss der Verweisungsnormen des internationalen Privatrechts sowie des UN-Kaufrechts. Ausschließlicher Gerichtsstand für alle Streitigkeiten aus oder im Zusammenhang mit diesem Vertrag ist das sachlich zuständige Gericht in Wien."),
 
