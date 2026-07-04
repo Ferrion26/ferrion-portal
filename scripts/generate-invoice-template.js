@@ -25,14 +25,14 @@
 const fs = require("fs");
 const path = require("path");
 const {
-  Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell,
+  Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell, Footer,
   WidthType, BorderStyle, ShadingType, AlignmentType, VerticalAlign, PageOrientation,
 } = require("docx");
 
 const GOLD = "C9A84C", DARK = "0D1117", INK = "111827", GRAY = "6B7280", LIGHT = "E5E7EB", WHITE = "FFFFFF";
 const FONT = "Arial";
 const CONTENT_W = 9638; // A4 (11906) minus 2×1134 margins
-const LOGO = fs.readFileSync(path.join(__dirname, "assets", "ferrion-logo.png"));
+const LOGO = fs.readFileSync(path.join(__dirname, "assets", "ferrion-logo-light.png"));
 
 const noBorder = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
 const noBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
@@ -47,12 +47,12 @@ function headerBand(cfg) {
   return new Table({
     width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: [6000, 3638], borders: noBorders,
     rows: [new TableRow({ children: [
-      new TableCell({ width: { size: 6000, type: WidthType.DXA }, shading: { fill: DARK, type: ShadingType.CLEAR, color: "auto" }, margins: { top: 240, bottom: 240, left: 240, right: 120 }, verticalAlign: VerticalAlign.CENTER, borders: noBorders, children: [
+      new TableCell({ width: { size: 6000, type: WidthType.DXA }, margins: { top: 120, bottom: 120, left: 0, right: 120 }, verticalAlign: VerticalAlign.CENTER, borders: noBorders, children: [
         p(logoImg()),
-        p(run("IT SYSTEMHAUS · SERVICES · MANAGED SERVICES", { color: GOLD, size: 12, characterSpacing: 30 }), { spacing: { before: 60 } }),
+        p(run("IT SYSTEMHAUS · SERVICES · MANAGED SERVICES", { color: GRAY, size: 12, characterSpacing: 30 }), { spacing: { before: 60 } }),
       ] }),
-      new TableCell({ width: { size: 3638, type: WidthType.DXA }, shading: { fill: DARK, type: ShadingType.CLEAR, color: "auto" }, margins: { top: 260, bottom: 240, left: 120, right: 260 }, verticalAlign: VerticalAlign.CENTER, borders: noBorders, children: [
-        p(run(cfg.headTitle, { color: WHITE, bold: true, size: 40, characterSpacing: 30 }), { alignment: AlignmentType.RIGHT }),
+      new TableCell({ width: { size: 3638, type: WidthType.DXA }, margins: { top: 120, bottom: 120, left: 120, right: 0 }, verticalAlign: VerticalAlign.CENTER, borders: noBorders, children: [
+        p(run(cfg.headTitle, { color: INK, bold: true, size: 40, characterSpacing: 30 }), { alignment: AlignmentType.RIGHT }),
         p(run(cfg.headSub, { color: GOLD, size: 14, characterSpacing: 60 }), { alignment: AlignmentType.RIGHT, spacing: { before: 20 } }),
       ] }),
     ] })],
@@ -116,10 +116,11 @@ const itemsTable = () => new Table({
 });
 
 const TCOLS = [3898, 3580, 2160]; // spacer | label | value  (widened label → no wrap)
+const goldFill = { fill: GOLD, type: ShadingType.CLEAR, color: "auto" };
 const totalRow = (k, v, { emphasize = false, band = false } = {}) => new TableRow({ children: [
   new TableCell({ width: { size: TCOLS[0], type: WidthType.DXA }, borders: noBorders, children: [p(run(""))] }),
-  new TableCell({ width: { size: TCOLS[1], type: WidthType.DXA }, borders: noBorders, margins: cellPad, shading: band ? { fill: DARK, type: ShadingType.CLEAR, color: "auto" } : undefined, children: [p(run(k, { size: emphasize ? 18 : 17, bold: emphasize, color: band ? WHITE : (emphasize ? INK : GRAY) }), { alignment: AlignmentType.RIGHT })] }),
-  new TableCell({ width: { size: TCOLS[2], type: WidthType.DXA }, borders: noBorders, margins: cellPad, shading: band ? { fill: DARK, type: ShadingType.CLEAR, color: "auto" } : undefined, children: [p(run(v, { size: emphasize ? 20 : 17, bold: emphasize, color: band ? GOLD : INK }), { alignment: AlignmentType.RIGHT })] }),
+  new TableCell({ width: { size: TCOLS[1], type: WidthType.DXA }, borders: noBorders, margins: cellPad, shading: band ? goldFill : undefined, children: [p(run(k, { size: emphasize ? 18 : 17, bold: emphasize, color: band ? "000000" : (emphasize ? INK : GRAY) }), { alignment: AlignmentType.RIGHT })] }),
+  new TableCell({ width: { size: TCOLS[2], type: WidthType.DXA }, borders: noBorders, margins: cellPad, shading: band ? goldFill : undefined, children: [p(run(v, { size: emphasize ? 20 : 17, bold: emphasize, color: "000000" }), { alignment: AlignmentType.RIGHT })] }),
 ] });
 
 const totals = () => new Table({
@@ -164,16 +165,19 @@ function terms(cfg) {
   });
 }
 
-const footerBand = () => new Table({
-  width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: [CONTENT_W], borders: noBorders,
-  rows: [new TableRow({ children: [
-    new TableCell({ width: { size: CONTENT_W, type: WidthType.DXA }, shading: { fill: DARK, type: ShadingType.CLEAR, color: "auto" }, margins: { top: 200, bottom: 200, left: 240, right: 240 }, borders: noBorders, children: [
-      p([run("Ferrion IT Systemhaus GmbH", { size: 14, bold: true, color: GOLD })]),
-      p(run("{issuer_street}, {issuer_zip_city}, Österreich · info@ferrion.at · ferrion.at", { size: 13, color: "9CA3AF" }), { spacing: { before: 30 } }),
-      p(run("Firmenbuch: {issuer_firmenbuch} · {issuer_court} · UID: {issuer_uid} · IBAN: {issuer_iban}", { size: 13, color: "9CA3AF" }), { spacing: { before: 20 } }),
-      p(run("build to endure", { size: 12, color: GOLD, characterSpacing: 40 }), { spacing: { before: 30 } }),
-    ] }),
-  ] })],
+// Printer-friendly page footer: gold top rule + light legal text at the
+// bottom of the page (real Word section footer, not inline body content).
+const pageFooter = () => new Footer({
+  children: [
+    p([run("Ferrion IT Systemhaus GmbH", { size: 13, bold: true, color: INK })], {
+      alignment: AlignmentType.CENTER,
+      border: { top: { style: BorderStyle.SINGLE, size: 8, color: GOLD, space: 8 } },
+      spacing: { before: 40, after: 20 },
+    }),
+    p(run("{issuer_street}, {issuer_zip_city}, Österreich · info@ferrion.at · ferrion.at", { size: 12, color: GRAY }), { alignment: AlignmentType.CENTER }),
+    p(run("Firmenbuch: {issuer_firmenbuch} · {issuer_court} · UID: {issuer_uid} · IBAN: {issuer_iban}", { size: 12, color: GRAY }), { alignment: AlignmentType.CENTER, spacing: { before: 10 } }),
+    p(run("build to endure", { size: 11, color: GOLD, characterSpacing: 40 }), { alignment: AlignmentType.CENTER, spacing: { before: 20 } }),
+  ],
 });
 
 function buildDoc(cfg) {
@@ -181,14 +185,14 @@ function buildDoc(cfg) {
     creator: "Ferrion IT Systemhaus", title: cfg.docTitle,
     styles: { default: { document: { run: { font: FONT, size: 18, color: INK } } } },
     sections: [{
-      properties: { page: { size: { width: 11906, height: 16838, orientation: PageOrientation.PORTRAIT }, margin: { top: 1134, right: 1134, bottom: 900, left: 1134 } } },
+      properties: { page: { size: { width: 11906, height: 16838, orientation: PageOrientation.PORTRAIT }, margin: { top: 1134, right: 1134, bottom: 1440, left: 1134, footer: 560 } } },
+      footers: { default: pageFooter() },
       children: [
         headerBand(cfg), goldRule(), issuerMeta(cfg), ...billTo(cfg),
         p(run(""), { spacing: { after: 160 } }),
         itemsTable(), totals(), terms(cfg),
-        p(run(cfg.thanks, { size: 16, italics: true, color: GRAY }), { alignment: AlignmentType.CENTER, spacing: { before: 480, after: 200 } }),
-        footerBand(),
-        p(run("Platzhalter in { } werden beim Erzeugen automatisch aus den Portal-Daten befüllt.", { size: 12, color: "9CA3AF", italics: true }), { alignment: AlignmentType.CENTER, spacing: { before: 160 } }),
+        p(run(cfg.thanks, { size: 16, italics: true, color: GRAY }), { alignment: AlignmentType.CENTER, spacing: { before: 480, after: 120 } }),
+        p(run("Platzhalter in { } werden beim Erzeugen automatisch aus den Portal-Daten befüllt.", { size: 12, color: "9CA3AF", italics: true }), { alignment: AlignmentType.CENTER, spacing: { before: 40 } }),
       ],
     }],
   });
