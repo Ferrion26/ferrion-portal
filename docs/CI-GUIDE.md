@@ -4,7 +4,7 @@
 > Ferrion, wie es **tatsächlich im Code** umgesetzt ist. Bei Designänderungen wird
 > dieser Guide mitgepflegt (siehe [Pflege](#9-pflege--governance)).
 >
-> Zuletzt aktualisiert: 2026-07-04
+> Zuletzt aktualisiert: 2026-07-05
 
 ---
 
@@ -149,6 +149,12 @@ Vorlagen: `templates/Ferrion-Rechnungsvorlage.docx`,
   Gesamtbetrag-Zeile.
 - **Platzhalter:** `{tag}`-Syntax (docxtemplater-kompatibel) für spätere
   automatische Befüllung aus `Order`/`Quote`/`User`.
+- **Rechnung** = kompaktes 1-Seiten-Layout (Leistung, Preise, Zahlung/Bank).
+- **Angebot** = mehrseitiges Vertragsdokument: Präambel, Angebotsdaten & Preise,
+  Leistungsbeschreibung, Allgemeine Bestimmungen (3.1–3.6), Auftrags­verarbeitungs­
+  vereinbarung (4.1–4.7), Gerichtsstand, Schlussbestimmungen, Auftragserteilung mit
+  Unterschriftsbereich und elektronischer Beauftragung an `order@ferrion.at`.
+  Abschnittsüberschriften mit goldener Unterlinie; Rechtstexte sind Mustertexte.
 
 ---
 

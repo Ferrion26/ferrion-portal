@@ -180,6 +180,111 @@ const pageFooter = () => new Footer({
   ],
 });
 
+// ── Angebot: legal document building blocks ─────────────────
+const BODY = "374151"; // gray-700, readable legal body on white
+const sectionH = (t) => p(run(t, { size: 21, bold: true, color: INK, characterSpacing: 8 }), {
+  spacing: { before: 340, after: 100 },
+  border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: GOLD, space: 6 } },
+});
+const subH = (t) => p(run(t, { size: 17, bold: true, color: INK }), { spacing: { before: 180, after: 40 } });
+const para = (t) => p(run(t, { size: 16, color: BODY }), { spacing: { after: 70 }, alignment: AlignmentType.JUSTIFIED });
+const bullet = (t) => p([run("▸  ", { color: GOLD, size: 16 }), run(t, { size: 16, color: BODY })], { spacing: { after: 30 }, indent: { left: 220 } });
+const sigRule = () => new Paragraph({ children: [run(" ")], spacing: { before: 380 }, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "9CA3AF", space: 20 } } });
+const sigCap = (t) => p(run(t, { size: 13, color: GRAY }), { spacing: { before: 20 } });
+
+const electronicNote = () => new Table({
+  width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: [CONTENT_W],
+  borders: { top: { style: BorderStyle.SINGLE, size: 6, color: GOLD }, bottom: { style: BorderStyle.SINGLE, size: 6, color: GOLD }, left: { style: BorderStyle.SINGLE, size: 6, color: GOLD }, right: { style: BorderStyle.SINGLE, size: 6, color: GOLD } },
+  rows: [new TableRow({ children: [
+    new TableCell({ width: { size: CONTENT_W, type: WidthType.DXA }, margins: { top: 140, bottom: 140, left: 160, right: 160 }, borders: noBorders, children: [
+      p([
+        run("Elektronische Beauftragung — ", { size: 16, bold: true, color: INK }),
+        run("Sie können dieses Angebot auch elektronisch beauftragen: Senden Sie das unterschriebene Dokument einfach an ", { size: 16, color: BODY }),
+        run("order@ferrion.at", { size: 16, bold: true, color: INK }),
+        run(".", { size: 16, color: BODY }),
+      ]),
+    ] }),
+  ] })],
+});
+
+const sigCell = (who) => new TableCell({
+  width: { size: 4819, type: WidthType.DXA }, borders: noBorders, margins: { top: 200, bottom: 0, left: 0, right: 200 },
+  children: [sigRule(), sigCap("Ort, Datum"), sigRule(), sigCap(who)],
+});
+const signatures = () => new Table({
+  width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: [4819, 4819], borders: noBorders,
+  rows: [new TableRow({ children: [
+    sigCell("Auftraggeber — {customer_company}"),
+    sigCell("Ferrion IT Systemhaus GmbH (Auftragnehmer)"),
+  ] })],
+});
+
+function quoteBody(cfg) {
+  return [
+    headerBand(cfg), goldRule(), issuerMeta(cfg), ...billTo(cfg),
+
+    sectionH("PRÄAMBEL"),
+    para("Ferrion IT Systemhaus GmbH (nachfolgend „Auftragnehmer“) erbringt Leistungen in den Bereichen IT-Infrastruktur, Storage, Backup & Security, AI-Infrastruktur sowie Managed Services. Das vorliegende Angebot richtet sich an {customer_company} (nachfolgend „Auftraggeber“)."),
+    para("Es beschreibt den angebotenen Leistungsumfang samt Preisen und bildet gemeinsam mit den nachstehenden Bestimmungen die Grundlage einer allfälligen Beauftragung. Mit der Auftragserteilung (Punkt 8) gelten die in diesem Dokument enthaltenen Bedingungen als vereinbart."),
+
+    sectionH("1)  ANGEBOTSDATEN & PREISE"),
+    para("Alle Preise verstehen sich in {currency}, netto zuzüglich der gesetzlichen Umsatzsteuer. Dieses Angebot ist freibleibend und gültig bis {valid_until}."),
+    itemsTable(), totals(),
+
+    sectionH("2)  LEISTUNGSBESCHREIBUNG"),
+    para("Der Auftragnehmer erbringt für den Auftraggeber die nachstehend beschriebenen Leistungen. Ergänzende oder abweichende Leistungen bedürfen einer gesonderten schriftlichen Vereinbarung."),
+    para("{service_description}"),
+    bullet("Lieferung, Installation und Inbetriebnahme der angebotenen Infrastruktur"),
+    bullet("Konfiguration, Integration sowie Migration bestehender Systeme und Daten"),
+    bullet("Einschulung der Administratoren und Übergabe der technischen Dokumentation"),
+    bullet("Optionale Managed Services, Wartung und Support gemäß vereinbartem Service-Level-Agreement (SLA)"),
+
+    sectionH("3)  ALLGEMEINE BESTIMMUNGEN"),
+    subH("3.1  Rücktrittsrecht"),
+    para("Ist der Auftraggeber Unternehmer im Sinne des UGB, besteht kein gesetzliches Rücktritts- bzw. Widerrufsrecht. Ein einvernehmlicher Rücktritt ist bis zum Beginn der Leistungserbringung gegen Ersatz der bis dahin angefallenen Aufwände und getätigten Bestellungen möglich."),
+    subH("3.2  Gewährleistung, Wartung, Änderungen"),
+    para("Es gelten die gesetzlichen Gewährleistungsbestimmungen. Wartungs- und Supportleistungen richten sich nach dem jeweils vereinbarten SLA. Änderungen des Leistungsumfangs (Change Requests) bedürfen der Schriftform und werden nach Aufwand oder gesonderter Vereinbarung verrechnet."),
+    subH("3.3  Haftung"),
+    para("Der Auftragnehmer haftet nur für Vorsatz und grobe Fahrlässigkeit; die Haftung für leichte Fahrlässigkeit ist – soweit gesetzlich zulässig – ausgeschlossen. Die Haftung ist der Höhe nach mit dem Netto-Auftragswert begrenzt. Für Datenverlust haftet der Auftragnehmer nur, sofern der Auftraggeber eine dem Stand der Technik entsprechende Datensicherung sichergestellt hat."),
+    subH("3.4  Urheberrecht und Nutzung"),
+    para("Konzepte, Dokumentationen sowie individuell erstellte Software und Konfigurationen bleiben bis zur vollständigen Bezahlung im Eigentum des Auftragnehmers. Der Auftraggeber erhält daran ein nicht ausschließliches, nicht übertragbares Nutzungsrecht für den vereinbarten Einsatzzweck."),
+    subH("3.5  Loyalität"),
+    para("Die Vertragspartner verpflichten sich, während der Dauer der Zusammenarbeit sowie für zwölf Monate danach keine Mitarbeiter des jeweils anderen Vertragspartners aktiv abzuwerben."),
+    subH("3.6  Datenschutz und Geheimhaltung"),
+    para("Die Vertragspartner behandeln alle im Rahmen der Zusammenarbeit erlangten, nicht offenkundigen Informationen vertraulich. Die Verarbeitung personenbezogener Daten erfolgt nach der DSGVO; Näheres regelt die Auftragsverarbeitungsvereinbarung in Punkt 4."),
+
+    sectionH("4)  AUFTRAGSVERARBEITUNGSVEREINBARUNG"),
+    para("Soweit der Auftragnehmer im Rahmen der Leistungserbringung personenbezogene Daten im Auftrag des Auftraggebers verarbeitet, gilt ergänzend die nachstehende Vereinbarung gemäß Art 28 DSGVO."),
+    subH("4.1  Weisungsrecht"),
+    para("Der Auftragnehmer verarbeitet personenbezogene Daten ausschließlich auf dokumentierte Weisung des Auftraggebers, es sei denn, er ist gesetzlich zur Verarbeitung verpflichtet."),
+    subH("4.2  Vertraulichkeit"),
+    para("Der Auftragnehmer stellt sicher, dass die zur Verarbeitung befugten Personen zur Vertraulichkeit verpflichtet sind oder einer angemessenen gesetzlichen Verschwiegenheitspflicht unterliegen."),
+    subH("4.3  Datensicherheit"),
+    para("Der Auftragnehmer trifft geeignete technische und organisatorische Maßnahmen gemäß Art 32 DSGVO – insbesondere Verschlüsselung, Zutritts- und Zugriffskontrolle, Datensicherung sowie Protokollierung – und passt diese dem Stand der Technik an."),
+    subH("4.4  Sub-Auftragsverarbeitung"),
+    para("Die Beiziehung weiterer Auftragsverarbeiter erfolgt nur mit vorheriger, allgemeiner oder gesonderter Zustimmung des Auftraggebers. Der Auftragnehmer erlegt dem Sub-Auftragsverarbeiter dieselben Datenschutzpflichten auf."),
+    subH("4.5  Unterstützung"),
+    para("Der Auftragnehmer unterstützt den Auftraggeber im Rahmen des Zumutbaren bei der Beantwortung von Betroffenenanfragen sowie bei der Einhaltung der Pflichten gemäß Art 32 bis 36 DSGVO (u. a. Meldung von Datenschutzverletzungen)."),
+    subH("4.6  Rückgabe von personenbezogenen Daten"),
+    para("Nach Beendigung der Leistung werden sämtliche personenbezogenen Daten nach Wahl des Auftraggebers zurückgegeben oder gelöscht, sofern keine gesetzliche Aufbewahrungspflicht entgegensteht."),
+    subH("4.7  Überprüfung"),
+    para("Der Auftragnehmer stellt dem Auftraggeber alle zum Nachweis der Einhaltung erforderlichen Informationen zur Verfügung und ermöglicht angemessene Überprüfungen bzw. Audits nach vorheriger Ankündigung."),
+
+    sectionH("6)  GERICHTSSTAND"),
+    para("Es gilt österreichisches Recht unter Ausschluss der Verweisungsnormen des internationalen Privatrechts sowie des UN-Kaufrechts. Ausschließlicher Gerichtsstand für alle Streitigkeiten aus oder im Zusammenhang mit diesem Vertrag ist das sachlich zuständige Gericht in Wien."),
+
+    sectionH("7)  SCHLUSSBESTIMMUNGEN"),
+    para("Änderungen und Ergänzungen bedürfen der Schriftform; dies gilt auch für ein Abgehen vom Schriftformerfordernis. Sollten einzelne Bestimmungen unwirksam sein oder werden, bleibt die Wirksamkeit der übrigen Bestimmungen unberührt (salvatorische Klausel); an die Stelle der unwirksamen Bestimmung tritt eine dem wirtschaftlichen Zweck möglichst nahekommende Regelung."),
+
+    sectionH("8)  AUFTRAGSERTEILUNG"),
+    para("Der Auftraggeber erteilt hiermit den Auftrag zu den vorstehenden Leistungen, Preisen und Bedingungen."),
+    electronicNote(),
+    signatures(),
+    p(run(cfg.thanks, { size: 16, italics: true, color: GRAY }), { alignment: AlignmentType.CENTER, spacing: { before: 360, after: 100 } }),
+    p(run("Platzhalter in { } werden beim Erzeugen automatisch aus den Portal-Daten befüllt. Die Rechtstexte sind unverbindliche Muster und vor Verwendung rechtlich zu prüfen.", { size: 12, color: "9CA3AF", italics: true }), { alignment: AlignmentType.CENTER, spacing: { before: 40 } }),
+  ];
+}
+
 function buildDoc(cfg) {
   return new Document({
     creator: "Ferrion IT Systemhaus", title: cfg.docTitle,
@@ -187,7 +292,7 @@ function buildDoc(cfg) {
     sections: [{
       properties: { page: { size: { width: 11906, height: 16838, orientation: PageOrientation.PORTRAIT }, margin: { top: 1134, right: 1134, bottom: 1440, left: 1134, footer: 560 } } },
       footers: { default: pageFooter() },
-      children: [
+      children: cfg.mode === "quote" ? quoteBody(cfg) : [
         headerBand(cfg), goldRule(), issuerMeta(cfg), ...billTo(cfg),
         p(run(""), { spacing: { after: 160 } }),
         itemsTable(), totals(), terms(cfg),
