@@ -136,9 +136,10 @@ Tailwind-Nutzung als arbitrary values, z. B. `bg-[#0d1117]`, `text-[#c9a84c]`,
 
 ## 8. Dokumente / Print
 
-Vorlagen: `templates/Ferrion-Rechnungsvorlage.docx`,
-`templates/Ferrion-Angebotsvorlage.docx` (Generator:
-`scripts/generate-invoice-template.js`).
+Vorlagen (Generator: `scripts/generate-invoice-template.js`):
+`Ferrion-Rechnungsvorlage.docx`, `Ferrion-Angebotsvorlage.docx`,
+`Ferrion-Lieferschein-Vorlage.docx`, `Ferrion-Auftragsbestaetigung-Vorlage.docx`.
+Alle teilen Briefkopf, Farbwelt und die Word-Seitenfußzeile.
 
 - **Druckerfreundlich:** weißer Körper, **kein** dunkler Hintergrund in Kopf/Fuß.
   Logo in heller Variante (dunkler Schriftzug). Gold nur als feine Linien und als
@@ -156,6 +157,10 @@ Vorlagen: `templates/Ferrion-Rechnungsvorlage.docx`,
   Gerichtsstand, Schlussbestimmungen, Auftragserteilung mit
   Unterschriftsbereich und elektronischer Beauftragung an `order@ferrion.at`.
   Abschnittsüberschriften mit goldener Unterlinie; Rechtstexte sind Mustertexte.
+- **Lieferschein** = Positionen **ohne** Preise (Pos, Art.-Nr., Beschreibung,
+  Menge, Einheit) + Empfangsbestätigung mit Unterschriftsfeld.
+- **Auftragsbestätigung** = Positionen **mit** Preisen + Summen, Konditionsblock
+  (Liefertermin, Leistungszeitraum, Zahlungsbedingungen).
 
 ---
 

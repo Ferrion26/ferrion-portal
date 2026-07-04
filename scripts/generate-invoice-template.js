@@ -52,7 +52,7 @@ function headerBand(cfg) {
         p(run("IT SYSTEMHAUS · SERVICES · MANAGED SERVICES", { color: GRAY, size: 12, characterSpacing: 30 }), { spacing: { before: 60 } }),
       ] }),
       new TableCell({ width: { size: 3638, type: WidthType.DXA }, margins: { top: 120, bottom: 120, left: 120, right: 0 }, verticalAlign: VerticalAlign.CENTER, borders: noBorders, children: [
-        p(run(cfg.headTitle, { color: INK, bold: true, size: 40, characterSpacing: 30 }), { alignment: AlignmentType.RIGHT }),
+        p(run(cfg.headTitle, { color: INK, bold: true, size: cfg.headSize || 40, characterSpacing: 24 }), { alignment: AlignmentType.RIGHT }),
         p(run(cfg.headSub, { color: GOLD, size: 14, characterSpacing: 60 }), { alignment: AlignmentType.RIGHT, spacing: { before: 20 } }),
       ] }),
     ] })],
@@ -295,6 +295,73 @@ function quoteBody(cfg) {
   ];
 }
 
+const hint = () => p(run("Platzhalter in { } werden beim Erzeugen automatisch aus den Portal-Daten befüllt.", { size: 12, color: "9CA3AF", italics: true }), { alignment: AlignmentType.CENTER, spacing: { before: 40 } });
+
+// ── Lieferschein: Positionen ohne Preise + Empfangsbestätigung ──
+const DCOLS = [760, 1700, 4618, 1200, 1360];
+const deliveryItemsTable = () => new Table({
+  width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: DCOLS, borders: noBorders,
+  rows: [
+    new TableRow({ tableHeader: true, children: [
+      headCell("POS", DCOLS[0]), headCell("ART.-NR.", DCOLS[1]), headCell("BESCHREIBUNG", DCOLS[2]),
+      headCell("MENGE", DCOLS[3], AlignmentType.CENTER), headCell("EINHEIT", DCOLS[4], AlignmentType.CENTER),
+    ] }),
+    new TableRow({ children: [
+      bodyCell("{#items}{pos}", DCOLS[0]), bodyCell("{sku}", DCOLS[1]), bodyCell("{description}", DCOLS[2]),
+      bodyCell("{qty}", DCOLS[3], AlignmentType.CENTER), bodyCell("{unit}{/items}", DCOLS[4], AlignmentType.CENTER),
+    ] }),
+  ],
+});
+const deliverySignatures = () => new Table({
+  width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: [4819, 4819], borders: noBorders,
+  rows: [new TableRow({ children: [
+    new TableCell({ width: { size: 4819, type: WidthType.DXA }, borders: noBorders, margins: { top: 200, bottom: 0, left: 0, right: 200 }, children: [sigRule(), sigCap("Ort, Datum")] }),
+    new TableCell({ width: { size: 4819, type: WidthType.DXA }, borders: noBorders, margins: { top: 200, bottom: 0, left: 0, right: 0 }, children: [sigRule(), sigCap("Unterschrift / Stempel Empfänger")] }),
+  ] })],
+});
+function deliveryBody(cfg) {
+  return [
+    headerBand(cfg), goldRule(), issuerMeta(cfg), ...billTo(cfg),
+    p(run(""), { spacing: { after: 120 } }),
+    para("Mit diesem Lieferschein bestätigen wir die Lieferung der nachstehenden Positionen zu Auftrag {order_reference}. Bitte prüfen Sie die Sendung bei Erhalt auf Vollständigkeit und Unversehrtheit."),
+    deliveryItemsTable(),
+    para("Beanstandungen richten Sie bitte innerhalb von 5 Werktagen an info@ferrion.at."),
+    subH("Empfang bestätigt"),
+    deliverySignatures(),
+    p(run(cfg.thanks, { size: 16, italics: true, color: GRAY }), { alignment: AlignmentType.CENTER, spacing: { before: 360, after: 100 } }),
+    hint(),
+  ];
+}
+
+// ── Auftragsbestätigung: Positionen mit Preisen + Konditionen ──
+const confirmationConditions = () => new Table({
+  width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: [4819, 4819], borders: noBorders,
+  rows: [new TableRow({ children: [
+    new TableCell({ width: { size: 4819, type: WidthType.DXA }, borders: noBorders, margins: { top: 360, bottom: 0, left: 0, right: 200 }, children: [
+      p(label("LIEFERUNG & TERMINE"), { spacing: { after: 80 } }),
+      p(run("Voraussichtlicher Liefertermin: {delivery_date}", { size: 16, color: INK })),
+      p(run("Leistungszeitraum: {service_period}", { size: 16, color: BODY }), { spacing: { before: 30 } }),
+    ] }),
+    new TableCell({ width: { size: 4819, type: WidthType.DXA }, borders: noBorders, margins: { top: 360, bottom: 0, left: 0, right: 0 }, children: [
+      p(label("ZAHLUNGSBEDINGUNGEN"), { spacing: { after: 80 } }),
+      p(run("Zahlbar innerhalb von {payment_terms_days} Tagen ab Rechnungserhalt, netto ohne Abzug.", { size: 16, color: INK })),
+      p(run("Alle Preise in {currency}, zzgl. gesetzlicher USt.", { size: 16, color: BODY }), { spacing: { before: 30 } }),
+    ] }),
+  ] })],
+});
+function confirmationBody(cfg) {
+  return [
+    headerBand(cfg), goldRule(), issuerMeta(cfg), ...billTo(cfg),
+    p(run(""), { spacing: { after: 120 } }),
+    para("Vielen Dank für Ihren Auftrag. Wir bestätigen Ihnen hiermit die Beauftragung zu den nachstehenden Positionen und Konditionen. Grundlage bildet {order_reference}."),
+    itemsTable(), totals(),
+    confirmationConditions(),
+    para("Bitte prüfen Sie diese Auftragsbestätigung. Sollten die Angaben von Ihrer Bestellung abweichen, informieren Sie uns bitte innerhalb von 5 Werktagen."),
+    p(run(cfg.thanks, { size: 16, italics: true, color: GRAY }), { alignment: AlignmentType.CENTER, spacing: { before: 360, after: 100 } }),
+    hint(),
+  ];
+}
+
 function buildDoc(cfg) {
   return new Document({
     creator: "Ferrion IT Systemhaus", title: cfg.docTitle,
@@ -302,7 +369,11 @@ function buildDoc(cfg) {
     sections: [{
       properties: { page: { size: { width: 11906, height: 16838, orientation: PageOrientation.PORTRAIT }, margin: { top: 1134, right: 1134, bottom: 1440, left: 1134, footer: 560 } } },
       footers: { default: pageFooter() },
-      children: cfg.mode === "quote" ? quoteBody(cfg) : [
+      children:
+        cfg.mode === "quote" ? quoteBody(cfg)
+        : cfg.mode === "delivery" ? deliveryBody(cfg)
+        : cfg.mode === "confirmation" ? confirmationBody(cfg)
+        : [
         headerBand(cfg), goldRule(), issuerMeta(cfg), ...billTo(cfg),
         p(run(""), { spacing: { after: 160 } }),
         itemsTable(), totals(), terms(cfg),
@@ -328,11 +399,26 @@ const QUOTE = {
   file: "Ferrion-Angebotsvorlage.docx",
 };
 
+const DELIVERY = {
+  mode: "delivery", docTitle: "Lieferschein", headTitle: "LIEFERSCHEIN", headSub: "DELIVERY NOTE",
+  metaTitle: "LIEFERDATEN", issuerLabel: "ABSENDER", recipientLabel: "LIEFERADRESSE",
+  metaRows: [["Lieferscheinnr.", "{delivery_number}"], ["Lieferdatum", "{delivery_date}"], ["Bezug (Auftrag)", "{order_reference}"], ["Kundennr.", "{customer_number}"]],
+  thanks: "Vielen Dank für Ihr Vertrauen in Ferrion.",
+  file: "Ferrion-Lieferschein-Vorlage.docx",
+};
+const CONFIRMATION = {
+  mode: "confirmation", docTitle: "Auftragsbestätigung", headTitle: "AUFTRAGSBESTÄTIGUNG", headSub: "ORDER CONFIRMATION", headSize: 24,
+  metaTitle: "AUFTRAGSDATEN", issuerLabel: "AUFTRAGNEHMER", recipientLabel: "AUFTRAGGEBER",
+  metaRows: [["Auftragsbest.-Nr.", "{confirmation_number}"], ["Datum", "{confirmation_date}"], ["Ihre Bestellung", "{order_reference}"], ["Liefertermin", "{delivery_date}"], ["Kundennr.", "{customer_number}"]],
+  thanks: "Wir danken für Ihren Auftrag und freuen uns auf die Umsetzung.",
+  file: "Ferrion-Auftragsbestaetigung-Vorlage.docx",
+};
+
 const outDir = path.join(__dirname, "..", "templates");
 fs.mkdirSync(outDir, { recursive: true });
 
 async function main() {
-  for (const cfg of [INVOICE, QUOTE]) {
+  for (const cfg of [INVOICE, QUOTE, DELIVERY, CONFIRMATION]) {
     const buf = await Packer.toBuffer(buildDoc(cfg));
     const out = path.join(outDir, cfg.file);
     fs.writeFileSync(out, buf);
