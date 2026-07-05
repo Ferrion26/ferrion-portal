@@ -151,12 +151,15 @@ Rechnung, Angebot, Lieferschein, Auftragsbestätigung, **Mahnung**,
 - **Platzhalter:** `{tag}`-Syntax (docxtemplater-kompatibel) für spätere
   automatische Befüllung aus `Order`/`Quote`/`User`.
 - **Rechnung** = kompaktes 1-Seiten-Layout (Leistung, Preise, Zahlung/Bank).
-- **Angebot** = mehrseitiges Vertragsdokument: Präambel, Angebotsdaten & Preise,
-  Leistungsbeschreibung, Allgemeine Bestimmungen (3.1–3.6), Auftrags­verarbeitungs­
-  vereinbarung (4.1–4.7), Zahlungsbedingungen & Vergütung (5.1–5.4),
-  Gerichtsstand, Schlussbestimmungen, Auftragserteilung mit
-  Unterschriftsbereich und elektronischer Beauftragung an `order@ferrion.at`.
-  Abschnittsüberschriften mit goldener Unterlinie; Rechtstexte sind Mustertexte.
+- **Angebot** = zweistufig aufgebaut: **Teil A** (Seiten 1–2, Verkaufsdokument)
+  mit 1) Ausgangslage & Zielsetzung des Kunden, 2) Lösungsvorschlag,
+  3) Warum Ferrion (inkl. persönlichem Ansprechpartner), 4) Preise,
+  5) Auftragserteilung mit Terminanker, Unterschriftsbereich und elektronischer
+  Beauftragung an `order@ferrion.at` — Unterschrift bereits auf Seite 2.
+  **Teil B** = Anlage 1 (per Seitenumbruch): Allgemeine Bestimmungen (A-1),
+  AVV (A-2), Zahlungsbedingungen (A-3), Gerichtsstand (A-4),
+  Schlussbestimmungen (A-5). Abschnittsüberschriften mit goldener Unterlinie;
+  Rechtstexte sind Mustertexte.
 - **Lieferschein** = Positionen **ohne** Preise (Pos, Art.-Nr., Beschreibung,
   Menge, Einheit) + Empfangsbestätigung mit Unterschriftsfeld.
 - **Auftragsbestätigung** = Positionen **mit** Preisen + Summen, Konditionsblock
