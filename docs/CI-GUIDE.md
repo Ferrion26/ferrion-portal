@@ -178,6 +178,22 @@ Gutschrift/Storno, Abnahmeprotokoll, Wartungs-/SLA-Vertrag,
   (15-Minuten-Takt), Gültigkeit/Verfall, Auftragserteilung mit Unterschriften
   + Anlage „Stundennachweis" (Blanko-Tabelle zum Mitführen).
 
+### Präsentationen (PowerPoint)
+
+`templates/Ferrion-Praesentationsmaster.pptx` (Generator:
+`scripts/generate-presentation-master.js`) — 16:9, durchgängig dunkel
+(`#0D1117`, Karten `#111827`), Gold nur als Akzent, Arial.
+
+- **10 Beispiel-Layouts** zum Duplizieren: Titel, Agenda (+ Termin-Karte),
+  Kapiteltrenner (große Gold-Nummer), Inhalt + Kernaussage-Karte,
+  Drei-Karten-Raster, Kennzahlen (4 Gold-Stats), Projektphasen-Timeline,
+  Options-Vergleich (empfohlene Option mit Gold-Rahmen + „EMPFOHLEN"-Badge),
+  Referenz/Zitat, Danke/Kontakt.
+- **Muster:** Gold-Eyebrow-Label über jedem Folientitel (Versal, gesperrt),
+  Icons in goldgetönten Kreisen, Fußzeile „FERRION · IT SYSTEMHAUS" +
+  Foliennummer. `{Platzhalter}` austauschen; jede Folie trägt Speaker-Notes
+  mit Verwendungshinweisen.
+
 ---
 
 ## 9. Pflege / Governance
