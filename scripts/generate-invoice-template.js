@@ -192,14 +192,14 @@ const bullet = (t) => p([run("▸  ", { color: GOLD, size: 16 }), run(t, { size:
 const sigRule = () => new Paragraph({ children: [run(" ")], spacing: { before: 300 }, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "9CA3AF", space: 20 } } });
 const sigCap = (t) => p(run(t, { size: 13, color: GRAY }), { spacing: { before: 20 } });
 
-const electronicNote = () => new Table({
+const electronicNote = (what = "dieses Angebot") => new Table({
   width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: [CONTENT_W],
   borders: { top: { style: BorderStyle.SINGLE, size: 6, color: GOLD }, bottom: { style: BorderStyle.SINGLE, size: 6, color: GOLD }, left: { style: BorderStyle.SINGLE, size: 6, color: GOLD }, right: { style: BorderStyle.SINGLE, size: 6, color: GOLD } },
   rows: [new TableRow({ children: [
     new TableCell({ width: { size: CONTENT_W, type: WidthType.DXA }, margins: { top: 140, bottom: 140, left: 160, right: 160 }, borders: noBorders, children: [
       p([
         run("Elektronische Beauftragung — ", { size: 16, bold: true, color: INK }),
-        run("Sie können dieses Angebot auch elektronisch beauftragen: Senden Sie das unterschriebene Dokument einfach an ", { size: 16, color: BODY }),
+        run(`Sie können ${what} auch elektronisch beauftragen: Senden Sie das unterschriebene Dokument einfach an `, { size: 16, color: BODY }),
         run("order@ferrion.at", { size: 16, bold: true, color: INK }),
         run(".", { size: 16, color: BODY }),
       ]),
@@ -489,6 +489,77 @@ function wartungBody(cfg) {
   ];
 }
 
+// ── Dienstleistungskontingent ───────────────────────────────
+const contingentSummary = () => new Table({
+  width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: TCOLS, borders: noBorders,
+  rows: [
+    totalRow("Stundenkontingent", "{contingent_hours} Stunden"),
+    totalRow("Stundensatz (netto)", "{hourly_rate} {currency}/h"),
+    totalRow("Zwischensumme (netto)", "{subtotal} {currency}"),
+    totalRow("USt {vat_rate} %", "{vat_amount} {currency}"),
+    totalRow("Gesamtbetrag", "{total} {currency}", { emphasize: true, band: true }),
+  ],
+});
+
+const NCOLS = [1400, 3838, 1600, 1400, 1400];
+const nachweisRow = () => new TableRow({ children: [
+  bodyCell(" ", NCOLS[0]), bodyCell(" ", NCOLS[1]), bodyCell(" ", NCOLS[2]),
+  bodyCell(" ", NCOLS[3], AlignmentType.CENTER), bodyCell(" ", NCOLS[4], AlignmentType.CENTER),
+] });
+const nachweisTable = () => new Table({
+  width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: NCOLS, borders: noBorders,
+  rows: [
+    new TableRow({ tableHeader: true, children: [
+      headCell("DATUM", NCOLS[0]), headCell("TÄTIGKEIT / TICKET", NCOLS[1]), headCell("TECHNIKER", NCOLS[2]),
+      headCell("STUNDEN", NCOLS[3], AlignmentType.CENTER), headCell("REST", NCOLS[4], AlignmentType.CENTER),
+    ] }),
+    nachweisRow(), nachweisRow(), nachweisRow(), nachweisRow(), nachweisRow(), nachweisRow(), nachweisRow(), nachweisRow(),
+  ],
+});
+
+function contingentBody(cfg) {
+  return [
+    headerBand(cfg), goldRule(), issuerMeta(cfg), ...billTo(cfg),
+
+    sectionH("1)  KONTINGENT & PREISE"),
+    para("Der Auftraggeber erwirbt das nachstehende Dienstleistungskontingent. Alle Preise verstehen sich netto zuzüglich der gesetzlichen Umsatzsteuer."),
+    contingentSummary(),
+
+    sectionH("2)  LEISTUNGSUMFANG"),
+    para("Aus dem Kontingent können insbesondere folgende Leistungen abgerufen werden:"),
+    para("{service_description}"),
+    bullet("Support und Störungsbehebung (remote und vor Ort)"),
+    bullet("Administration, Wartung und Konfiguration der Infrastruktur"),
+    bullet("Beratung, Konzeption und technische Dokumentation"),
+    bullet("Kleinere Erweiterungen und Change Requests außerhalb von Projekten"),
+
+    sectionH("3)  ABRUF & VERRECHNUNG"),
+    para("Der Abruf erfolgt per E-Mail an info@ferrion.at, telefonisch oder über das Kundenportal. Die Verrechnung erfolgt in Einheiten zu 15 Minuten; bei Vor-Ort-Einsätzen wird mindestens eine Stunde verrechnet, Reisezeiten gelten als Arbeitszeit."),
+    para("Der Auftraggeber erhält monatlich bzw. auf Anfrage einen aktuellen Stundennachweis mit Datum, Tätigkeit, aufgewendeten Stunden und Restkontingent."),
+
+    sectionH("4)  GÜLTIGKEIT & VERFALL"),
+    para("Das Kontingent ist gültig von {valid_from} bis {valid_until}. Nicht verbrauchte Stunden {expiry_rule}. Eine Aufstockung des Kontingents ist jederzeit zu den dann gültigen Konditionen möglich."),
+    para("Leistungen über das Kontingent hinaus werden nach Aufwand zum Stundensatz von {hourly_rate} {currency}/h verrechnet, sofern kein Folgekontingent vereinbart wird."),
+
+    sectionH("5)  AUFTRAGSERTEILUNG"),
+    para("Der Auftraggeber beauftragt hiermit das vorstehende Dienstleistungskontingent zu den genannten Konditionen. Die Verrechnung erfolgt nach Auftragserteilung; das Kontingent ist mit Zahlungseingang abrufbar."),
+    electronicNote("dieses Kontingent"),
+    signatures(),
+
+    new Paragraph({ children: [new PageBreak()] }),
+    p(run("ANLAGE", { size: 15, bold: true, color: GOLD, characterSpacing: 40 }), { spacing: { before: 80, after: 20 } }),
+    p(run("STUNDENNACHWEIS ZUM KONTINGENT {contingent_number}", { size: 22, bold: true, color: INK, characterSpacing: 10 }), {
+      spacing: { after: 60 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: GOLD, space: 6 } },
+    }),
+    para("Kontingent: {contingent_hours} Stunden · Gültig bis {valid_until} · Kunde: {customer_company}"),
+    nachweisTable(),
+
+    p(run(cfg.thanks, { size: 16, italics: true, color: GRAY }), { alignment: AlignmentType.CENTER, spacing: { before: 300, after: 80 } }),
+    hint(),
+  ];
+}
+
 function buildDoc(cfg) {
   return new Document({
     creator: "Ferrion IT Systemhaus", title: cfg.docTitle,
@@ -504,6 +575,7 @@ function buildDoc(cfg) {
         : cfg.mode === "credit" ? gutschriftBody(cfg)
         : cfg.mode === "acceptance" ? abnahmeBody(cfg)
         : cfg.mode === "maintenance" ? wartungBody(cfg)
+        : cfg.mode === "contingent" ? contingentBody(cfg)
         : [
         headerBand(cfg), goldRule(), issuerMeta(cfg), ...billTo(cfg),
         p(run(""), { spacing: { after: 160 } }),
@@ -574,11 +646,19 @@ const MAINTENANCE = {
   file: "Ferrion-Wartungsvertrag-Vorlage.docx",
 };
 
+const CONTINGENT = {
+  mode: "contingent", docTitle: "Dienstleistungskontingent", headTitle: "SERVICEKONTINGENT", headSub: "SERVICE CONTINGENT", headSize: 26,
+  metaTitle: "KONTINGENTDATEN", issuerLabel: "AUFTRAGNEHMER", recipientLabel: "AUFTRAGGEBER",
+  metaRows: [["Kontingentnr.", "{contingent_number}"], ["Datum", "{contingent_date}"], ["Gültig von", "{valid_from}"], ["Gültig bis", "{valid_until}"], ["Kundennr.", "{customer_number}"]],
+  thanks: "Wir freuen uns auf die Zusammenarbeit.",
+  file: "Ferrion-Dienstleistungskontingent-Vorlage.docx",
+};
+
 const outDir = path.join(__dirname, "..", "templates");
 fs.mkdirSync(outDir, { recursive: true });
 
 async function main() {
-  for (const cfg of [INVOICE, QUOTE, DELIVERY, CONFIRMATION, REMINDER, CREDIT, ACCEPTANCE, MAINTENANCE]) {
+  for (const cfg of [INVOICE, QUOTE, DELIVERY, CONFIRMATION, REMINDER, CREDIT, ACCEPTANCE, MAINTENANCE, CONTINGENT]) {
     const buf = await Packer.toBuffer(buildDoc(cfg));
     const out = path.join(outDir, cfg.file);
     fs.writeFileSync(out, buf);

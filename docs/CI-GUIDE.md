@@ -136,10 +136,11 @@ Tailwind-Nutzung als arbitrary values, z. B. `bg-[#0d1117]`, `text-[#c9a84c]`,
 
 ## 8. Dokumente / Print
 
-Acht Vorlagen aus einem Generator (`scripts/generate-invoice-template.js`),
+Neun Vorlagen aus einem Generator (`scripts/generate-invoice-template.js`),
 alle mit gemeinsamem Briefkopf, Farbwelt und Word-Seitenfußzeile:
-Rechnung, Angebot, Lieferschein, Auftragsbestätigung, **Mahnung**,
-**Gutschrift/Storno**, **Abnahmeprotokoll**, **Wartungs-/SLA-Vertrag**.
+Rechnung, Angebot, Lieferschein, Auftragsbestätigung, Mahnung,
+Gutschrift/Storno, Abnahmeprotokoll, Wartungs-/SLA-Vertrag,
+**Dienstleistungskontingent**.
 
 - **Druckerfreundlich:** weißer Körper, **kein** dunkler Hintergrund in Kopf/Fuß.
   Logo in heller Variante (dunkler Schriftzug). Gold nur als feine Linien und als
@@ -172,6 +173,10 @@ Rechnung, Angebot, Lieferschein, Auftragsbestätigung, **Mahnung**,
 - **Wartungs-/SLA-Vertrag** = mehrseitiger Vertrag mit Leistungsumfang,
   SLA-Reaktionszeiten-Tabelle, Vergütung, Laufzeit/Kündigung, Haftung,
   Datenschutz, Schlussbestimmungen + Unterschriften.
+- **Dienstleistungskontingent** = Stundenpaket mit Kontingent-/Preisübersicht
+  (Stunden, Stundensatz, Summen), Leistungsumfang, Abruf- & Verrechnungsregeln
+  (15-Minuten-Takt), Gültigkeit/Verfall, Auftragserteilung mit Unterschriften
+  + Anlage „Stundennachweis" (Blanko-Tabelle zum Mitführen).
 
 ---
 
