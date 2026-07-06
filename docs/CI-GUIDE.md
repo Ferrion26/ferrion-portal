@@ -180,9 +180,13 @@ Gutschrift/Storno, Abnahmeprotokoll, Wartungs-/SLA-Vertrag,
 
 ### Präsentationen (PowerPoint)
 
-`templates/Ferrion-Praesentationsmaster.pptx` (Generator:
-`scripts/generate-presentation-master.js`) — 16:9, durchgängig dunkel
-(`#0D1117`, Karten `#111827`), Gold nur als Akzent, Arial.
+Zwei Varianten mit identischen Layouts (Generator:
+`scripts/generate-presentation-master.js`, 16:9, Arial):
+
+| Variante | Datei | Einsatz |
+|---|---|---|
+| **Dunkel** (Standard) | `Ferrion-Praesentationsmaster.pptx` | Bildschirm, dunkle Räume — Premium-Look wie Website (`#0D1117`, Karten `#111827`, Gold `#C9A84C`) |
+| **Hell** | `Ferrion-Praesentationsmaster-Hell.pptx` | Beamer, helle Räume, Ausdrucke — Weiß, Karten `#F5F6F8`, Text-/Icon-Gold abgedunkelt auf `#A9852E` für Kontrast, helle Logo-Variante |
 
 - **10 Beispiel-Layouts** zum Duplizieren: Titel, Agenda (+ Termin-Karte),
   Kapiteltrenner (große Gold-Nummer), Inhalt + Kernaussage-Karte,
