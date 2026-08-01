@@ -25,10 +25,10 @@ const heroCopy = {
     cta1: "Beratung anfragen →",
     cta2: "Lösungen entdecken →",
     services: [
-      { icon: "🗄", title: "Storage & Infrastruktur", desc: "Huawei, Pure Storage — skalierbar und zuverlässig." },
-      { icon: "🛡", title: "Backup & Security", desc: "Commvault-Lösungen für NIS2-konforme Datensicherung." },
-      { icon: "🤖", title: "AI-Infrastruktur", desc: "GPU Server, Private AI Cluster, NVIDIA." },
-      { icon: "⚙", title: "Managed Services", desc: "Proaktiver Betrieb — damit Sie sich aufs Wesentliche konzentrieren." },
+      { icon: "🗄", title: "Storage & Infrastruktur", desc: "Huawei, Pure Storage — skalierbar und zuverlässig.", href: "/loesungen/storage" },
+      { icon: "🛡", title: "Backup & Security", desc: "Commvault-Lösungen für NIS2-konforme Datensicherung.", href: "/loesungen/backup" },
+      { icon: "🤖", title: "AI-Infrastruktur", desc: "GPU Server, Private AI Cluster, NVIDIA.", href: "/loesungen/ai-infrastruktur" },
+      { icon: "⚙", title: "Managed Services", desc: "Proaktiver Betrieb — damit Sie sich aufs Wesentliche konzentrieren.", href: "/managed-services" },
     ],
   },
   en: {
@@ -38,10 +38,10 @@ const heroCopy = {
     cta1: "Request Consultation →",
     cta2: "Discover Solutions →",
     services: [
-      { icon: "🗄", title: "Storage & Infrastructure", desc: "Huawei, Pure Storage — scalable and reliable." },
-      { icon: "🛡", title: "Backup & Security", desc: "Commvault solutions for NIS2-compliant data protection." },
-      { icon: "🤖", title: "AI Infrastructure", desc: "GPU servers, private AI clusters, NVIDIA." },
-      { icon: "⚙", title: "Managed Services", desc: "Proactive operations — so you can focus on what matters." },
+      { icon: "🗄", title: "Storage & Infrastructure", desc: "Huawei, Pure Storage — scalable and reliable.", href: "/loesungen/storage" },
+      { icon: "🛡", title: "Backup & Security", desc: "Commvault solutions for NIS2-compliant data protection.", href: "/loesungen/backup" },
+      { icon: "🤖", title: "AI Infrastructure", desc: "GPU servers, private AI clusters, NVIDIA.", href: "/loesungen/ai-infrastruktur" },
+      { icon: "⚙", title: "Managed Services", desc: "Proactive operations — so you can focus on what matters.", href: "/managed-services" },
     ],
   },
 };
@@ -124,13 +124,13 @@ export default function Hero({ locale, light = DEFAULT_HERO_LIGHT }: { locale: L
         <div className="max-w-7xl mx-auto px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4">
             {h.services.map((s, i) => (
-              <div key={s.title} className={`flex items-center gap-3 py-4 px-4 hover:bg-white/10 transition-colors cursor-pointer border-b border-white/10 lg:border-b-0 ${i < 3 ? "lg:border-r lg:border-white/20" : ""}`}>
+              <Link key={s.title} href={s.href} className={`flex items-center gap-3 py-4 px-4 hover:bg-white/10 transition-colors border-b border-white/10 lg:border-b-0 ${i < 3 ? "lg:border-r lg:border-white/20" : ""}`}>
                 <span className="text-xl shrink-0 opacity-80">{s.icon}</span>
                 <div>
                   <p className="text-white font-bold text-xs">{s.title}</p>
                   <p className="text-gray-200 text-[10px] leading-snug mt-0.5">{s.desc}</p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
