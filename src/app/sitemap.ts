@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes = [
     "",
     "/produkte",
+    "/managed-services",
     "/kontakt",
     "/karriere",
     "/beratung",

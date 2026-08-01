@@ -5,6 +5,7 @@ export const translations = {
     nav: {
       solutions: "Lösungen",
       products: "Produkte",
+      managedServices: "Managed Services",
       about: "Über uns",
       newsroom: "Newsroom",
       customerArea: "Kundenbereich",
@@ -116,6 +117,7 @@ export const translations = {
     nav: {
       solutions: "Solutions",
       products: "Products",
+      managedServices: "Managed Services",
       about: "About Us",
       newsroom: "Newsroom",
       customerArea: "Customer Area",

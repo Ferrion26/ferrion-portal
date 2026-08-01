@@ -9,7 +9,7 @@ const content = {
       { label: "Storage & Infrastruktur", href: "/loesungen/storage" },
       { label: "Backup & Security", href: "/loesungen/backup" },
       { label: "AI-Infrastruktur", href: "/loesungen/ai-infrastruktur" },
-      { label: "Managed Services", href: "/loesungen/managed-services" },
+      { label: "Managed Services", href: "/managed-services" },
     ],
     company: "Unternehmen",
     companyLinks: [
@@ -33,7 +33,7 @@ const content = {
       { label: "Storage & Infrastructure", href: "/loesungen/storage" },
       { label: "Backup & Security", href: "/loesungen/backup" },
       { label: "AI Infrastructure", href: "/loesungen/ai-infrastruktur" },
-      { label: "Managed Services", href: "/loesungen/managed-services" },
+      { label: "Managed Services", href: "/managed-services" },
     ],
     company: "Company",
     companyLinks: [
