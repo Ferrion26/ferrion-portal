@@ -11,6 +11,18 @@ export type NewsArticle = {
 // Single source of truth for all newsroom articles.
 export const NEWS: NewsArticle[] = [
   {
+    slug: "cosmosescape-azure-masterkey",
+    href: "/newsroom/cosmosescape-azure-masterkey",
+    iso: "2026-07-31",
+    date: { de: "31. Juli 2026", en: "July 31, 2026" },
+    tag: "Security",
+    title: { de: "CosmosEscape: Wie ein „Master Key“ Zugriff auf sämtliche Azure-Cosmos-DB-Datenbanken ermöglichte", en: "CosmosEscape: How a “Master Key” Enabled Access to Every Azure Cosmos DB Database" },
+    excerpt: {
+      de: "Wiz-Forscher fanden einen plattformweiten Master Key in Azure Cosmos DB — theoretisch Vollzugriff auf jede Datenbank über Mandanten und Regionen hinweg. Microsoft reagierte binnen 48 Stunden.",
+      en: "Wiz researchers found a platform-wide master key in Azure Cosmos DB — theoretically full access to every database across tenants and regions. Microsoft responded within 48 hours.",
+    },
+  },
+  {
     slug: "oceanprotect-dcig-top5",
     href: "/newsroom/oceanprotect-dcig-top5",
     iso: "2026-07-16",
