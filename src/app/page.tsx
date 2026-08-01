@@ -6,6 +6,7 @@ import Hero from "@/components/home/Hero";
 import Showreel from "@/components/home/Showreel";
 import Partners from "@/components/home/Partners";
 import Services from "@/components/home/Services";
+import ManagedServicesTeaser from "@/components/home/ManagedServicesTeaser";
 import AboutUs from "@/components/home/AboutUs";
 import Testimonials from "@/components/home/Testimonials";
 import FAQ from "@/components/home/FAQ";
@@ -39,6 +40,7 @@ export default async function HomePage({ searchParams }: SP) {
       <Showreel locale={locale} />
       <Partners locale={locale} />
       <Services locale={locale} />
+      <ManagedServicesTeaser locale={locale} />
       <AboutUs locale={locale} />
       <Testimonials locale={locale} />
       <Newsroom locale={locale} />

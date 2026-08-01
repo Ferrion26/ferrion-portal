@@ -17,6 +17,7 @@ export default function Header({ locale }: { locale: Locale }) {
 
   const nav = [
     { label: t.nav.solutions, href: "#loesungen" },
+    { label: t.nav.products, href: "/produkte" },
     { label: t.nav.about, href: "#ueber-uns" },
     { label: t.nav.newsroom, href: "#newsroom" },
     { label: t.nav.customerArea, href: "/dashboard" },

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SOLUTIONS } from "./loesungen/solutions-data";
+import { PRODUCTS } from "./produkte/products-data";
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ferrion.at";
 
@@ -8,6 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const staticRoutes = [
     "",
+    "/produkte",
     "/kontakt",
     "/karriere",
     "/beratung",
@@ -22,6 +24,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const solutionRoutes = SOLUTIONS.map((s) => ({
     url: `${BASE}/loesungen/${s.slug}`,
+    lastModified: now,
+    changeFrequency: "monthly" as const,
+    priority: 0.8,
+  }));
+
+  const productRoutes = PRODUCTS.map((p) => ({
+    url: `${BASE}/produkte/${p.slug}`,
     lastModified: now,
     changeFrequency: "monthly" as const,
     priority: 0.8,
@@ -45,5 +54,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  return [...staticRoutes, ...solutionRoutes, ...newsRoutes];
+  return [...staticRoutes, ...solutionRoutes, ...productRoutes, ...newsRoutes];
 }

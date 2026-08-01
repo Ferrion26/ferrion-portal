@@ -14,6 +14,7 @@ const content = {
     company: "Unternehmen",
     companyLinks: [
       { label: "Über uns", href: "/#ueber-uns" },
+      { label: "Produkte", href: "/produkte" },
       { label: "Newsroom", href: "/#newsroom" },
       { label: "Karriere", href: "/karriere" },
       { label: "FAQ", href: "/#faq" },
@@ -37,6 +38,7 @@ const content = {
     company: "Company",
     companyLinks: [
       { label: "About Us", href: "/#ueber-uns" },
+      { label: "Products", href: "/produkte" },
       { label: "Newsroom", href: "/#newsroom" },
       { label: "Careers", href: "/karriere" },
       { label: "FAQ", href: "/#faq" },

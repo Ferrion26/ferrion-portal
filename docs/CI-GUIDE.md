@@ -4,7 +4,7 @@
 > Ferrion, wie es **tatsächlich im Code** umgesetzt ist. Bei Designänderungen wird
 > dieser Guide mitgepflegt (siehe [Pflege](#9-pflege--governance)).
 >
-> Zuletzt aktualisiert: 2026-07-05
+> Zuletzt aktualisiert: 2026-08-01
 
 ---
 
@@ -199,6 +199,29 @@ Zwei Varianten mit identischen Layouts (Generator:
   mit Verwendungshinweisen.
 
 ---
+
+## 8a. Produktkatalog & Managed Services
+
+- **Datenquelle:** `src/app/produkte/products-data.ts` — zentrales Modell für
+  Herstellerprodukte (`PRODUCTS`) und geplante Erweiterungen (`UPCOMING_PRODUCTS`).
+  Neue Plattformen werden hier ergänzt, ohne Layout-Code anzufassen.
+- **Seiten:** `/produkte` (Katalog-Übersicht, inkl. „Bald verfügbar"-Kacheln für
+  künftige Hersteller) und `/produkte/[slug]` (Produkt-Detail: Hero, Facts-Grid,
+  Plattform-Highlights, Managed-Services-Pakete + Vergleichstabelle, verknüpfte
+  Newsroom-Artikel, Anfrageformular).
+- **Managed-Services-Pakete:** Drei Stufen (Care Monitor / Operate / Complete)
+  als Karten mit Gold-Rahmen + „Empfohlen"-Badge auf der mittleren Stufe, plus
+  eine 12-zeilige Vergleichstabelle. Erstes Produkt: **Huawei DCS** (Data Center
+  Storage & Compute — Dorado-Storage, FusionCompute-Virtualisierung,
+  OceanProtect-Datensicherung).
+- **Homepage-Teaser:** `src/components/home/ManagedServicesTeaser.tsx` zeigt die
+  drei Pakete kompakt mit CTA zur Detailseite.
+- **Anfrageformular:** `src/app/produkte/[slug]/InquiryForm.tsx` — nutzt die
+  bestehende `/api/kontakt`-Route, vorbelegt Thema und Servicestufe
+  (Default: „Operate", empfohlen).
+- **Sprachregel Marketingtexte:** Kundenseitige Beschreibungen (Säulen,
+  Produktseiten) verwenden nutzenorientierte Sprache — keine internen
+  Geschäftsbegriffe wie „Marge" oder „wiederkehrende Erlöse".
 
 ## 9. Pflege / Governance
 
