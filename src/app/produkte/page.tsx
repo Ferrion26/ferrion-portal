@@ -64,7 +64,7 @@ export default function ProductsIndexPage({ searchParams }: SP) {
                 structure their own product navigation (category list on
                 the left, matching products on the right). New categories
                 just get added to CATEGORIES in products-data.ts. */}
-            <nav className="md:sticky md:top-28 self-start">
+            <nav className="min-w-0 md:sticky md:top-28 self-start">
               <p className="text-gray-600 text-[10px] font-bold tracking-widest uppercase mb-4">{t.categoriesLabel}</p>
               <ul className="flex md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
                 {CATEGORIES.map((c) => (
