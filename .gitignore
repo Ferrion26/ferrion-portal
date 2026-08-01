@@ -26,3 +26,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# raw partner-portal logo downloads (zips/source files) — only the
+# processed asset actually used in code (e.g. public/logos/fudo-mark.png)
+# is committed
+/public/logos/Fudo/

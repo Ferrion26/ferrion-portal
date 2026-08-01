@@ -195,8 +195,9 @@ export const PRODUCTS: Product[] = [
     status: "available",
     categoryIds: ["security"],
     vendor: "Fudo Security",
+    vendorLogo: "/logos/fudo-mark.png",
     icon: "🔑",
-    eyebrow: { de: "Produkt · Beispiel-Content", en: "Product · Example content" },
+    eyebrow: { de: "Produkt · Fudo Registered Partner", en: "Product · Fudo Registered Partner" },
     name: "Fudo",
     tagline: {
       de: "Beispiel-Content: Privileged Access Management für kontrollierten administrativen Zugriff.",
