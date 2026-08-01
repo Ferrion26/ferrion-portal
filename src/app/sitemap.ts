@@ -28,6 +28,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }));
 
   const newsRoutes = [
+    "/newsroom/vmware-vmsa-2026-0006",
     "/newsroom/cosmosescape-azure-masterkey",
     "/newsroom/oceanprotect-dcig-top5",
     "/newsroom/citrix-netscaler-security-bulletin",

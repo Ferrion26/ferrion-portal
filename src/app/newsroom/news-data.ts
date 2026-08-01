@@ -11,6 +11,18 @@ export type NewsArticle = {
 // Single source of truth for all newsroom articles.
 export const NEWS: NewsArticle[] = [
   {
+    slug: "vmware-vmsa-2026-0006",
+    href: "/newsroom/vmware-vmsa-2026-0006",
+    iso: "2026-07-30",
+    date: { de: "30. Juli 2026", en: "July 30, 2026" },
+    tag: "Security",
+    title: { de: "VMSA-2026-0006: Kritische Lücken in VMware ESX, vCenter, Workstation und Fusion", en: "VMSA-2026-0006: Critical Vulnerabilities in VMware ESX, vCenter, Workstation and Fusion" },
+    excerpt: {
+      de: "Broadcom schließt fünf Schwachstellen, zwei davon mit CVSS 9,8 und ohne Workaround. vCenter Server ist ohne Anmeldedaten aus dem Netz angreifbar — Updates sollten prioritär eingespielt werden.",
+      en: "Broadcom patches five vulnerabilities, two rated CVSS 9.8 with no workaround. vCenter Server is exploitable over the network without credentials — updates should be applied as a priority.",
+    },
+  },
+  {
     slug: "cosmosescape-azure-masterkey",
     href: "/newsroom/cosmosescape-azure-masterkey",
     iso: "2026-07-31",

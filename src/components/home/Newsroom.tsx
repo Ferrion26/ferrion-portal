@@ -4,12 +4,12 @@ import { newsBySlugs } from "@/app/newsroom/news-data";
 
 // Curated selection shown on the homepage (full history lives at /newsroom).
 const FEATURED = [
+  "vmware-vmsa-2026-0006",
   "cosmosescape-azure-masterkey",
   "oceanprotect-dcig-top5",
   "citrix-netscaler-security-bulletin",
   "pure-storage-ki-plattform",
   "huawei-dorado-v7",
-  "pure-storage-migration",
 ];
 
 const news = newsBySlugs(FEATURED);
