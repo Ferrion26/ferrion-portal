@@ -203,16 +203,22 @@ Zwei Varianten mit identischen Layouts (Generator:
 ## 8a. Produktkatalog & Managed Services
 
 - **Datenquelle:** `src/app/produkte/products-data.ts` — zentrales Modell für
-  Produktkategorien (`CATEGORIES`), Herstellerprodukte (`PRODUCTS`) und geplante
-  Erweiterungen (`UPCOMING_PRODUCTS`). Neue Kategorien/Plattformen werden hier
-  ergänzt, ohne Layout-Code anzufassen.
-- **Navigation:** `/produkte` zeigt eine Kategorie-Sidebar (Vorbild: die
-  Hersteller-Navigation von Huawei — Kategorie links, Produkte rechts) mit
-  Panels je Kategorie. Verfügbare Kategorie: „Data Storage" (Huawei DCS +
-  „Bald verfügbar"-Kacheln für Pure Storage/Commvault). Weitere Kategorien
-  (Networking, Backup & Recovery) sind als „In Vorbereitung" angelegt und
-  aktivieren sich automatisch, sobald ihnen ein Produkt zugeordnet wird
-  (`available: true` in `CATEGORIES`).
+  Produktkategorien (`CATEGORIES`) und Herstellerprodukte (`PRODUCTS`). Ein
+  Produkt kann mehreren Kategorien angehören (`categoryIds: string[]`, z. B.
+  gehört OceanStor Dorado zu „Data Storage" **und** „AI Data Platform") und
+  optional einer Untergruppe (`subgroup`, z. B. „All-Flash Storage" /
+  „Hybrid Flash Storage" innerhalb von Data Storage).
+- **Navigation:** `/produkte` zeigt eine Kategorie-Sidebar nach dem Vorbild
+  der Hersteller-Navigation von Huawei (Kategorie links, Produkte rechts) mit
+  einem Panel je Kategorie. Sieben Kategorien: Data Storage, Security,
+  Serverlösungen, AI Data Platform, Backup & Recovery, Virtualization,
+  AI & Data Intelligence. Neue Kategorien werden einfach zu `CATEGORIES`
+  ergänzt.
+- **Beispiel-Content:** Produkte ohne finale Inhalte (z. B. Fudo, Varonis,
+  Dell PowerEdge, Dell AI Factory, Huawei AI Appliances, Commvault, Data
+  Lakes, Everpure Storage Platform) sind explizit als „Beispiel-Content"
+  gekennzeichnet (Eyebrow-Text + Intro) und über einen generischen
+  „Kontakt aufnehmen"-CTA statt eines Managed-Services-Formulars erreichbar.
 - **Seiten:** `/produkte` (Katalog-Übersicht) und `/produkte/[slug]`
   (Produkt-Detail: Hero, Facts-Grid, Plattform-Highlights,
   Managed-Services-Pakete + Vergleichstabelle, verknüpfte Newsroom-Artikel,
