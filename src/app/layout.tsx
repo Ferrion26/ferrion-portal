@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -70,6 +71,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={inter.className}>
         <Providers>{children}</Providers>
+        <Script
+          defer
+          src="https://cloud.umami.is/script.js"
+          data-website-id="ac4ebcfc-04ba-4ea7-aa88-6ec8a2ef6384"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
