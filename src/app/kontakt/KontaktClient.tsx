@@ -25,8 +25,6 @@ const copy = {
       { icon: "📍", label: "Standort", value: "Wien, Österreich", href: null },
       { icon: "🕐", label: "Erreichbarkeit", value: "Mo–Fr, 08:00–18:00", href: null },
     ],
-    response: "Antwortzeit",
-    responseValue: "< 24 Stunden",
   },
   en: {
     eyebrow: "Contact",
@@ -49,8 +47,6 @@ const copy = {
       { icon: "📍", label: "Location", value: "Vienna, Austria", href: null },
       { icon: "🕐", label: "Availability", value: "Mon–Fri, 08:00–18:00", href: null },
     ],
-    response: "Response time",
-    responseValue: "< 24 hours",
   },
 };
 
@@ -188,12 +184,6 @@ export default function KontaktClient({ locale }: { locale: Locale }) {
                 </div>
               </div>
             ))}
-
-            {/* Response time highlight */}
-            <div className="bg-[#c9a84c]/5 border border-[#c9a84c]/20 p-6">
-              <p className="text-[#c9a84c] text-[10px] font-bold tracking-widest uppercase mb-2">{t.response}</p>
-              <p className="text-white text-2xl font-bold">{t.responseValue}</p>
-            </div>
           </div>
         </div>
       </div>

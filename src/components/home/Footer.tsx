@@ -106,18 +106,6 @@ export default function Footer({ locale = "de" }: { locale?: Locale }) {
           </div>
         </div>
 
-        {/* Partners row */}
-        <div className="border-t border-white/10 pt-8 mb-8">
-          <p className="text-gray-600 text-[10px] font-bold tracking-widest uppercase mb-4">
-            {locale === "de" ? "Zertifizierte Partner" : "Certified Partners"}
-          </p>
-          <div className="flex items-center gap-8 flex-wrap">
-            <img src="/logos/Huawei_Standard_logo.svg.png" alt="Huawei" className="h-5 w-auto opacity-30 hover:opacity-60 transition-opacity" style={{ mixBlendMode: "screen" }} />
-            <img src="/logos/Pure Storage Bug Orange_undefined.PNG" alt="Pure Storage" className="h-5 w-auto opacity-30 hover:opacity-60 transition-opacity" style={{ mixBlendMode: "screen" }} />
-            <img src="/logos/cropped-favicon-commvault-1.png" alt="Commvault" className="h-5 w-auto opacity-30 hover:opacity-60 transition-opacity" style={{ mixBlendMode: "screen" }} />
-          </div>
-        </div>
-
         <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-gray-600 text-xs">
             © {new Date().getFullYear()} {t.copyright}
