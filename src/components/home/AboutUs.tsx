@@ -11,7 +11,7 @@ const content = {
     },
     mission: {
       label: "Mission",
-      text: "Wir verbinden marktführende Infrastruktur-Technologie (Huawei, Pure Storage, Commvault) mit eigenem Datenbank-Know-how und liefern sie als durchgängiges Paket aus Beratung, Implementierung und Managed Services. Wiederkehrende Erlöse sichern die Substanz, das Projektgeschäft das Wachstum.",
+      text: "Wir verbinden marktführende Infrastruktur-Technologie (Huawei, Pure Storage, Commvault) mit eigenem Datenbank-Know-how und liefern sie als durchgängiges Paket aus Beratung, Implementierung und Managed Services — damit Sie einen Partner statt viele Einzellieferanten haben.",
     },
     teamLabel: "Gründerteam",
     team: [
@@ -32,10 +32,10 @@ const content = {
     ],
     uspLabel: "Unsere Alleinstellung",
     usps: [
-      { icon: "🗄", title: "Datenbank-Know-how", desc: "Tiefe DB-Kompetenz ist im klassischen Systemhaus selten. Sie verschafft uns Zugang zu geschäftskritischen Workloads — und von dort zur Infrastruktur." },
-      { icon: "🤝", title: "Herstellerbeziehungen", desc: "Etablierte, persönliche Beziehungen zu Huawei, Pure Storage und Commvault — inkl. erster Funded-Head-Zusage von Huawei." },
-      { icon: "✅", title: "Vollständige Zertifizierungen", desc: "Alle nötigen Hersteller- und Fachzertifizierungen vorhanden. Partner-Level-Anforderungen werden von Beginn an erfüllt." },
-      { icon: "🏢", title: "Warmer Kundenpool", desc: "Wir starten nicht auf der grünen Wiese: Bestehender Kundenpool und eine konkrete Projekt-Pipeline ab Tag 1." },
+      { icon: "🗄", title: "Datenbank-Know-how", desc: "Tiefe DB-Kompetenz ist im klassischen Systemhaus selten. Sie hilft uns, Ihre geschäftskritischen Workloads wirklich zu verstehen — von der Datenbank bis zur darunterliegenden Infrastruktur." },
+      { icon: "🤝", title: "Zertifizierter Huawei-Partner", desc: "Etablierte, persönliche Beziehungen zu Huawei, Pure Storage und Commvault sichern Ihnen direkten Zugang zu Hersteller-Support, Roadmaps und bevorzugten Konditionen." },
+      { icon: "✅", title: "Vollständige Zertifizierungen", desc: "Alle nötigen Hersteller- und Fachzertifizierungen sind vorhanden — Ihre Projekte werden nach Best Practice umgesetzt, nicht nach Trial-and-Error." },
+      { icon: "🏢", title: "Erfahrung aus echten Projekten", desc: "Wir kennen die Anforderungen österreichischer Unternehmen aus zahlreichen laufenden Kundenbeziehungen — kein Lernen auf Ihre Kosten." },
       { icon: "⚡", title: "Inhabergeführt & schlank", desc: "Zwei Geschäftsführer mit komplementären Profilen ermöglichen kurze Wege, schnelle Entscheidungen und hohe Kundennähe." },
       { icon: "🤖", title: "AI-Infrastruktur-Fokus", desc: "GPU Server, Private AI Cluster, NVIDIA-Infrastruktur, Kubernetes für AI, AI Storage & AI Disaster Recovery — wir begleiten Ihren Weg in die KI." },
     ],
@@ -50,7 +50,7 @@ const content = {
     },
     mission: {
       label: "Mission",
-      text: "We combine leading infrastructure technology (Huawei, Pure Storage, Commvault) with our own database know-how and deliver it as a complete package of consulting, implementation and managed services. Recurring revenues secure the substance, project business drives growth.",
+      text: "We combine leading infrastructure technology (Huawei, Pure Storage, Commvault) with our own database know-how and deliver it as a complete package of consulting, implementation and managed services — so you have one partner instead of many separate suppliers.",
     },
     teamLabel: "Founding Team",
     team: [
@@ -71,10 +71,10 @@ const content = {
     ],
     uspLabel: "Our Unique Selling Points",
     usps: [
-      { icon: "🗄", title: "Database Know-how", desc: "Deep database expertise is rare in classic IT resellers. It gives us access to business-critical workloads — and from there to the underlying infrastructure." },
-      { icon: "🤝", title: "Vendor Relationships", desc: "Established, personal relationships with Huawei, Pure Storage and Commvault — including a first funded head commitment from Huawei." },
-      { icon: "✅", title: "Full Certifications", desc: "All necessary vendor and technical certifications in place. Partner level requirements fulfilled from day one." },
-      { icon: "🏢", title: "Warm Customer Pool", desc: "We're not starting from scratch: existing customer pool and a concrete project pipeline from day one." },
+      { icon: "🗄", title: "Database Know-how", desc: "Deep database expertise is rare among classic IT resellers. It helps us truly understand your business-critical workloads — from the database down to the underlying infrastructure." },
+      { icon: "🤝", title: "Certified Huawei Partner", desc: "Established, personal relationships with Huawei, Pure Storage and Commvault give you direct access to vendor support, roadmaps and preferred terms." },
+      { icon: "✅", title: "Full Certifications", desc: "All necessary vendor and technical certifications are in place — your projects are delivered to best practice, not trial and error." },
+      { icon: "🏢", title: "Proven in Real Projects", desc: "We know the requirements of Austrian companies from numerous ongoing customer relationships — no learning curve at your expense." },
       { icon: "⚡", title: "Owner-managed & lean", desc: "Two managing directors with complementary profiles enable short decision paths, fast decisions and close customer proximity." },
       { icon: "🤖", title: "AI Infrastructure Focus", desc: "GPU servers, private AI clusters, NVIDIA infrastructure, Kubernetes for AI, AI storage & AI disaster recovery — we guide your journey into AI." },
     ],

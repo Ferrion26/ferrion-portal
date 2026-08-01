@@ -8,7 +8,6 @@ const content = {
     eyebrow: "Managed Services",
     headline: "Betrieb, den Sie nicht mehr selbst tragen müssen",
     sub: "Drei Servicestufen für Ihre Huawei-DCS-Infrastruktur — von der reinen Überwachung bis zur vollen Verfügbarkeitsgarantie. Weitere Plattformen folgen.",
-    perMonth: "/ Monat",
     recommended: "Empfohlen",
     cta: "Alle Pakete & Details ansehen →",
     note: "Individuelles Angebot nach kurzem Umgebungs-Check · weitere Plattformen in Vorbereitung",
@@ -17,7 +16,6 @@ const content = {
     eyebrow: "Managed Services",
     headline: "Operations You No Longer Have to Carry Yourself",
     sub: "Three service tiers for your Huawei DCS infrastructure — from pure monitoring to full availability ownership. More platforms to follow.",
-    perMonth: "/ month",
     recommended: "Recommended",
     cta: "View all packages & details →",
     note: "Individual quote after a short environment check · more platforms in preparation",
@@ -57,9 +55,6 @@ export default function ManagedServicesTeaser({ locale }: { locale: Locale }) {
                     </li>
                   ))}
                 </ul>
-                <p className="text-white text-xl font-bold">
-                  € {p.price},–<span className="text-gray-500 text-xs font-normal"> {t.perMonth}</span>
-                </p>
               </div>
             </FadeIn>
           ))}

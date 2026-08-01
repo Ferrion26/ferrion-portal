@@ -5,12 +5,23 @@
 
 type Bi = { de: string; en: string };
 
+// Product categories mirror how vendors like Huawei structure their own
+// catalogs (a left-hand category list with the matching products on the
+// right) so Ferrion's catalog can grow the same way — new categories and
+// products slot in without touching any layout code.
+export type Category = { id: string; label: Bi; available: boolean };
+
+export const CATEGORIES: Category[] = [
+  { id: "data-storage", label: { de: "Data Storage", en: "Data Storage" }, available: true },
+  { id: "networking", label: { de: "Networking", en: "Networking" }, available: false },
+  { id: "backup-recovery", label: { de: "Backup & Recovery", en: "Backup & Recovery" }, available: false },
+];
+
 export type ManagedPackage = {
   id: "monitor" | "operate" | "complete";
   name: string; // brand name stays identical across locales, e.g. "Care Monitor"
   tagline: Bi;
   bullets: { de: string[]; en: string[] };
-  price: string; // e.g. "1.890"
   recommended?: boolean;
 };
 
@@ -22,6 +33,7 @@ export type ComparisonRow = {
 export type Product = {
   slug: string;
   status: "available" | "coming-soon";
+  categoryId: string;
   vendor: string;
   vendorLogo?: string;
   icon: string;
@@ -40,7 +52,7 @@ export type Product = {
     packages: ManagedPackage[];
     comparisonLabel: Bi;
     comparison: ComparisonRow[];
-    priceNote: Bi;
+    note: Bi;
   };
 };
 
@@ -48,6 +60,7 @@ export const PRODUCTS: Product[] = [
   {
     slug: "huawei-dcs",
     status: "available",
+    categoryId: "data-storage",
     vendor: "Huawei",
     vendorLogo: "/logos/huawei.svg",
     icon: "🗄",
@@ -115,7 +128,6 @@ export const PRODUCTS: Product[] = [
             de: ["Wir überwachen rund um die Uhr", "Störung wird analysiert und gemeldet", "Behebung durch Ihr IT-Team", "Quartalsbericht"],
             en: ["We monitor around the clock", "Incidents are analysed and reported", "Remediation by your own IT team", "Quarterly report"],
           },
-          price: "1.890",
         },
         {
           id: "operate",
@@ -125,7 +137,6 @@ export const PRODUCTS: Product[] = [
             de: ["Betrieb von Hardware, Netzwerk, DCS, Backup", "Störungen werden von uns behoben", "Patch- und Change-Management inklusive", "Monatsbericht, benannter Service Manager"],
             en: ["Operation of hardware, network, DCS, backup", "Incidents are resolved by us", "Patch and change management included", "Monthly report, named service manager"],
           },
-          price: "3.290",
           recommended: true,
         },
         {
@@ -136,7 +147,6 @@ export const PRODUCTS: Product[] = [
             de: ["Vollbetrieb bis einschließlich OS-Layer", "Rund-um-die-Uhr-Betreuung, 24×7×365", "Standard-Changes ohne Mengenbegrenzung", "Quartals-Review, DR-Test, Restore-Verifikation"],
             en: ["Full operation up to and including the OS layer", "Round-the-clock coverage, 24×7×365", "Unlimited standard changes", "Quarterly review, DR test, restore verification"],
           },
-          price: "4.980",
         },
       ],
       comparisonLabel: { de: "Die drei Stufen im Vergleich", en: "The Three Tiers Compared" },
@@ -154,9 +164,9 @@ export const PRODUCTS: Product[] = [
         { label: { de: "Benannter Service Manager", en: "Named service manager" }, values: ["–", "ja", "ja, mit Quartals-Review"] },
         { label: { de: "DR-Test", en: "DR test" }, values: ["–", "–", "1× jährlich"] },
       ],
-      priceNote: {
-        de: "Alle Preise netto zzgl. USt., als Richtwert für eine mittelständische Infrastruktur. Ihr individuelles Angebot erstellen wir nach einem kurzen Umgebungs-Check.",
-        en: "All prices net, excl. VAT, as a guideline for a mid-sized infrastructure. We prepare your individual quote after a short environment check.",
+      note: {
+        de: "Jede Stufe wird auf Ihre Umgebung zugeschnitten. Ihr individuelles Angebot erstellen wir nach einem kurzen, unverbindlichen Umgebungs-Check.",
+        en: "Every tier is tailored to your environment. We prepare your individual, no-obligation quote after a short environment check.",
       },
     },
   },
@@ -168,7 +178,7 @@ export function getProduct(slug: string) {
 
 // Placeholder entries to demonstrate the catalog scales to more vendors —
 // shown as "coming soon" tiles on /produkte, no detail page yet.
-export const UPCOMING_PRODUCTS: { name: string; vendor: string; icon: string }[] = [
-  { name: "Pure Storage FlashArray", vendor: "Pure Storage", icon: "⚡" },
-  { name: "Commvault Complete", vendor: "Commvault", icon: "🛡" },
+export const UPCOMING_PRODUCTS: { name: string; vendor: string; icon: string; categoryId: string }[] = [
+  { name: "Pure Storage FlashArray", vendor: "Pure Storage", icon: "⚡", categoryId: "data-storage" },
+  { name: "Commvault Complete", vendor: "Commvault", icon: "🛡", categoryId: "backup-recovery" },
 ];

@@ -203,25 +203,38 @@ Zwei Varianten mit identischen Layouts (Generator:
 ## 8a. Produktkatalog & Managed Services
 
 - **Datenquelle:** `src/app/produkte/products-data.ts` — zentrales Modell für
-  Herstellerprodukte (`PRODUCTS`) und geplante Erweiterungen (`UPCOMING_PRODUCTS`).
-  Neue Plattformen werden hier ergänzt, ohne Layout-Code anzufassen.
-- **Seiten:** `/produkte` (Katalog-Übersicht, inkl. „Bald verfügbar"-Kacheln für
-  künftige Hersteller) und `/produkte/[slug]` (Produkt-Detail: Hero, Facts-Grid,
-  Plattform-Highlights, Managed-Services-Pakete + Vergleichstabelle, verknüpfte
-  Newsroom-Artikel, Anfrageformular).
+  Produktkategorien (`CATEGORIES`), Herstellerprodukte (`PRODUCTS`) und geplante
+  Erweiterungen (`UPCOMING_PRODUCTS`). Neue Kategorien/Plattformen werden hier
+  ergänzt, ohne Layout-Code anzufassen.
+- **Navigation:** `/produkte` zeigt eine Kategorie-Sidebar (Vorbild: die
+  Hersteller-Navigation von Huawei — Kategorie links, Produkte rechts) mit
+  Panels je Kategorie. Verfügbare Kategorie: „Data Storage" (Huawei DCS +
+  „Bald verfügbar"-Kacheln für Pure Storage/Commvault). Weitere Kategorien
+  (Networking, Backup & Recovery) sind als „In Vorbereitung" angelegt und
+  aktivieren sich automatisch, sobald ihnen ein Produkt zugeordnet wird
+  (`available: true` in `CATEGORIES`).
+- **Seiten:** `/produkte` (Katalog-Übersicht) und `/produkte/[slug]`
+  (Produkt-Detail: Hero, Facts-Grid, Plattform-Highlights,
+  Managed-Services-Pakete + Vergleichstabelle, verknüpfte Newsroom-Artikel,
+  Anfrageformular).
 - **Managed-Services-Pakete:** Drei Stufen (Care Monitor / Operate / Complete)
   als Karten mit Gold-Rahmen + „Empfohlen"-Badge auf der mittleren Stufe, plus
-  eine 12-zeilige Vergleichstabelle. Erstes Produkt: **Huawei DCS** (Data Center
-  Storage & Compute — Dorado-Storage, FusionCompute-Virtualisierung,
+  eine 12-zeilige Vergleichstabelle. **Keine Preisangaben** — Pakete werden
+  ohne Preis dargestellt, das individuelle Angebot folgt nach einem
+  Umgebungs-Check über das Anfrageformular. Erstes Produkt: **Huawei DCS**
+  (Data Center Storage & Compute — Dorado-Storage, FusionCompute-Virtualisierung,
   OceanProtect-Datensicherung).
 - **Homepage-Teaser:** `src/components/home/ManagedServicesTeaser.tsx` zeigt die
-  drei Pakete kompakt mit CTA zur Detailseite.
+  drei Pakete kompakt (ohne Preis) mit CTA zur Detailseite.
 - **Anfrageformular:** `src/app/produkte/[slug]/InquiryForm.tsx` — nutzt die
   bestehende `/api/kontakt`-Route, vorbelegt Thema und Servicestufe
-  (Default: „Operate", empfohlen).
+  (Default: „Operate", empfohlen). Anfragen laufen an `info@ferrion.at`
+  (siehe `src/app/api/kontakt/route.ts`), der Absender erhält automatisch eine
+  Bestätigungsmail.
 - **Sprachregel Marketingtexte:** Kundenseitige Beschreibungen (Säulen,
-  Produktseiten) verwenden nutzenorientierte Sprache — keine internen
-  Geschäftsbegriffe wie „Marge" oder „wiederkehrende Erlöse".
+  Produktseiten, „Unsere Alleinstellung" in `AboutUs.tsx`) verwenden
+  nutzenorientierte Sprache — keine internen Geschäfts-/Investor-Begriffe wie
+  „Marge", „wiederkehrende Erlöse", „Funded Head" oder „Kundenpool".
 
 ## 9. Pflege / Governance
 

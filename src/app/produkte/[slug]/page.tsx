@@ -37,7 +37,6 @@ const copy = {
     back: "← Alle Produkte",
     highlightsLabel: "Die Plattform im Überblick",
     packagesCta: "Servicestufen ansehen ↓",
-    perMonth: "/ Monat",
     recommended: "Empfohlen",
     request: "Anfragen →",
     comparisonMonitor: "Monitor",
@@ -51,7 +50,6 @@ const copy = {
     back: "← All Products",
     highlightsLabel: "The Platform at a Glance",
     packagesCta: "View service tiers ↓",
-    perMonth: "/ month",
     recommended: "Recommended",
     request: "Request →",
     comparisonMonitor: "Monitor",
@@ -165,9 +163,6 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
                       </li>
                     ))}
                   </ul>
-                  <p className="text-white text-2xl font-bold mb-1">
-                    € {p.price},–<span className="text-gray-500 text-sm font-normal"> {t.perMonth}</span>
-                  </p>
                 </div>
               ))}
             </div>
@@ -200,7 +195,7 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
                 </tbody>
               </table>
             </div>
-            <p className="text-gray-600 text-xs leading-relaxed max-w-2xl">{ms.priceNote[locale]}</p>
+            <p className="text-gray-600 text-xs leading-relaxed max-w-2xl">{ms.note[locale]}</p>
           </section>
         )}
 
