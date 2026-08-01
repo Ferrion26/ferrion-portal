@@ -42,9 +42,12 @@ const copy = {
     comparisonMonitor: "Monitor",
     comparisonOperate: "Operate",
     comparisonComplete: "Complete",
-    articlesLabel: "Mehr zu Huawei DCS im Newsroom",
+    articlesLabel: "Mehr im Newsroom",
     readArticle: "Artikel lesen →",
     formAnchor: "anfrage",
+    contactCta: "Interesse an {product}?",
+    contactSub: "Kontaktieren Sie uns — wir melden uns innerhalb von 24 Stunden mit den nächsten Schritten.",
+    contactButton: "Kontakt aufnehmen →",
   },
   en: {
     back: "← All Products",
@@ -55,9 +58,12 @@ const copy = {
     comparisonMonitor: "Monitor",
     comparisonOperate: "Operate",
     comparisonComplete: "Complete",
-    articlesLabel: "More on Huawei DCS in the Newsroom",
+    articlesLabel: "More in the Newsroom",
     readArticle: "Read article →",
     formAnchor: "inquiry",
+    contactCta: "Interested in {product}?",
+    contactSub: "Get in touch — we'll respond within 24 hours with next steps.",
+    contactButton: "Get in touch →",
   },
 };
 
@@ -99,8 +105,8 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
 
             {/* Facts */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/5 mt-12 border border-white/5 max-w-2xl">
-              {product.facts.map((f) => (
-                <div key={f.label.de} className="bg-[#0d1117] px-5 py-4 text-center">
+              {product.facts.map((f, i) => (
+                <div key={i} className="bg-[#0d1117] px-5 py-4 text-center">
                   <p className="text-xl font-bold text-[#c9a84c]">{f.value[locale]}</p>
                   <p className="text-gray-500 text-[10px] mt-1 leading-snug">{f.label[locale]}</p>
                 </div>
@@ -113,8 +119,8 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
         <section className="max-w-5xl mx-auto px-6 py-16">
           <p className="text-gray-500 text-[10px] font-bold tracking-widest uppercase mb-6">{t.highlightsLabel}</p>
           <div className="grid sm:grid-cols-3 gap-6">
-            {product.highlights.map((h) => (
-              <div key={h.title.de} className="bg-[#111827] border border-white/10 p-7 hover:border-[#c9a84c]/30 transition-colors">
+            {product.highlights.map((h, i) => (
+              <div key={i} className="bg-[#111827] border border-white/10 p-7 hover:border-[#c9a84c]/30 transition-colors">
                 <span className="text-2xl mb-4 block">{h.icon}</span>
                 <h3 className="text-white font-bold text-base mb-2">{h.title[locale]}</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">{h.desc[locale]}</p>
@@ -222,6 +228,17 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
         {ms && (
           <section id={t.formAnchor} className="max-w-3xl mx-auto px-6 py-16 border-t border-white/10 scroll-mt-24">
             <InquiryForm locale={locale} productName={product.name} packages={ms.packages} defaultPackageId="operate" />
+          </section>
+        )}
+
+        {/* Generic contact CTA for products without a Managed Services form */}
+        {!ms && (
+          <section className="max-w-3xl mx-auto px-6 py-16 border-t border-white/10 text-center">
+            <p className="text-white font-bold text-xl mb-3">{t.contactCta.replace("{product}", product.name)}</p>
+            <p className="text-gray-400 text-sm mb-8 max-w-lg mx-auto">{t.contactSub}</p>
+            <Link href={`/kontakt?topic=${encodeURIComponent(product.name)}`} className="inline-block bg-[#c9a84c] text-black text-xs font-bold tracking-widest uppercase px-8 py-4 hover:bg-[#e0bc5a] transition-colors">
+              {t.contactButton}
+            </Link>
           </section>
         )}
       </main>
