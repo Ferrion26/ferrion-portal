@@ -11,6 +11,18 @@ export type NewsArticle = {
 // Single source of truth for all newsroom articles.
 export const NEWS: NewsArticle[] = [
   {
+    slug: "oceanprotect-dcig-top5",
+    href: "/newsroom/oceanprotect-dcig-top5",
+    iso: "2026-07-16",
+    date: { de: "16. Juli 2026", en: "July 16, 2026" },
+    tag: "Huawei",
+    title: { de: "Huawei OceanProtect unter den DCIG TOP 5 Cyber Resilient PBBAs 2026–27", en: "Huawei OceanProtect Named Among the DCIG TOP 5 Cyber Resilient PBBAs 2026–27" },
+    excerpt: {
+      de: "DCIG prüfte über 250 Merkmale von 35 Backup-Appliances — OceanProtect X9000 und X6000 belegen jeweils Platz 1 in ihrer Kategorie für Recovery-Performance und Kosteneffizienz.",
+      en: "DCIG evaluated over 250 features across 35 backup appliances — OceanProtect X9000 and X6000 each rank #1 in their category for recovery performance and cost-effectiveness.",
+    },
+  },
+  {
     slug: "citrix-netscaler-security-bulletin",
     href: "/newsroom/citrix-netscaler-security-bulletin",
     iso: "2026-06-30",

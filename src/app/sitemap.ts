@@ -28,6 +28,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }));
 
   const newsRoutes = [
+    "/newsroom/oceanprotect-dcig-top5",
     "/newsroom/citrix-netscaler-security-bulletin",
     "/newsroom/pure-storage-ki-plattform",
     "/newsroom/huawei-dorado-v7",
