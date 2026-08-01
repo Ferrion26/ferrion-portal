@@ -88,7 +88,13 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
               {t.back}
             </Link>
             <div className="flex items-center gap-4 mb-6">
-              <span className="text-4xl">{product.icon}</span>
+              {product.vendorLogo ? (
+                <span className="w-12 h-12 rounded-full bg-[#c9a84c]/10 border border-[#c9a84c]/30 flex items-center justify-center overflow-hidden shrink-0">
+                  <img src={product.vendorLogo} alt={product.vendor} className="w-7 h-7 object-contain" />
+                </span>
+              ) : (
+                <span className="text-4xl">{product.icon}</span>
+              )}
               <p className="text-[#c9a84c] text-xs font-bold tracking-widest uppercase">{product.eyebrow[locale]}</p>
             </div>
             <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-4">{product.name}</h1>

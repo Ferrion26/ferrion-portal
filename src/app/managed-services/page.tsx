@@ -69,7 +69,13 @@ export default function ManagedServicesIndexPage({ searchParams }: SP) {
                 return (
                   <section key={product.slug}>
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="text-2xl">{product.icon}</span>
+                      {product.vendorLogo ? (
+                        <span className="w-8 h-8 rounded-full bg-[#c9a84c]/10 border border-[#c9a84c]/30 flex items-center justify-center overflow-hidden shrink-0">
+                          <img src={product.vendorLogo} alt={product.vendor} className="w-5 h-5 object-contain" />
+                        </span>
+                      ) : (
+                        <span className="text-2xl">{product.icon}</span>
+                      )}
                       <p className="text-gray-500 text-[10px] font-bold tracking-widest uppercase">{product.vendor} · {product.name}</p>
                     </div>
                     <h2 className="text-white font-bold text-2xl mb-6">{ms.headline[locale]}</h2>

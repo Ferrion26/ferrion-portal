@@ -125,7 +125,7 @@ export default function Header({ locale }: { locale: Locale }) {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-[#2d3f2d] border border-[#c9a84c]/40 text-[#c9a84c] text-xs font-bold tracking-widest uppercase py-2.5 hover:bg-[#c9a84c] hover:text-black transition-colors"
+                      className="w-full bg-[#c9a84c] text-black text-xs font-bold tracking-widest uppercase py-2.5 hover:bg-[#e0bc5a] transition-colors disabled:opacity-50"
                     >
                       {loading ? t.login.loading : t.login.submit}
                     </button>

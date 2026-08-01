@@ -1,0 +1,22 @@
+<svg viewBox="34 29 132 132" xmlns="http://www.w3.org/2000/svg">
+  <!-- Huawei flower mark only (no wordmark), cropped for use in small icon badges -->
+  <g transform="translate(100,95)">
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(0)"/>
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(45)"/>
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(90)"/>
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(135)"/>
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(180)"/>
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(225)"/>
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(270)"/>
+    <ellipse cx="0" cy="-38" rx="12" ry="28" fill="#CF0A2C" transform="rotate(315)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(22.5)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(67.5)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(112.5)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(157.5)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(202.5)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(247.5)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(292.5)"/>
+    <line x1="0" y1="-12" x2="0" y2="-66" stroke="white" stroke-width="3" transform="rotate(337.5)"/>
+    <circle cx="0" cy="0" r="11" fill="white"/>
+  </g>
+</svg>

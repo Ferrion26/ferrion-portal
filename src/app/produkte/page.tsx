@@ -138,7 +138,13 @@ function ProductGrid({
       {products.map((p) => (
         <Link key={p.slug} href={`/produkte/${p.slug}`} className="bg-[#111827] border border-white/10 hover:border-[#c9a84c]/40 transition-colors group p-7 flex flex-col">
           <div className="flex items-center justify-between mb-5">
-            <span className="text-3xl">{p.icon}</span>
+            {p.vendorLogo ? (
+              <span className="w-10 h-10 rounded-full bg-[#c9a84c]/10 border border-[#c9a84c]/30 flex items-center justify-center overflow-hidden">
+                <img src={p.vendorLogo} alt={p.vendor} className="w-6 h-6 object-contain" />
+              </span>
+            ) : (
+              <span className="text-3xl">{p.icon}</span>
+            )}
           </div>
           <p className="text-gray-500 text-[10px] font-bold tracking-widest uppercase mb-2">{p.vendor}</p>
           <h3 className="text-white font-bold text-lg mb-3 group-hover:text-[#c9a84c] transition-colors">{p.name}</h3>
