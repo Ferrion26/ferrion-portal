@@ -75,6 +75,15 @@ export default function NewsroomIndex({
     setYear(null);
   }
 
+  const tagIcon: Record<string, string> = {
+    Security: "🛡",
+    Huawei: "🗄",
+    "Pure Storage": "⚡",
+    Storage: "🗄",
+    AI: "🤖",
+    "Backup & Security": "🛡",
+  };
+
   const chip = (active: boolean) =>
     `px-3.5 py-1.5 text-xs font-bold tracking-wide uppercase border transition-colors ${
       active
@@ -152,9 +161,12 @@ export default function NewsroomIndex({
               <Link key={a.slug} href={a.href}>
                 <article className="bg-[#111820] border border-white/10 p-6 hover:border-[#c9a84c]/30 transition-colors group cursor-pointer h-full flex flex-col">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs text-gray-500">{a.date[locale]}</span>
+                    <span className="w-9 h-9 rounded-full bg-[#c9a84c]/10 border border-[#c9a84c]/30 flex items-center justify-center text-base shrink-0">
+                      {tagIcon[a.tag] ?? "📰"}
+                    </span>
                     <span className="text-[10px] text-[#c9a84c] border border-[#c9a84c]/30 px-2 py-0.5">{a.tag}</span>
                   </div>
+                  <span className="text-xs text-gray-500 mb-1 block">{a.date[locale]}</span>
                   <h3 className="text-white font-bold text-sm leading-snug group-hover:text-[#c9a84c] transition-colors mb-3">
                     {a.title[locale]}
                   </h3>

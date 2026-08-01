@@ -5,6 +5,7 @@ import { pageMetadata } from "@/lib/seo";
 import Header from "@/components/home/Header";
 import Footer from "@/components/home/Footer";
 import { CATEGORIES, productsByCategory } from "./products-data";
+import CategorySidebar from "./CategorySidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -63,22 +64,9 @@ export default function ProductsIndexPage({ searchParams }: SP) {
             {/* Category sidebar — mirrors how manufacturers like Huawei
                 structure their own product navigation (category list on
                 the left, matching products on the right). New categories
-                just get added to CATEGORIES in products-data.ts. */}
-            <nav className="min-w-0 md:sticky md:top-28 self-start">
-              <p className="text-gray-600 text-[10px] font-bold tracking-widest uppercase mb-4">{t.categoriesLabel}</p>
-              <ul className="flex md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
-                {CATEGORIES.map((c) => (
-                  <li key={c.id} className="shrink-0">
-                    <a
-                      href={`#${c.id}`}
-                      className="block px-4 py-3 bg-[#111827] border border-[#c9a84c]/30 text-white text-sm font-medium hover:border-[#c9a84c] transition-colors whitespace-nowrap md:whitespace-normal"
-                    >
-                      {c.label[locale]}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
+                just get added to CATEGORIES in products-data.ts. Active
+                category is tracked via scroll position (CategorySidebar). */}
+            <CategorySidebar categories={CATEGORIES} locale={locale} label={t.categoriesLabel} />
 
             {/* Category panels — each product can list itself under more
                 than one category (e.g. OceanStor Dorado appears under both

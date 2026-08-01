@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { type Locale } from "@/lib/i18n/translations";
+import Spinner from "@/components/ui/Spinner";
 
 const copy = {
   de: {
@@ -157,8 +158,9 @@ export default function KontaktClient({ locale }: { locale: Locale }) {
                 <button
                   type="submit"
                   disabled={status === "sending"}
-                  className="bg-[#c9a84c] text-black text-xs font-bold tracking-widest uppercase px-8 py-4 hover:bg-[#e0bc5a] transition-colors disabled:opacity-50"
+                  className="bg-[#c9a84c] text-black text-xs font-bold tracking-widest uppercase px-8 py-4 hover:bg-[#e0bc5a] transition-colors disabled:opacity-50 inline-flex items-center gap-2"
                 >
+                  {status === "sending" && <Spinner />}
                   {status === "sending" ? f.sending : f.send}
                 </button>
               </form>

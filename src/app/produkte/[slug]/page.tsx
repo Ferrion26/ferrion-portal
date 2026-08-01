@@ -198,7 +198,7 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
                     <tr key={row.label.de} className={i % 2 === 0 ? "bg-[#111827]" : "bg-[#0d1117]"}>
                       <td className="text-gray-300 font-medium text-xs px-4 py-3 border border-white/5">{row.label[locale]}</td>
                       {row.values.map((v, j) => (
-                        <td key={j} className={`text-center text-gray-400 text-xs px-4 py-3 border border-white/5 ${j === 1 ? "border-x-[#c9a84c]/20" : ""}`}>
+                        <td key={j} className={`text-center text-xs px-4 py-3 border border-white/5 ${j === 1 ? "text-white font-medium bg-[#c9a84c]/[0.07] border-x-[#c9a84c]/20" : "text-gray-400"}`}>
                           {v}
                         </td>
                       ))}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { type Locale } from "@/lib/i18n/translations";
+import Spinner from "@/components/ui/Spinner";
 
 type Answers = Record<string, string | string[]>;
 
@@ -404,7 +405,8 @@ export default function BeratungClient({ locale }: { locale: Locale }) {
             </div>
           ))}
           <div className="pt-2">
-            <button type="submit" disabled={loading} className="w-full bg-[#c9a84c] text-black font-bold text-xs tracking-widest uppercase py-3.5 hover:bg-[#e0bc5a] transition-colors disabled:opacity-50">
+            <button type="submit" disabled={loading} className="w-full bg-[#c9a84c] text-black font-bold text-xs tracking-widest uppercase py-3.5 hover:bg-[#e0bc5a] transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2">
+              {loading && <Spinner />}
               {loading ? ui.submitting : ui.submit}
             </button>
             {submitError && <p className="text-red-400 text-xs mt-3 text-center">{submitError}</p>}
