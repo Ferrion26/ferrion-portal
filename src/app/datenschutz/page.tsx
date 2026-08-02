@@ -109,7 +109,7 @@ const de = {
         <>
           <p className="mb-3">Ihre Daten werden nicht verkauft. Weitergabe nur an technische Dienstleister im Rahmen der Auftragsverarbeitung:</p>
           <ul className="space-y-2">{[
-            "Vercel Inc. (Hosting, USA) — Standardvertragsklauseln gemäß Art. 46 DSGVO",
+            "Vercel Inc. (Hosting, Serverstandort Frankfurt/Deutschland) — als US-Unternehmen zusätzlich abgesichert durch Standardvertragsklauseln gemäß Art. 46 DSGVO",
             "Vercel Inc. (Vercel Web Analytics) — cookie-lose Reichweitenmessung, Standardvertragsklauseln gemäß Art. 46 DSGVO, siehe Abschnitt 6",
             "Supabase Inc. (Datenbank, EU-Region) — Auftragsverarbeitungsvertrag",
             "Resend Inc. (E-Mail-Versand, USA) — Standardvertragsklauseln gemäß Art. 46 DSGVO",
@@ -220,7 +220,7 @@ const en = {
         <>
           <p className="mb-3">Your data is not sold. Disclosure only to technical service providers under data processing agreements:</p>
           <ul className="space-y-2">{[
-            "Vercel Inc. (Hosting, USA) — Standard Contractual Clauses pursuant to Art. 46 GDPR",
+            "Vercel Inc. (Hosting, server location Frankfurt/Germany) — as a US company, additionally safeguarded by Standard Contractual Clauses pursuant to Art. 46 GDPR",
             "Vercel Inc. (Vercel Web Analytics) — cookie-less traffic measurement, Standard Contractual Clauses pursuant to Art. 46 GDPR, see Section 6",
             "Supabase Inc. (Database, EU region) — Data Processing Agreement",
             "Resend Inc. (Email delivery, USA) — Standard Contractual Clauses pursuant to Art. 46 GDPR",
