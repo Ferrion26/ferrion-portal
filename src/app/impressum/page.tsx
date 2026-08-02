@@ -58,6 +58,10 @@ const content = {
         body: <p>Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem österreichischen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers.</p>,
       },
       {
+        heading: "Hinweis zu KI-unterstützten Inhalten",
+        body: <p>Teile der Inhalte dieser Website wurden mit KI-Unterstützung erstellt und redaktionell geprüft.</p>,
+      },
+      {
         heading: "Online-Streitbeilegung",
         body: (
           <p>Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:{" "}
@@ -107,6 +111,10 @@ const content = {
       {
         heading: "Copyright",
         body: <p>The content and works on these pages created by the site operators are subject to Austrian copyright law. Reproduction, editing, distribution, and any kind of exploitation outside the limits of copyright law require the written consent of the respective author or creator.</p>,
+      },
+      {
+        heading: "Note on AI-Assisted Content",
+        body: <p>Parts of the content on this website were created with the assistance of AI and reviewed editorially.</p>,
       },
       {
         heading: "Online Dispute Resolution",
