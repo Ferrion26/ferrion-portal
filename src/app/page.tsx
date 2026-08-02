@@ -24,8 +24,8 @@ export function generateMetadata({ searchParams }: SP) {
     locale: resolveLocale(searchParams),
     titleDe: "Ferrion IT Systemhaus — Infrastruktur, die trägt.",
     titleEn: "Ferrion IT Systems House — Infrastructure that endures.",
-    descDe: "Ferrion IT Systemhaus Wien: Storage, Backup & Security, AI-Infrastruktur und Managed Services. Zertifizierter Partner von Huawei, Pure Storage und Commvault.",
-    descEn: "Ferrion IT Systems House Vienna: storage, backup & security, AI infrastructure and managed services. Certified partner of Huawei, Pure Storage and Commvault.",
+    descDe: "Ferrion IT Systemhaus Wien: Storage, Backup & Security, AI-Infrastruktur und Managed Services. Zertifizierter Partner von Huawei, Everpure und Commvault.",
+    descEn: "Ferrion IT Systems House Vienna: storage, backup & security, AI infrastructure and managed services. Certified partner of Huawei, Everpure and Commvault.",
   });
 }
 

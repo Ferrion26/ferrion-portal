@@ -28,7 +28,7 @@ const content = {
       },
       {
         q: "Mit welchen Herstellern arbeitet Ferrion?",
-        a: "Wir sind zertifizierter Partner von Huawei (Storage & Data Center), Pure Storage (Premium All-Flash) und Commvault (Data Protection). Im AI-Umfeld setzen wir auf NVIDIA-Infrastruktur. Wir beraten herstellerübergreifend und vermeiden bewusst Vendor-Lock-in.",
+        a: "Wir sind zertifizierter Partner von Huawei (Storage & Data Center), Everpure (Premium All-Flash) und Commvault (Data Protection). Im AI-Umfeld setzen wir auf NVIDIA-Infrastruktur. Wir beraten herstellerübergreifend und vermeiden bewusst Vendor-Lock-in.",
       },
       {
         q: "Können Sie bestehende Systeme ohne Downtime migrieren?",
@@ -59,7 +59,7 @@ const content = {
       },
       {
         q: "Which vendors does Ferrion work with?",
-        a: "We are a certified partner of Huawei (storage & data center), Pure Storage (premium all-flash) and Commvault (data protection). In the AI space we rely on NVIDIA infrastructure. We advise across vendors and deliberately avoid vendor lock-in.",
+        a: "We are a certified partner of Huawei (storage & data center), Everpure (premium all-flash) and Commvault (data protection). In the AI space we rely on NVIDIA infrastructure. We advise across vendors and deliberately avoid vendor lock-in.",
       },
       {
         q: "Can you migrate existing systems without downtime?",

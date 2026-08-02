@@ -25,20 +25,20 @@ export const SOLUTIONS: SolutionContent[] = [
     },
     capabilities: {
       de: [
-        { title: "All-Flash & NVMe", desc: "Pure Storage FlashArray & Huawei OceanStor für latenzkritische Datenbanken und Virtualisierung." },
+        { title: "All-Flash & NVMe", desc: "Everpure FlashArray & Huawei OceanStor für latenzkritische Datenbanken und Virtualisierung." },
         { title: "Skalierbare Architektur", desc: "Scale-out-Design, das von Terabyte bis Petabyte ohne Re-Architecture mitwächst." },
         { title: "Datenreduktion", desc: "Inline-Kompression und Deduplizierung mit typischen Reduktionsfaktoren von 3:1 bis 5:1." },
         { title: "Zero-Downtime-Migration", desc: "Bewährtes Playbook für unterbrechungsfreie Umzüge — auch im 24/7-Betrieb." },
       ],
       en: [
-        { title: "All-Flash & NVMe", desc: "Pure Storage FlashArray & Huawei OceanStor for latency-critical databases and virtualisation." },
+        { title: "All-Flash & NVMe", desc: "Everpure FlashArray & Huawei OceanStor for latency-critical databases and virtualisation." },
         { title: "Scalable Architecture", desc: "Scale-out design that grows from terabyte to petabyte without re-architecture." },
         { title: "Data Reduction", desc: "Inline compression and deduplication with typical reduction factors of 3:1 to 5:1." },
         { title: "Zero-Downtime Migration", desc: "Proven playbook for non-disruptive moves — even in 24/7 operations." },
       ],
     },
     techLabel: { de: "Technologien", en: "Technologies" },
-    tech: ["Pure Storage FlashArray", "Huawei OceanStor", "NetApp", "NVMe-oF", "VMware vSphere", "ActiveCluster"],
+    tech: ["Everpure FlashArray", "Huawei OceanStor", "NetApp", "NVMe-oF", "VMware vSphere", "ActiveCluster"],
     useCasesLabel: { de: "Typische Anwendungsfälle", en: "Typical Use Cases" },
     useCases: {
       de: ["Konsolidierung gewachsener Storage-Landschaften", "Performance-Tuning für SQL- und Oracle-Datenbanken", "Storage-Refresh bei End-of-Support", "Aufbau hochverfügbarer Zwei-Standort-Architekturen"],

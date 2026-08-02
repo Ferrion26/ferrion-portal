@@ -28,7 +28,7 @@ const content = {
     benefitsLabel: "Warum Ferrion",
     benefits: [
       { icon: "🚀", title: "Gestaltungsspielraum", desc: "Flache Hierarchien, kurze Wege und echte Mitsprache — bei uns bewegst du etwas." },
-      { icon: "📜", title: "Zertifizierungen", desc: "Wir investieren in deine Weiterbildung — Hersteller-Zertifizierungen von Huawei, Pure Storage, Commvault & NVIDIA." },
+      { icon: "📜", title: "Zertifizierungen", desc: "Wir investieren in deine Weiterbildung — Hersteller-Zertifizierungen von Huawei, Everpure, Commvault & NVIDIA." },
       { icon: "🏠", title: "Flexibles Arbeiten", desc: "Hybrid-Modell mit modernem Büro in Wien und Home-Office-Option." },
       { icon: "💰", title: "Faire Vergütung", desc: "Marktkonformes Gehalt mit Bonus-Komponente und Beteiligung am Unternehmenserfolg." },
     ],
@@ -39,8 +39,8 @@ const content = {
         title: "Senior Storage & Infrastructure Engineer (m/w/d)",
         location: "Wien · Hybrid",
         type: "fulltime",
-        desc: "Du planst und implementierst Storage- und Virtualisierungslösungen bei unseren Kunden — von Pure Storage bis Huawei OceanStor. Erfahrung mit SAN/NAS, VMware und Migrationen bringst du mit.",
-        tags: ["Pure Storage", "VMware", "SAN/NAS"],
+        desc: "Du planst und implementierst Storage- und Virtualisierungslösungen bei unseren Kunden — von Everpure bis Huawei OceanStor. Erfahrung mit SAN/NAS, VMware und Migrationen bringst du mit.",
+        tags: ["Everpure", "VMware", "SAN/NAS"],
       },
       {
         title: "Backup & Cyber-Resilience Consultant (m/w/d)",
@@ -76,7 +76,7 @@ const content = {
     benefitsLabel: "Why Ferrion",
     benefits: [
       { icon: "🚀", title: "Room to Shape", desc: "Flat hierarchies, short paths and real say — here you move the needle." },
-      { icon: "📜", title: "Certifications", desc: "We invest in your development — vendor certifications from Huawei, Pure Storage, Commvault & NVIDIA." },
+      { icon: "📜", title: "Certifications", desc: "We invest in your development — vendor certifications from Huawei, Everpure, Commvault & NVIDIA." },
       { icon: "🏠", title: "Flexible Work", desc: "Hybrid model with a modern office in Vienna and home-office option." },
       { icon: "💰", title: "Fair Compensation", desc: "Market-rate salary with bonus component and participation in company success." },
     ],
@@ -87,8 +87,8 @@ const content = {
         title: "Senior Storage & Infrastructure Engineer (m/f/d)",
         location: "Vienna · Hybrid",
         type: "fulltime",
-        desc: "You plan and implement storage and virtualisation solutions for our clients — from Pure Storage to Huawei OceanStor. You bring experience with SAN/NAS, VMware and migrations.",
-        tags: ["Pure Storage", "VMware", "SAN/NAS"],
+        desc: "You plan and implement storage and virtualisation solutions for our clients — from Everpure to Huawei OceanStor. You bring experience with SAN/NAS, VMware and migrations.",
+        tags: ["Everpure", "VMware", "SAN/NAS"],
       },
       {
         title: "Backup & Cyber-Resilience Consultant (m/f/d)",

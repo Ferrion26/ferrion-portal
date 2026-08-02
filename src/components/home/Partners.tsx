@@ -2,7 +2,7 @@ import { translations, type Locale } from "@/lib/i18n/translations";
 
 const partners = [
   { name: "Huawei", logo: "/logos/Huawei_Standard_logo.svg.png" },
-  { name: "Pure Storage", logo: "/logos/Pure Storage Bug Orange_undefined.PNG" },
+  { name: "Everpure", logo: "/logos/Pure Storage Bug Orange_undefined.PNG" },
   { name: "Commvault", logo: "/logos/cropped-favicon-commvault-1.png" },
 ];
 

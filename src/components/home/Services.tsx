@@ -24,7 +24,7 @@ const content = {
       {
         num: "01",
         title: "Handel",
-        desc: "Infrastruktur (Storage, Server, Data-Protection, Netzwerk) sowie Software und Lizenzen der Leithersteller Huawei, Pure Storage und Commvault — aus einer Hand beschafft.",
+        desc: "Infrastruktur (Storage, Server, Data-Protection, Netzwerk) sowie Software und Lizenzen der Leithersteller Huawei, Everpure und Commvault — aus einer Hand beschafft.",
         badge: "Marktführende Partner",
         icon: "🗄",
       },
@@ -57,7 +57,7 @@ const content = {
     aiItems: [
       { icon: "🖥", title: "GPU Server & Private AI Cluster", desc: "NVIDIA-Infrastruktur für anspruchsvolle AI-Workloads." },
       { icon: "☸", title: "Kubernetes für AI", desc: "Container-Orchestrierung für skalierbare AI-Deployments." },
-      { icon: "💾", title: "AI Storage", desc: "Hochperformante Storage-Lösungen von Pure Storage, Huawei & NetApp." },
+      { icon: "💾", title: "AI Storage", desc: "Hochperformante Storage-Lösungen von Everpure, Huawei & NetApp." },
       { icon: "🛡", title: "AI Backup & Disaster Recovery", desc: "Zuverlässiger Schutz Ihrer AI-Daten und -Modelle." },
     ],
   },
@@ -69,7 +69,7 @@ const content = {
       {
         num: "01",
         title: "Hardware & Licensing",
-        desc: "Infrastructure (storage, servers, data protection, networking) and software/licences from leading vendors Huawei, Pure Storage and Commvault — sourced from a single partner.",
+        desc: "Infrastructure (storage, servers, data protection, networking) and software/licences from leading vendors Huawei, Everpure and Commvault — sourced from a single partner.",
         badge: "Leading Technology Partners",
         icon: "🗄",
       },
@@ -102,7 +102,7 @@ const content = {
     aiItems: [
       { icon: "🖥", title: "GPU Servers & Private AI Clusters", desc: "NVIDIA infrastructure for demanding AI workloads." },
       { icon: "☸", title: "Kubernetes for AI", desc: "Container orchestration for scalable AI deployments." },
-      { icon: "💾", title: "AI Storage", desc: "High-performance storage solutions from Pure Storage, Huawei & NetApp." },
+      { icon: "💾", title: "AI Storage", desc: "High-performance storage solutions from Everpure, Huawei & NetApp." },
       { icon: "🛡", title: "AI Backup & Disaster Recovery", desc: "Reliable protection for your AI data and models." },
     ],
   },

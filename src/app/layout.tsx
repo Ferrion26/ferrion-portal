@@ -17,10 +17,10 @@ export const metadata: Metadata = {
     template: "%s",
   },
   description:
-    "Ferrion IT Systemhaus Wien: Storage, Backup & Security, AI-Infrastruktur und Managed Services. Zertifizierter Partner von Huawei, Pure Storage und Commvault.",
+    "Ferrion IT Systemhaus Wien: Storage, Backup & Security, AI-Infrastruktur und Managed Services. Zertifizierter Partner von Huawei, Everpure und Commvault.",
   keywords: [
     "IT Systemhaus Wien", "Storage", "Backup", "NIS2", "AI Infrastruktur",
-    "Managed Services", "Pure Storage", "Huawei", "Commvault", "NVIDIA",
+    "Managed Services", "Everpure", "Huawei", "Commvault", "NVIDIA",
   ],
   authors: [{ name: "Ferrion IT Systemhaus" }],
   openGraph: {
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     siteName: "Ferrion IT Systemhaus",
     title: "Ferrion IT Systemhaus — Infrastruktur, die trägt.",
     description:
-      "Storage, Backup & Security, AI-Infrastruktur und Managed Services aus Wien. Zertifizierter Partner von Huawei, Pure Storage und Commvault.",
+      "Storage, Backup & Security, AI-Infrastruktur und Managed Services aus Wien. Zertifizierter Partner von Huawei, Everpure und Commvault.",
     images: [{ url: "/images/hero.jpg", width: 1200, height: 630, alt: "Ferrion IT Systemhaus" }],
   },
   twitter: {
