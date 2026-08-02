@@ -89,8 +89,8 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
             </Link>
             <div className="flex items-center gap-4 mb-6">
               {product.vendorLogo ? (
-                <span className="w-12 h-12 rounded-full bg-[#c9a84c]/10 border border-[#c9a84c]/30 flex items-center justify-center overflow-hidden shrink-0">
-                  <img src={product.vendorLogo} alt={product.vendor} className="w-7 h-7 object-contain" />
+                <span className="w-16 h-16 rounded-md bg-white border border-[#c9a84c]/30 flex items-center justify-center overflow-hidden shrink-0 p-2">
+                  <img src={product.vendorLogo} alt={product.vendor} className="w-full h-full object-contain" />
                 </span>
               ) : (
                 <span className="text-4xl">{product.icon}</span>

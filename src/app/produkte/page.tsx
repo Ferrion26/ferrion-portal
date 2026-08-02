@@ -127,8 +127,8 @@ function ProductGrid({
         <Link key={p.slug} href={`/produkte/${p.slug}`} className="bg-[#111827] border border-white/10 hover:border-[#c9a84c]/40 transition-colors group p-7 flex flex-col">
           <div className="flex items-center justify-between mb-5">
             {p.vendorLogo ? (
-              <span className="w-10 h-10 rounded-full bg-[#c9a84c]/10 border border-[#c9a84c]/30 flex items-center justify-center overflow-hidden">
-                <img src={p.vendorLogo} alt={p.vendor} className="w-6 h-6 object-contain" />
+              <span className="w-14 h-14 rounded-md bg-white border border-[#c9a84c]/30 flex items-center justify-center overflow-hidden p-2">
+                <img src={p.vendorLogo} alt={p.vendor} className="w-full h-full object-contain" />
               </span>
             ) : (
               <span className="text-3xl">{p.icon}</span>

@@ -33,7 +33,7 @@ const content = {
     uspLabel: "Unsere Alleinstellung",
     usps: [
       { icon: "🗄", title: "Datenbank-Know-how", desc: "Tiefe DB-Kompetenz ist im klassischen Systemhaus selten. Sie hilft uns, Ihre geschäftskritischen Workloads wirklich zu verstehen — von der Datenbank bis zur darunterliegenden Infrastruktur." },
-      { icon: "🤝", title: "Zertifizierter Huawei-Partner", desc: "Etablierte, persönliche Beziehungen zu Huawei, Pure Storage und Commvault sichern Ihnen direkten Zugang zu Hersteller-Support, Roadmaps und bevorzugten Konditionen." },
+      { icon: "🤝", badge: "/logos/huawei-gold-partner-badge.png", title: "Zertifizierter Huawei-Partner", desc: "Etablierte, persönliche Beziehungen zu Huawei, Pure Storage und Commvault sichern Ihnen direkten Zugang zu Hersteller-Support, Roadmaps und bevorzugten Konditionen." },
       { icon: "✅", title: "Vollständige Zertifizierungen", desc: "Alle nötigen Hersteller- und Fachzertifizierungen sind vorhanden — Ihre Projekte werden nach Best Practice umgesetzt, nicht nach Trial-and-Error." },
       { icon: "🏢", title: "Erfahrung aus echten Projekten", desc: "Wir kennen die Anforderungen österreichischer Unternehmen aus zahlreichen laufenden Kundenbeziehungen — kein Lernen auf Ihre Kosten." },
       { icon: "⚡", title: "Inhabergeführt & schlank", desc: "Zwei Geschäftsführer mit komplementären Profilen ermöglichen kurze Wege, schnelle Entscheidungen und hohe Kundennähe." },
@@ -72,7 +72,7 @@ const content = {
     uspLabel: "Our Unique Selling Points",
     usps: [
       { icon: "🗄", title: "Database Know-how", desc: "Deep database expertise is rare among classic IT resellers. It helps us truly understand your business-critical workloads — from the database down to the underlying infrastructure." },
-      { icon: "🤝", title: "Certified Huawei Partner", desc: "Established, personal relationships with Huawei, Pure Storage and Commvault give you direct access to vendor support, roadmaps and preferred terms." },
+      { icon: "🤝", badge: "/logos/huawei-gold-partner-badge.png", title: "Certified Huawei Partner", desc: "Established, personal relationships with Huawei, Pure Storage and Commvault give you direct access to vendor support, roadmaps and preferred terms." },
       { icon: "✅", title: "Full Certifications", desc: "All necessary vendor and technical certifications are in place — your projects are delivered to best practice, not trial and error." },
       { icon: "🏢", title: "Proven in Real Projects", desc: "We know the requirements of Austrian companies from numerous ongoing customer relationships — no learning curve at your expense." },
       { icon: "⚡", title: "Owner-managed & lean", desc: "Two managing directors with complementary profiles enable short decision paths, fast decisions and close customer proximity." },
@@ -134,7 +134,13 @@ export default function AboutUs({ locale }: { locale: Locale }) {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {t.usps.map((usp) => (
               <div key={usp.title} className="bg-[#111827] border border-white/10 p-6 hover:border-[#c9a84c]/30 transition-colors group">
-                <div className="text-2xl mb-3">{usp.icon}</div>
+                {usp.badge ? (
+                  <div className="inline-block bg-white rounded p-2 mb-3">
+                    <img src={usp.badge} alt="Huawei Gold Partner" className="h-11 w-auto block" />
+                  </div>
+                ) : (
+                  <div className="text-2xl mb-3">{usp.icon}</div>
+                )}
                 <p className="text-white font-bold text-sm mb-2 group-hover:text-[#c9a84c] transition-colors">{usp.title}</p>
                 <p className="text-gray-400 text-xs leading-relaxed">{usp.desc}</p>
               </div>
