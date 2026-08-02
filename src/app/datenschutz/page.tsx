@@ -70,7 +70,7 @@ const de = {
   label: "Rechtliche Informationen",
   title: "Datenschutzerklärung",
   subtitle: "Gemäß DSGVO (EU) 2016/679 und DSG 2018",
-  date: "Stand: Juni 2026",
+  date: "Stand: August 2026",
   legalLinks: [{ label: "Impressum", href: "/impressum" }, { label: "Datenschutz", href: "/datenschutz" }],
   sections: [
     {
@@ -112,6 +112,7 @@ const de = {
             "Vercel Inc. (Hosting, USA) — Standardvertragsklauseln gemäß Art. 46 DSGVO",
             "Supabase Inc. (Datenbank, EU-Region) — Auftragsverarbeitungsvertrag",
             "Resend Inc. (E-Mail-Versand, USA) — Standardvertragsklauseln gemäß Art. 46 DSGVO",
+            "Umami Software Inc. (Web-Analytics) — cookie-lose, datensparsame Reichweitenmessung, siehe Abschnitt 6",
           ].map(listItem)}</ul>
         </>
       ),
@@ -130,7 +131,28 @@ const de = {
       ),
     },
     {
-      heading: "6. Ihre Rechte",
+      heading: "6. Web-Analytics (Umami)",
+      body: (
+        <>
+          <p className="mb-3">
+            Zur anonymisierten Reichweitenmessung setzen wir Umami (Umami Software Inc.) ein — einen datenschutzfreundlichen,
+            cookie-losen Webanalyse-Dienst:
+          </p>
+          <ul className="space-y-2">{[
+            "Keine Cookies, keine geräteübergreifende Wiedererkennung einzelner Besucher.",
+            "IP-Adressen werden nur kurzzeitig zur Ermittlung von Land/Region verarbeitet und nicht gespeichert.",
+            "Erfasst werden ausschließlich aggregierte Nutzungsdaten (aufgerufene Seiten, Verweisquelle, Gerätetyp).",
+          ].map(listItem)}</ul>
+          <p className="mt-3">
+            Da hierbei keine personenbezogenen, wiedererkennbaren Daten gespeichert werden, ist für den Einsatz von Umami
+            keine Einwilligung über das Cookie-Banner erforderlich (Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO,
+            berechtigtes Interesse an der Analyse der Websitenutzung).
+          </p>
+        </>
+      ),
+    },
+    {
+      heading: "7. Ihre Rechte",
       body: (
         <>
           <ul className="space-y-2 mb-3">{[
@@ -142,8 +164,8 @@ const de = {
       ),
     },
     {
-      heading: "7. Speicherdauer",
-      body: <p>Beratungsanfragen werden für die Dauer der Geschäftsbeziehung gespeichert (danach gemäß gesetzlicher Aufbewahrungsfristen, i.d.R. 7 Jahre). Server-Logs nach 7 Tagen automatisch gelöscht.</p>,
+      heading: "8. Speicherdauer",
+      body: <p>Beratungsanfragen werden für die Dauer der Geschäftsbeziehung gespeichert (danach gemäß gesetzlicher Aufbewahrungsfristen, i.d.R. 7 Jahre). Server-Logs nach 7 Tagen automatisch gelöscht. Umami speichert keine wiedererkennbaren Besucherdaten, daher entfällt hierfür eine Löschfrist.</p>,
     },
   ],
 };
@@ -154,7 +176,7 @@ const en = {
   label: "Legal Information",
   title: "Privacy Policy",
   subtitle: "Pursuant to GDPR (EU) 2016/679 and DSG 2018",
-  date: "Last updated: June 2026",
+  date: "Last updated: August 2026",
   legalLinks: [{ label: "Legal Notice", href: "/impressum" }, { label: "Privacy Policy", href: "/datenschutz" }],
   sections: [
     {
@@ -196,6 +218,7 @@ const en = {
             "Vercel Inc. (Hosting, USA) — Standard Contractual Clauses pursuant to Art. 46 GDPR",
             "Supabase Inc. (Database, EU region) — Data Processing Agreement",
             "Resend Inc. (Email delivery, USA) — Standard Contractual Clauses pursuant to Art. 46 GDPR",
+            "Umami Software Inc. (Web analytics) — cookie-less, privacy-preserving traffic measurement, see Section 6",
           ].map(listItem)}</ul>
         </>
       ),
@@ -214,7 +237,27 @@ const en = {
       ),
     },
     {
-      heading: "6. Your Rights",
+      heading: "6. Web Analytics (Umami)",
+      body: (
+        <>
+          <p className="mb-3">
+            For anonymised traffic measurement we use Umami (Umami Software Inc.) — a privacy-friendly, cookie-less
+            web analytics service:
+          </p>
+          <ul className="space-y-2">{[
+            "No cookies, no cross-device recognition of individual visitors.",
+            "IP addresses are processed only briefly to derive country/region and are not stored.",
+            "Only aggregated usage data is collected (pages viewed, referral source, device type).",
+          ].map(listItem)}</ul>
+          <p className="mt-3">
+            Since no personal, re-identifiable data is stored, using Umami does not require consent via the cookie
+            banner (legal basis: Art. 6(1)(f) GDPR, legitimate interest in analysing website usage).
+          </p>
+        </>
+      ),
+    },
+    {
+      heading: "7. Your Rights",
       body: (
         <>
           <ul className="space-y-2 mb-3">{[
@@ -226,8 +269,8 @@ const en = {
       ),
     },
     {
-      heading: "7. Retention Periods",
-      body: <p>Consultation requests are retained for the duration of the business relationship, then deleted in accordance with statutory retention periods (generally 7 years). Server logs are automatically deleted after 7 days.</p>,
+      heading: "8. Retention Periods",
+      body: <p>Consultation requests are retained for the duration of the business relationship, then deleted in accordance with statutory retention periods (generally 7 years). Server logs are automatically deleted after 7 days. Umami does not store any re-identifiable visitor data, so no retention period applies.</p>,
     },
   ],
 };
