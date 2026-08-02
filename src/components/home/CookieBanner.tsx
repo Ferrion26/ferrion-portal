@@ -5,13 +5,13 @@ import { type Locale } from "@/lib/i18n/translations";
 
 const copy = {
   de: {
-    text: "Wir verwenden Cookies, um die Website-Funktionalität sicherzustellen und unsere Dienste zu verbessern. Durch die weitere Nutzung stimmen Sie der Verwendung von Cookies gemäß unserer",
+    text: "Wir verwenden ausschließlich technisch notwendige Cookies (z. B. Login-Sitzung, Sprachwahl). Unsere Analyse-Tools (Umami, Vercel Analytics) sind cookie-los und erfassen keine personenbezogenen Daten. Details in unserer",
     policy: "Datenschutzerklärung",
     accept: "Akzeptieren",
     decline: "Nur notwendige",
   },
   en: {
-    text: "We use cookies to ensure website functionality and improve our services. By continuing to use this site, you consent to our use of cookies as described in our",
+    text: "We only use technically necessary cookies (e.g. login session, language selection). Our analytics tools (Umami, Vercel Analytics) are cookie-less and don't collect personal data. Details in our",
     policy: "Privacy Policy",
     accept: "Accept All",
     decline: "Essential Only",
