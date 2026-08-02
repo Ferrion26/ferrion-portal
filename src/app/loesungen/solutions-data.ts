@@ -94,7 +94,7 @@ export const SOLUTIONS: SolutionContent[] = [
   {
     slug: "ai-infrastruktur",
     icon: "🤖",
-    heroImage: "/images/Hero Visual/AI_Infrastruktur_01.svg",
+    heroImage: "/images/Hero Visual/AI_Infrastruktur_02.png",
     eyebrow: { de: "AI-Infrastruktur", en: "AI Infrastructure" },
     title: { de: "KI, die im eigenen Haus bleibt.", en: "AI that stays in-house." },
     lead: {
