@@ -18,7 +18,7 @@ export const SOLUTIONS: SolutionContent[] = [
   {
     slug: "storage",
     icon: "🗄️",
-    heroImage: "/images/Hero Visual/Storage_Infrastruktur_01.png",
+    heroImage: "/images/Hero Visual/Storage_Infrastruktur_01.webp",
     eyebrow: { de: "Storage & Infrastruktur", en: "Storage & Infrastructure" },
     title: { de: "Storage, der mitwächst.", en: "Storage that scales with you." },
     lead: {
@@ -56,7 +56,7 @@ export const SOLUTIONS: SolutionContent[] = [
   {
     slug: "backup",
     icon: "🛡️",
-    heroImage: "/images/Hero Visual/Backup_Security01.png",
+    heroImage: "/images/Hero Visual/Backup_Security01.webp",
     eyebrow: { de: "Backup & Security", en: "Backup & Security" },
     title: { de: "Daten, die niemand kompromittiert.", en: "Data no one can compromise." },
     lead: {
@@ -94,7 +94,7 @@ export const SOLUTIONS: SolutionContent[] = [
   {
     slug: "ai-infrastruktur",
     icon: "🤖",
-    heroImage: "/images/Hero Visual/AI_Infrastruktur_02.png",
+    heroImage: "/images/Hero Visual/AI_Infrastruktur_02.webp",
     eyebrow: { de: "AI-Infrastruktur", en: "AI Infrastructure" },
     title: { de: "KI, die im eigenen Haus bleibt.", en: "AI that stays in-house." },
     lead: {
@@ -132,7 +132,7 @@ export const SOLUTIONS: SolutionContent[] = [
   {
     slug: "managed-services",
     icon: "⚙️",
-    heroImage: "/images/Hero Visual/Managed_Services01.png",
+    heroImage: "/images/Hero Visual/Managed_Services01.webp",
     eyebrow: { de: "Managed Services", en: "Managed Services" },
     title: { de: "Betrieb, der nie schläft.", en: "Operations that never sleep." },
     lead: {
