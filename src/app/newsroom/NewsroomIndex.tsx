@@ -76,12 +76,12 @@ export default function NewsroomIndex({
   }
 
   const tagIcon: Record<string, string> = {
-    Security: "🛡",
-    Huawei: "🗄",
+    Security: "🛡️",
+    Huawei: "🗄️",
     "Pure Storage": "⚡",
-    Storage: "🗄",
+    Storage: "🗄️",
     AI: "🤖",
-    "Backup & Security": "🛡",
+    "Backup & Security": "🛡️",
   };
 
   const chip = (active: boolean) =>

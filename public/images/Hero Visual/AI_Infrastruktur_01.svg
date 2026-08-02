@@ -1,0 +1,96 @@
+<svg viewBox="0 0 1536 1024" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>AI-Infrastruktur — GPU-Cluster-Illustration</title>
+  <defs>
+    <radialGradient id="bgGlow" cx="70%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#0c2a4d"/>
+      <stop offset="55%" stop-color="#071428"/>
+      <stop offset="100%" stop-color="#04070d"/>
+    </radialGradient>
+    <linearGradient id="chipFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#12335c"/>
+      <stop offset="100%" stop-color="#081b33"/>
+    </linearGradient>
+    <linearGradient id="nodeGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7cc5ff"/>
+      <stop offset="100%" stop-color="#2f8ce0"/>
+    </linearGradient>
+    <filter id="soft" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="9"/>
+    </filter>
+    <filter id="soft2" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+  </defs>
+
+  <rect width="1536" height="1024" fill="url(#bgGlow)"/>
+
+  <g stroke="#2f6fb0" stroke-width="1" opacity="0.18">
+    <path d="M0 100 H1536" /><path d="M0 200 H1536" /><path d="M0 300 H1536" />
+    <path d="M0 400 H1536" /><path d="M0 500 H1536" /><path d="M0 600 H1536" />
+    <path d="M0 700 H1536" /><path d="M0 800 H1536" /><path d="M0 900 H1536" />
+    <path d="M100 0 V1024" /><path d="M300 0 V1024" /><path d="M500 0 V1024" />
+    <path d="M700 0 V1024" /><path d="M900 0 V1024" /><path d="M1100 0 V1024" />
+    <path d="M1300 0 V1024" />
+  </g>
+
+  <g transform="translate(420,0)">
+    <g opacity="0.55" filter="url(#soft2)">
+      <path d="M760 512 C 500 400, 260 300, 40 220" stroke="#4fa8ef" stroke-width="1.5" fill="none"/>
+      <path d="M760 512 C 500 620, 260 700, 40 780" stroke="#4fa8ef" stroke-width="1.5" fill="none"/>
+      <path d="M776 512 C 1040 380, 1300 280, 1500 190" stroke="#7cc5ff" stroke-width="1.5" fill="none"/>
+      <path d="M776 512 C 1040 640, 1300 740, 1500 830" stroke="#7cc5ff" stroke-width="1.5" fill="none"/>
+      <path d="M768 380 C 768 300, 700 220, 620 150" stroke="#4fa8ef" stroke-width="1.5" fill="none"/>
+      <path d="M768 644 C 768 730, 840 800, 920 870" stroke="#7cc5ff" stroke-width="1.5" fill="none"/>
+      <path d="M768 380 C 768 300, 840 220, 920 150" stroke="#7cc5ff" stroke-width="1.5" fill="none"/>
+      <path d="M768 644 C 768 730, 700 800, 620 870" stroke="#4fa8ef" stroke-width="1.5" fill="none"/>
+    </g>
+
+    <g>
+      <circle cx="40" cy="220" r="4" fill="#7cc5ff"/>
+      <circle cx="40" cy="780" r="4" fill="#4fa8ef"/>
+      <circle cx="1500" cy="190" r="4" fill="#7cc5ff"/>
+      <circle cx="1500" cy="830" r="4" fill="#4fa8ef"/>
+      <circle cx="620" cy="150" r="3.5" fill="#4fa8ef"/>
+      <circle cx="920" cy="150" r="3.5" fill="#7cc5ff"/>
+      <circle cx="620" cy="870" r="3.5" fill="#4fa8ef"/>
+      <circle cx="920" cy="870" r="3.5" fill="#7cc5ff"/>
+    </g>
+
+    <g filter="url(#soft)" opacity="0.65">
+      <rect x="668" y="412" width="200" height="200" rx="18" fill="#2f8ce0"/>
+    </g>
+
+    <g>
+      <rect x="668" y="412" width="200" height="200" rx="14" fill="url(#chipFace)" stroke="#7cc5ff" stroke-width="1"/>
+      <rect x="700" y="444" width="136" height="136" rx="6" fill="#04070d" stroke="#4fa8ef" stroke-width="1"/>
+      <g stroke="#4fa8ef" stroke-width="1" opacity="0.8">
+        <path d="M736 444 V420" /><path d="M768 444 V420" /><path d="M800 444 V420" />
+        <path d="M736 580 V604" /><path d="M768 580 V604" /><path d="M800 580 V604" />
+        <path d="M668 476 H644" /><path d="M668 508 H644" /><path d="M668 540 H644" />
+        <path d="M868 476 H892" /><path d="M868 508 H892" /><path d="M868 540 H892" />
+      </g>
+      <g fill="url(#nodeGlow)" opacity="0.9">
+        <rect x="716" y="460" width="28" height="28" rx="3"/>
+        <rect x="756" y="460" width="28" height="28" rx="3"/>
+        <rect x="796" y="460" width="28" height="28" rx="3"/>
+        <rect x="716" y="500" width="28" height="28" rx="3"/>
+        <rect x="756" y="500" width="28" height="28" rx="3"/>
+        <rect x="796" y="500" width="28" height="28" rx="3"/>
+        <rect x="716" y="540" width="28" height="28" rx="3"/>
+        <rect x="756" y="540" width="28" height="28" rx="3"/>
+        <rect x="796" y="540" width="28" height="28" rx="3"/>
+      </g>
+    </g>
+  </g>
+
+  <g fill="#9fd4ff" opacity="0.7">
+    <circle cx="180" cy="130" r="1.6"/>
+    <circle cx="260" cy="640" r="1.6"/>
+    <circle cx="1360" cy="120" r="1.6"/>
+    <circle cx="1420" cy="700" r="1.6"/>
+    <circle cx="1180" cy="920" r="1.6"/>
+    <circle cx="420" cy="900" r="1.6"/>
+    <circle cx="960" cy="80" r="1.6"/>
+    <circle cx="90" cy="500" r="1.6"/>
+  </g>
+</svg>

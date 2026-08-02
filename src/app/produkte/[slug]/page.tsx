@@ -164,7 +164,7 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
                     </span>
                   )}
                   <div className="w-12 h-12 rounded-full bg-[#c9a84c]/10 border border-[#c9a84c]/30 flex items-center justify-center text-xl mb-5">
-                    {p.id === "monitor" ? "👁" : p.id === "operate" ? "⚙" : "🛡"}
+                    {p.id === "monitor" ? "👁" : p.id === "operate" ? "⚙️" : "🛡️"}
                   </div>
                   <h3 className="text-white font-bold text-lg uppercase tracking-wide mb-1">{p.name}</h3>
                   <p className="text-[#c9a84c] text-sm font-medium mb-5">{p.tagline[locale]}</p>

@@ -43,8 +43,18 @@ export default function SolutionPage({ params, searchParams }: { params: { slug:
 
       <main className="pt-24 pb-24">
         {/* Hero */}
-        <section className="border-b border-white/10">
-          <div className="max-w-5xl mx-auto px-6 py-16">
+        <section className="relative border-b border-white/10 overflow-hidden">
+          {sol.heroImage && (
+            <>
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url('${sol.heroImage}')` }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#0d1117] via-[#0d1117]/90 to-[#0d1117]/40" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0d1117] via-transparent to-transparent" />
+            </>
+          )}
+          <div className="relative max-w-5xl mx-auto px-6 py-16">
             <Link href="/#loesungen" className="text-[#c9a84c] text-xs font-bold tracking-widest uppercase hover:underline mb-10 block">
               {backLabel}
             </Link>
@@ -53,14 +63,14 @@ export default function SolutionPage({ params, searchParams }: { params: { slug:
               <p className="text-[#c9a84c] text-xs font-bold tracking-widest uppercase">{sol.eyebrow[locale]}</p>
             </div>
             <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-6">{sol.title[locale]}</h1>
-            <p className="text-gray-400 text-base leading-relaxed max-w-3xl">{sol.lead[locale]}</p>
+            <p className="text-gray-300 text-base leading-relaxed max-w-3xl">{sol.lead[locale]}</p>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-px bg-white/5 mt-12 border border-white/5 max-w-2xl">
+            <div className="grid grid-cols-3 gap-px bg-white/5 mt-12 border border-white/5 max-w-2xl backdrop-blur-sm">
               {sol.stats.map((s) => (
-                <div key={s.value} className="bg-[#0d1117] px-6 py-5 text-center">
+                <div key={s.value} className="bg-[#0d1117]/80 px-6 py-5 text-center">
                   <p className="text-2xl font-bold text-[#c9a84c]">{s.value}</p>
-                  <p className="text-gray-500 text-[10px] mt-1 leading-snug">{s.label[locale]}</p>
+                  <p className="text-gray-400 text-[10px] mt-1 leading-snug">{s.label[locale]}</p>
                 </div>
               ))}
             </div>

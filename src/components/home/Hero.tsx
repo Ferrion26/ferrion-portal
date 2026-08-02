@@ -25,10 +25,10 @@ const heroCopy = {
     cta1: "Beratung anfragen →",
     cta2: "Lösungen entdecken →",
     services: [
-      { icon: "🗄", title: "Storage & Infrastruktur", desc: "Huawei, Everpure — skalierbar und zuverlässig.", href: "/loesungen/storage" },
-      { icon: "🛡", title: "Backup & Security", desc: "Commvault-Lösungen für NIS2-konforme Datensicherung.", href: "/loesungen/backup" },
+      { icon: "🗄️", title: "Storage & Infrastruktur", desc: "Huawei, Everpure — skalierbar und zuverlässig.", href: "/loesungen/storage" },
+      { icon: "🛡️", title: "Backup & Security", desc: "Commvault-Lösungen für NIS2-konforme Datensicherung.", href: "/loesungen/backup" },
       { icon: "🤖", title: "AI-Infrastruktur", desc: "GPU Server, Private AI Cluster, NVIDIA.", href: "/loesungen/ai-infrastruktur" },
-      { icon: "⚙", title: "Managed Services", desc: "Proaktiver Betrieb — damit Sie sich aufs Wesentliche konzentrieren.", href: "/managed-services" },
+      { icon: "⚙️", title: "Managed Services", desc: "Proaktiver Betrieb — damit Sie sich aufs Wesentliche konzentrieren.", href: "/managed-services" },
     ],
   },
   en: {
@@ -38,10 +38,10 @@ const heroCopy = {
     cta1: "Request Consultation →",
     cta2: "Discover Solutions →",
     services: [
-      { icon: "🗄", title: "Storage & Infrastructure", desc: "Huawei, Everpure — scalable and reliable.", href: "/loesungen/storage" },
-      { icon: "🛡", title: "Backup & Security", desc: "Commvault solutions for NIS2-compliant data protection.", href: "/loesungen/backup" },
+      { icon: "🗄️", title: "Storage & Infrastructure", desc: "Huawei, Everpure — scalable and reliable.", href: "/loesungen/storage" },
+      { icon: "🛡️", title: "Backup & Security", desc: "Commvault solutions for NIS2-compliant data protection.", href: "/loesungen/backup" },
       { icon: "🤖", title: "AI Infrastructure", desc: "GPU servers, private AI clusters, NVIDIA.", href: "/loesungen/ai-infrastruktur" },
-      { icon: "⚙", title: "Managed Services", desc: "Proactive operations — so you can focus on what matters.", href: "/managed-services" },
+      { icon: "⚙️", title: "Managed Services", desc: "Proactive operations — so you can focus on what matters.", href: "/managed-services" },
     ],
   },
 };

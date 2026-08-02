@@ -73,7 +73,7 @@ export const PRODUCTS: Product[] = [
     subgroup: { de: "All-Flash Storage", en: "All-Flash Storage" },
     vendor: "Huawei",
     vendorLogo: "/logos/Huawei_Standard_logo.svg.png",
-    icon: "🗄",
+    icon: "🗄️",
     eyebrow: { de: "Produkt · Huawei Gold Partner", en: "Product · Huawei Gold Partner" },
     name: "OceanStor Dorado",
     tagline: {
@@ -92,7 +92,7 @@ export const PRODUCTS: Product[] = [
     ],
     highlights: [
       { icon: "⚡", title: { de: "Konstant niedrige Latenz", en: "Consistently low latency" }, desc: { de: "FlashLink-Architektur hält die Antwortzeiten auch unter Volllast im Mikrosekundenbereich.", en: "FlashLink architecture keeps response times in the microsecond range even under full load." } },
-      { icon: "🛡", title: { de: "Eingebaute Cyber-Resilienz", en: "Built-in cyber resilience" }, desc: { de: "KI-gestützte Ransomware-Erkennung direkt im Storage-Controller, ohne separate Appliance.", en: "AI-based ransomware detection directly in the storage controller, no separate appliance required." } },
+      { icon: "🛡️", title: { de: "Eingebaute Cyber-Resilienz", en: "Built-in cyber resilience" }, desc: { de: "KI-gestützte Ransomware-Erkennung direkt im Storage-Controller, ohne separate Appliance.", en: "AI-based ransomware detection directly in the storage controller, no separate appliance required." } },
       { icon: "🔗", title: { de: "Konvergente Protokolle", en: "Converged protocols" }, desc: { de: "Block, File und Object auf derselben Plattform — weniger Silos, weniger Betriebsaufwand.", en: "Block, file and object on the same platform — fewer silos, less operational overhead." } },
     ],
     relatedArticleSlugs: ["huawei-dorado-v7"],
@@ -288,7 +288,7 @@ export const PRODUCTS: Product[] = [
     categoryIds: ["backup-recovery"],
     vendor: "Huawei",
     vendorLogo: "/logos/Huawei_Standard_logo.svg.png",
-    icon: "🛡",
+    icon: "🛡️",
     eyebrow: { de: "Produkt · Huawei Gold Partner", en: "Product · Huawei Gold Partner" },
     name: "OceanProtect",
     tagline: {
@@ -318,7 +318,7 @@ export const PRODUCTS: Product[] = [
     categoryIds: ["backup-recovery"],
     vendor: "Commvault",
     vendorLogo: "/logos/commvault.svg",
-    icon: "☁",
+    icon: "☁️",
     eyebrow: { de: "Produkt · Strategic Partner", en: "Product · Strategic Partner" },
     name: "Commvault",
     tagline: {
@@ -336,7 +336,7 @@ export const PRODUCTS: Product[] = [
       { value: { de: "n/a", en: "n/a" }, label: { de: "Kennzahl folgt", en: "Metric to follow" } },
     ],
     highlights: [
-      { icon: "☁", title: { de: "Eine Plattform, alle Workloads", en: "One platform, every workload" }, desc: { de: "Physisch, virtuell, Cloud und SaaS über eine zentrale Konsole gesichert.", en: "Physical, virtual, cloud and SaaS protected through a single console." } },
+      { icon: "☁️", title: { de: "Eine Plattform, alle Workloads", en: "One platform, every workload" }, desc: { de: "Physisch, virtuell, Cloud und SaaS über eine zentrale Konsole gesichert.", en: "Physical, virtual, cloud and SaaS protected through a single console." } },
       { icon: "📋", title: { de: "NIS2-Nachweise", en: "NIS2 evidence" }, desc: { de: "Dokumentierte Restore-Tests und Reports, wie sie Audits verlangen.", en: "Documented restore tests and reports the way audits require them." } },
       { icon: "🔁", title: { de: "Getestete Recovery", en: "Tested recovery" }, desc: { de: "Regelmäßige Restore-Verifikation statt ungeprüfter Backup-Jobs.", en: "Regular restore verification instead of unverified backup jobs." } },
     ],
@@ -377,7 +377,7 @@ export const PRODUCTS: Product[] = [
         },
       },
       {
-        icon: "🗄",
+        icon: "🗄️",
         title: { de: "Läuft auf OceanStor Dorado", en: "Runs on OceanStor Dorado" },
         desc: {
           de: "Abgestimmt auf Huaweis All-Flash-Storage für geschäftskritische Datenbanken und KI-Workloads.",
@@ -385,7 +385,7 @@ export const PRODUCTS: Product[] = [
         },
       },
       {
-        icon: "🛡",
+        icon: "🛡️",
         title: { de: "Abgesichert mit OceanProtect", en: "Protected by OceanProtect" },
         desc: {
           de: "Cyber-resiliente Backup-Appliances mit Air-Gap-Isolation und KI-gestützter Bedrohungserkennung, DCIG-ausgezeichnet.",
