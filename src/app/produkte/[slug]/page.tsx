@@ -82,8 +82,18 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
 
       <main className="pt-24 pb-24">
         {/* Hero */}
-        <section className="border-b border-white/10">
-          <div className="max-w-5xl mx-auto px-6 py-16">
+        <section className="relative border-b border-white/10 overflow-hidden">
+          {product.heroImage && (
+            <>
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url('${product.heroImage}')` }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#0d1117] via-[#0d1117]/90 to-[#0d1117]/40" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0d1117] via-transparent to-transparent" />
+            </>
+          )}
+          <div className="relative max-w-5xl mx-auto px-6 py-16">
             <Link href="/produkte" className="text-[#c9a84c] text-xs font-bold tracking-widest uppercase hover:underline mb-10 block">
               {t.back}
             </Link>
@@ -99,7 +109,7 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
             </div>
             <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-4">{product.name}</h1>
             <p className="text-[#c9a84c] text-lg font-medium mb-6">{product.tagline[locale]}</p>
-            <p className="text-gray-400 text-base leading-relaxed max-w-3xl">{product.intro[locale]}</p>
+            <p className="text-gray-300 text-base leading-relaxed max-w-3xl">{product.intro[locale]}</p>
 
             <div className="flex flex-wrap gap-4 mt-8">
               {ms && (
@@ -110,11 +120,11 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
             </div>
 
             {/* Facts */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/5 mt-12 border border-white/5 max-w-2xl">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/5 mt-12 border border-white/5 max-w-2xl backdrop-blur-sm">
               {product.facts.map((f, i) => (
-                <div key={i} className="bg-[#0d1117] px-5 py-4 text-center">
+                <div key={i} className="bg-[#0d1117]/80 px-5 py-4 text-center">
                   <p className="text-xl font-bold text-[#c9a84c]">{f.value[locale]}</p>
-                  <p className="text-gray-500 text-[10px] mt-1 leading-snug">{f.label[locale]}</p>
+                  <p className="text-gray-400 text-[10px] mt-1 leading-snug">{f.label[locale]}</p>
                 </div>
               ))}
             </div>

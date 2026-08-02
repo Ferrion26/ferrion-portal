@@ -44,6 +44,7 @@ export type Product = {
   subgroup?: Bi; // optional sub-heading within a category panel, e.g. "All-Flash Storage"
   vendor: string;
   vendorLogo?: string;
+  heroImage?: string;
   icon: string;
   eyebrow: Bi;
   name: string; // brand/product name, not translated
@@ -73,6 +74,7 @@ export const PRODUCTS: Product[] = [
     subgroup: { de: "All-Flash Storage", en: "All-Flash Storage" },
     vendor: "Huawei",
     vendorLogo: "/logos/Huawei_Standard_logo.svg.png",
+    heroImage: "/images/Hero Visual/HWE_Storage.png",
     icon: "🗄️",
     eyebrow: { de: "Produkt · Huawei Gold Partner", en: "Product · Huawei Gold Partner" },
     name: "OceanStor Dorado",

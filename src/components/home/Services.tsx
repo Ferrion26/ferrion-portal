@@ -46,10 +46,10 @@ const content = {
     detailLabel: "Lösungen im Detail",
     detailLearn: "Mehr erfahren →",
     details: [
-      { icon: "🗄️", title: "Storage & Infrastruktur", slug: "storage" },
-      { icon: "🛡️", title: "Backup & Security", slug: "backup" },
-      { icon: "🤖", title: "AI-Infrastruktur", slug: "ai-infrastruktur" },
-      { icon: "⚙️", title: "Managed Services", slug: "managed-services" },
+      { icon: "/Icons/Infrastruktur.png", title: "Storage & Infrastruktur", slug: "storage" },
+      { icon: "/Icons/Backup.png", title: "Backup & Security", slug: "backup" },
+      { icon: "/Icons/ai_gehirn_icon_sauber_transparent.png", title: "AI-Infrastruktur", slug: "ai-infrastruktur" },
+      { icon: "/Icons/ManagedService.png", title: "Managed Services", slug: "managed-services" },
     ],
     aiLabel: "AI-Infrastruktur",
     aiMore: "AI-Infrastruktur im Detail →",
@@ -91,10 +91,10 @@ const content = {
     detailLabel: "Solutions in Detail",
     detailLearn: "Learn more →",
     details: [
-      { icon: "🗄️", title: "Storage & Infrastructure", slug: "storage" },
-      { icon: "🛡️", title: "Backup & Security", slug: "backup" },
-      { icon: "🤖", title: "AI Infrastructure", slug: "ai-infrastruktur" },
-      { icon: "⚙️", title: "Managed Services", slug: "managed-services" },
+      { icon: "/Icons/Infrastruktur.png", title: "Storage & Infrastructure", slug: "storage" },
+      { icon: "/Icons/Backup.png", title: "Backup & Security", slug: "backup" },
+      { icon: "/Icons/ai_gehirn_icon_sauber_transparent.png", title: "AI Infrastructure", slug: "ai-infrastruktur" },
+      { icon: "/Icons/ManagedService.png", title: "Managed Services", slug: "managed-services" },
     ],
     aiLabel: "AI Infrastructure",
     aiMore: "AI Infrastructure in detail →",
@@ -153,7 +153,7 @@ export default function Services({ locale }: { locale: Locale }) {
         {/* AI Section */}
         <div className="border border-[#c9a84c]/20 bg-[#0d1117] p-8">
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-2xl">🤖</span>
+            <img src="/Icons/ai_gehirn_icon_sauber_transparent.png" alt="" className="w-7 h-7 object-contain" />
             <p className="text-[#c9a84c] font-bold text-sm tracking-widest uppercase">{t.aiLabel}</p>
             <Link href="/loesungen/ai-infrastruktur" className="ml-auto text-[10px] text-[#c9a84c] tracking-widest uppercase hover:underline">
               {t.aiMore}
@@ -192,7 +192,7 @@ export default function Services({ locale }: { locale: Locale }) {
                 href={`/loesungen/${d.slug}`}
                 className="bg-[#0d1117] border border-white/10 hover:border-[#c9a84c]/40 transition-colors group p-6 flex flex-col"
               >
-                <span className="text-2xl mb-3">{d.icon}</span>
+                <img src={d.icon} alt="" className="w-9 h-9 mb-3 object-contain" />
                 <p className="text-white font-bold text-sm mb-3 group-hover:text-[#c9a84c] transition-colors">{d.title}</p>
                 <span className="text-[#c9a84c] text-[10px] tracking-widest uppercase mt-auto">{t.detailLearn}</span>
               </Link>

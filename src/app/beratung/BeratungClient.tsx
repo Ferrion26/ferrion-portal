@@ -54,13 +54,13 @@ const STEPS_CONTENT = {
       title: "Womit können wir Ihnen helfen?",
       subtitle: "Wählen Sie das Thema, das am besten zu Ihrem Bedarf passt.",
       options: [
-        { value: "storage", icon: "🗄️", label: "Storage & Infrastruktur", desc: "Server, SAN, All-Flash, Scale-Out" },
-        { value: "backup", icon: "🛡️", label: "Backup & Security", desc: "Datensicherung, Recovery, NIS2" },
-        { value: "managed", icon: "⚙️", label: "Managed Services", desc: "Proaktiver Betrieb & Monitoring" },
-        { value: "cloud", icon: "☁️", label: "Cloud & Virtualisierung", desc: "Hybrid Cloud, VMware, FusionCompute" },
-        { value: "ai", icon: "🤖", label: "AI-Infrastruktur", desc: "GPU Cluster, NVIDIA, AI Storage" },
-        { value: "database", icon: "💾", label: "Datenbank-Services", desc: "Migration, Betrieb, Lizenzberatung" },
-        { value: "general", icon: "💬", label: "Allgemeine Beratung", desc: "Ich bin noch nicht sicher" },
+        { value: "storage", icon: "/Icons/Infrastruktur.png", label: "Storage & Infrastruktur", desc: "Server, SAN, All-Flash, Scale-Out" },
+        { value: "backup", icon: "/Icons/Backup.png", label: "Backup & Security", desc: "Datensicherung, Recovery, NIS2" },
+        { value: "managed", icon: "/Icons/ManagedService.png", label: "Managed Services", desc: "Proaktiver Betrieb & Monitoring" },
+        { value: "cloud", icon: "/Icons/Virtualisierung.png", label: "Cloud & Virtualisierung", desc: "Hybrid Cloud, VMware, FusionCompute" },
+        { value: "ai", icon: "/Icons/ai_gehirn_icon_sauber_transparent.png", label: "AI-Infrastruktur", desc: "GPU Cluster, NVIDIA, AI Storage" },
+        { value: "database", icon: "/Icons/Datenbanken.png", label: "Datenbank-Services", desc: "Migration, Betrieb, Lizenzberatung" },
+        { value: "general", icon: "/Icons/Allgemeine Beratung.png", label: "Allgemeine Beratung", desc: "Ich bin noch nicht sicher" },
       ],
     },
     detail: {
@@ -151,13 +151,13 @@ const STEPS_CONTENT = {
       title: "How can we help you?",
       subtitle: "Select the topic that best matches your needs.",
       options: [
-        { value: "storage", icon: "🗄️", label: "Storage & Infrastructure", desc: "Servers, SAN, All-Flash, Scale-Out" },
-        { value: "backup", icon: "🛡️", label: "Backup & Security", desc: "Data protection, recovery, NIS2" },
-        { value: "managed", icon: "⚙️", label: "Managed Services", desc: "Proactive operations & monitoring" },
-        { value: "cloud", icon: "☁️", label: "Cloud & Virtualisation", desc: "Hybrid Cloud, VMware, FusionCompute" },
-        { value: "ai", icon: "🤖", label: "AI Infrastructure", desc: "GPU clusters, NVIDIA, AI storage" },
-        { value: "database", icon: "💾", label: "Database Services", desc: "Migration, operations, licence consulting" },
-        { value: "general", icon: "💬", label: "General Consulting", desc: "I'm not sure yet" },
+        { value: "storage", icon: "/Icons/Infrastruktur.png", label: "Storage & Infrastructure", desc: "Servers, SAN, All-Flash, Scale-Out" },
+        { value: "backup", icon: "/Icons/Backup.png", label: "Backup & Security", desc: "Data protection, recovery, NIS2" },
+        { value: "managed", icon: "/Icons/ManagedService.png", label: "Managed Services", desc: "Proactive operations & monitoring" },
+        { value: "cloud", icon: "/Icons/Virtualisierung.png", label: "Cloud & Virtualisation", desc: "Hybrid Cloud, VMware, FusionCompute" },
+        { value: "ai", icon: "/Icons/ai_gehirn_icon_sauber_transparent.png", label: "AI Infrastructure", desc: "GPU clusters, NVIDIA, AI storage" },
+        { value: "database", icon: "/Icons/Datenbanken.png", label: "Database Services", desc: "Migration, operations, licence consulting" },
+        { value: "general", icon: "/Icons/Allgemeine Beratung.png", label: "General Consulting", desc: "I'm not sure yet" },
       ],
     },
     detail: {
@@ -367,7 +367,13 @@ export default function BeratungClient({ locale }: { locale: Locale }) {
                 onClick={() => selectCard(stepKey, opt.value)}
                 className={`group text-left p-5 border transition-all duration-150 ${selected ? "border-[#c9a84c] bg-[#c9a84c]/10" : "border-white/10 bg-[#111827] hover:border-[#c9a84c]/50"}`}
               >
-                <div className="text-2xl mb-3">{opt.icon}</div>
+                <div className="mb-3">
+                  {opt.icon.startsWith("/") ? (
+                    <img src={opt.icon} alt="" className="w-9 h-9 object-contain" />
+                  ) : (
+                    <span className="text-2xl">{opt.icon}</span>
+                  )}
+                </div>
                 <p className={`font-bold text-sm mb-1 transition-colors ${selected ? "text-[#c9a84c]" : "text-white group-hover:text-[#c9a84c]"}`}>{opt.label}</p>
                 <p className="text-gray-500 text-xs leading-relaxed">{opt.desc}</p>
               </button>

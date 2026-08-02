@@ -25,10 +25,10 @@ const heroCopy = {
     cta1: "Beratung anfragen →",
     cta2: "Lösungen entdecken →",
     services: [
-      { icon: "🗄️", title: "Storage & Infrastruktur", desc: "Huawei, Everpure — skalierbar und zuverlässig.", href: "/loesungen/storage" },
-      { icon: "🛡️", title: "Backup & Security", desc: "Commvault-Lösungen für NIS2-konforme Datensicherung.", href: "/loesungen/backup" },
-      { icon: "🤖", title: "AI-Infrastruktur", desc: "GPU Server, Private AI Cluster, NVIDIA.", href: "/loesungen/ai-infrastruktur" },
-      { icon: "⚙️", title: "Managed Services", desc: "Proaktiver Betrieb — damit Sie sich aufs Wesentliche konzentrieren.", href: "/managed-services" },
+      { icon: "/Icons/Infrastruktur.png", title: "Storage & Infrastruktur", desc: "Huawei, Everpure — skalierbar und zuverlässig.", href: "/loesungen/storage" },
+      { icon: "/Icons/Backup.png", title: "Backup & Security", desc: "Commvault-Lösungen für NIS2-konforme Datensicherung.", href: "/loesungen/backup" },
+      { icon: "/Icons/ai_gehirn_icon_sauber_transparent.png", title: "AI-Infrastruktur", desc: "GPU Server, Private AI Cluster, NVIDIA.", href: "/loesungen/ai-infrastruktur" },
+      { icon: "/Icons/ManagedService.png", title: "Managed Services", desc: "Proaktiver Betrieb — damit Sie sich aufs Wesentliche konzentrieren.", href: "/managed-services" },
     ],
   },
   en: {
@@ -38,10 +38,10 @@ const heroCopy = {
     cta1: "Request Consultation →",
     cta2: "Discover Solutions →",
     services: [
-      { icon: "🗄️", title: "Storage & Infrastructure", desc: "Huawei, Everpure — scalable and reliable.", href: "/loesungen/storage" },
-      { icon: "🛡️", title: "Backup & Security", desc: "Commvault solutions for NIS2-compliant data protection.", href: "/loesungen/backup" },
-      { icon: "🤖", title: "AI Infrastructure", desc: "GPU servers, private AI clusters, NVIDIA.", href: "/loesungen/ai-infrastruktur" },
-      { icon: "⚙️", title: "Managed Services", desc: "Proactive operations — so you can focus on what matters.", href: "/managed-services" },
+      { icon: "/Icons/Infrastruktur.png", title: "Storage & Infrastructure", desc: "Huawei, Everpure — scalable and reliable.", href: "/loesungen/storage" },
+      { icon: "/Icons/Backup.png", title: "Backup & Security", desc: "Commvault solutions for NIS2-compliant data protection.", href: "/loesungen/backup" },
+      { icon: "/Icons/ai_gehirn_icon_sauber_transparent.png", title: "AI Infrastructure", desc: "GPU servers, private AI clusters, NVIDIA.", href: "/loesungen/ai-infrastruktur" },
+      { icon: "/Icons/ManagedService.png", title: "Managed Services", desc: "Proactive operations — so you can focus on what matters.", href: "/managed-services" },
     ],
   },
 };
@@ -78,7 +78,7 @@ export default function Hero({ locale, light = DEFAULT_HERO_LIGHT }: { locale: L
               <Link href="/beratung" className="border border-[#c9a84c] text-[#c9a84c] hover:bg-[#c9a84c] hover:text-black transition-colors px-5 py-2.5 text-xs font-bold tracking-widest uppercase">
                 {h.cta1}
               </Link>
-              <Link href="#loesungen" className="border border-white/30 text-white hover:border-white/60 transition-colors px-5 py-2.5 text-xs font-bold tracking-widest uppercase">
+              <Link href="/#loesungen" className="border border-white/30 text-white hover:border-white/60 transition-colors px-5 py-2.5 text-xs font-bold tracking-widest uppercase">
                 {h.cta2}
               </Link>
             </div>
@@ -125,7 +125,7 @@ export default function Hero({ locale, light = DEFAULT_HERO_LIGHT }: { locale: L
           <div className="grid grid-cols-2 lg:grid-cols-4">
             {h.services.map((s, i) => (
               <Link key={s.title} href={s.href} className={`flex items-center gap-3 py-4 px-4 hover:bg-white/10 transition-colors border-b border-white/10 lg:border-b-0 ${i < 3 ? "lg:border-r lg:border-white/20" : ""}`}>
-                <span className="text-xl shrink-0 opacity-80">{s.icon}</span>
+                <img src={s.icon} alt="" className="w-8 h-8 shrink-0 object-contain opacity-90" />
                 <div>
                   <p className="text-white font-bold text-xs">{s.title}</p>
                   <p className="text-gray-200 text-[10px] leading-snug mt-0.5">{s.desc}</p>
