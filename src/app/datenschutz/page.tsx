@@ -110,9 +110,10 @@ const de = {
           <p className="mb-3">Ihre Daten werden nicht verkauft. Weitergabe nur an technische Dienstleister im Rahmen der Auftragsverarbeitung:</p>
           <ul className="space-y-2">{[
             "Vercel Inc. (Hosting, USA) — Standardvertragsklauseln gemäß Art. 46 DSGVO",
+            "Vercel Inc. (Vercel Web Analytics) — cookie-lose Reichweitenmessung, Standardvertragsklauseln gemäß Art. 46 DSGVO, siehe Abschnitt 6",
             "Supabase Inc. (Datenbank, EU-Region) — Auftragsverarbeitungsvertrag",
             "Resend Inc. (E-Mail-Versand, USA) — Standardvertragsklauseln gemäß Art. 46 DSGVO",
-            "Umami Software Inc. (Web-Analytics) — cookie-lose, datensparsame Reichweitenmessung, siehe Abschnitt 6",
+            "Umami Software Inc. (Web-Analytics, Datenregion EU) — cookie-lose, datensparsame Reichweitenmessung, siehe Abschnitt 6",
           ].map(listItem)}</ul>
         </>
       ),
@@ -131,20 +132,24 @@ const de = {
       ),
     },
     {
-      heading: "6. Web-Analytics (Umami)",
+      heading: "6. Web-Analytics (Umami & Vercel Analytics)",
       body: (
         <>
           <p className="mb-3">
-            Zur anonymisierten Reichweitenmessung setzen wir Umami (Umami Software Inc.) ein — einen datenschutzfreundlichen,
-            cookie-losen Webanalyse-Dienst:
+            Zur anonymisierten Reichweitenmessung setzen wir zwei datenschutzfreundliche, cookie-lose Webanalyse-Dienste ein:
           </p>
+          <ul className="space-y-2 mb-3">{[
+            "Umami (Umami Software Inc.) — Datenregion EU, d. h. die Analyse-Daten werden auf Servern innerhalb der EU verarbeitet und gespeichert.",
+            "Vercel Web Analytics (Vercel Inc.) — ergänzende Reichweitenmessung über das Vercel-Hosting-Netzwerk.",
+          ].map(listItem)}</ul>
+          <p className="mb-3">Für beide Dienste gilt:</p>
           <ul className="space-y-2">{[
             "Keine Cookies, keine geräteübergreifende Wiedererkennung einzelner Besucher.",
             "IP-Adressen werden nur kurzzeitig zur Ermittlung von Land/Region verarbeitet und nicht gespeichert.",
             "Erfasst werden ausschließlich aggregierte Nutzungsdaten (aufgerufene Seiten, Verweisquelle, Gerätetyp).",
           ].map(listItem)}</ul>
           <p className="mt-3">
-            Da hierbei keine personenbezogenen, wiedererkennbaren Daten gespeichert werden, ist für den Einsatz von Umami
+            Da hierbei keine personenbezogenen, wiedererkennbaren Daten gespeichert werden, ist für den Einsatz dieser Dienste
             keine Einwilligung über das Cookie-Banner erforderlich (Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO,
             berechtigtes Interesse an der Analyse der Websitenutzung).
           </p>
@@ -216,9 +221,10 @@ const en = {
           <p className="mb-3">Your data is not sold. Disclosure only to technical service providers under data processing agreements:</p>
           <ul className="space-y-2">{[
             "Vercel Inc. (Hosting, USA) — Standard Contractual Clauses pursuant to Art. 46 GDPR",
+            "Vercel Inc. (Vercel Web Analytics) — cookie-less traffic measurement, Standard Contractual Clauses pursuant to Art. 46 GDPR, see Section 6",
             "Supabase Inc. (Database, EU region) — Data Processing Agreement",
             "Resend Inc. (Email delivery, USA) — Standard Contractual Clauses pursuant to Art. 46 GDPR",
-            "Umami Software Inc. (Web analytics) — cookie-less, privacy-preserving traffic measurement, see Section 6",
+            "Umami Software Inc. (Web analytics, EU data region) — cookie-less, privacy-preserving traffic measurement, see Section 6",
           ].map(listItem)}</ul>
         </>
       ),
@@ -237,21 +243,25 @@ const en = {
       ),
     },
     {
-      heading: "6. Web Analytics (Umami)",
+      heading: "6. Web Analytics (Umami & Vercel Analytics)",
       body: (
         <>
           <p className="mb-3">
-            For anonymised traffic measurement we use Umami (Umami Software Inc.) — a privacy-friendly, cookie-less
-            web analytics service:
+            For anonymised traffic measurement we use two privacy-friendly, cookie-less web analytics services:
           </p>
+          <ul className="space-y-2 mb-3">{[
+            "Umami (Umami Software Inc.) — EU data region, meaning analytics data is processed and stored on servers within the EU.",
+            "Vercel Web Analytics (Vercel Inc.) — supplementary traffic measurement via the Vercel hosting network.",
+          ].map(listItem)}</ul>
+          <p className="mb-3">Both services share the following properties:</p>
           <ul className="space-y-2">{[
             "No cookies, no cross-device recognition of individual visitors.",
             "IP addresses are processed only briefly to derive country/region and are not stored.",
             "Only aggregated usage data is collected (pages viewed, referral source, device type).",
           ].map(listItem)}</ul>
           <p className="mt-3">
-            Since no personal, re-identifiable data is stored, using Umami does not require consent via the cookie
-            banner (legal basis: Art. 6(1)(f) GDPR, legitimate interest in analysing website usage).
+            Since no personal, re-identifiable data is stored, using these services does not require consent via the
+            cookie banner (legal basis: Art. 6(1)(f) GDPR, legitimate interest in analysing website usage).
           </p>
         </>
       ),

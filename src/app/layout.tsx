@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { Providers } from "./providers";
 import ScrollToTop from "@/components/ui/ScrollToTop";
@@ -79,6 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           data-website-id="ac4ebcfc-04ba-4ea7-aa88-6ec8a2ef6384"
           strategy="afterInteractive"
         />
+        <Analytics />
       </body>
     </html>
   );
