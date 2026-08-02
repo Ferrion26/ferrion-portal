@@ -112,7 +112,7 @@ const de = {
             "Vercel Inc. (Hosting, Serverstandort Frankfurt/Deutschland) — als US-Unternehmen zusätzlich abgesichert durch Standardvertragsklauseln gemäß Art. 46 DSGVO",
             "Vercel Inc. (Vercel Web Analytics) — cookie-lose Reichweitenmessung, Standardvertragsklauseln gemäß Art. 46 DSGVO, siehe Abschnitt 6",
             "Supabase Inc. (Datenbank, Serverstandort London/Vereinigtes Königreich) — Angemessenheitsbeschluss der EU-Kommission gemäß Art. 45 DSGVO, zusätzlich Auftragsverarbeitungsvertrag",
-            "Resend Inc. (E-Mail-Versand, USA) — Standardvertragsklauseln gemäß Art. 46 DSGVO",
+            "Resend Inc. (E-Mail-Versand, Serverstandort Irland/EU) — als US-Unternehmen zusätzlich abgesichert durch Standardvertragsklauseln gemäß Art. 46 DSGVO",
             "Umami Software Inc. (Web-Analytics, Datenregion EU) — cookie-lose, datensparsame Reichweitenmessung, siehe Abschnitt 6",
           ].map(listItem)}</ul>
         </>
@@ -223,7 +223,7 @@ const en = {
             "Vercel Inc. (Hosting, server location Frankfurt/Germany) — as a US company, additionally safeguarded by Standard Contractual Clauses pursuant to Art. 46 GDPR",
             "Vercel Inc. (Vercel Web Analytics) — cookie-less traffic measurement, Standard Contractual Clauses pursuant to Art. 46 GDPR, see Section 6",
             "Supabase Inc. (Database, server location London/United Kingdom) — adequacy decision by the EU Commission pursuant to Art. 45 GDPR, additionally a Data Processing Agreement",
-            "Resend Inc. (Email delivery, USA) — Standard Contractual Clauses pursuant to Art. 46 GDPR",
+            "Resend Inc. (Email delivery, server location Ireland/EU) — as a US company, additionally safeguarded by Standard Contractual Clauses pursuant to Art. 46 GDPR",
             "Umami Software Inc. (Web analytics, EU data region) — cookie-less, privacy-preserving traffic measurement, see Section 6",
           ].map(listItem)}</ul>
         </>
