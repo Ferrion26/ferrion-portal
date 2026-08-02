@@ -136,6 +136,7 @@ export const PRODUCTS: Product[] = [
     categoryIds: ["data-storage", "ai-data-platform"],
     subgroup: { de: "All-Flash Storage", en: "All-Flash Storage" },
     vendor: "Everpure",
+    vendorLogo: "/logos/Pure Storage Bug Orange_undefined.PNG",
     heroImage: "/images/Hero Visual/Storage_Infrastruktur_Pure.png",
     icon: "🌊",
     eyebrow: { de: "Produkt · Elite Partner", en: "Product · Elite Partner" },
