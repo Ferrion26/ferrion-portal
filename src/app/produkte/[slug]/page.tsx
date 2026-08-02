@@ -102,6 +102,10 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
                 <span className="w-16 h-16 rounded-md bg-white border border-[#c9a84c]/30 flex items-center justify-center overflow-hidden shrink-0 p-2">
                   <img src={product.vendorLogo} alt={product.vendor} className="w-full h-full object-contain" />
                 </span>
+              ) : product.icon.startsWith("/") ? (
+                <span className="w-16 h-16 rounded-md border border-[#c9a84c]/30 overflow-hidden shrink-0">
+                  <img src={product.icon} alt={product.vendor} className="w-full h-full object-cover" />
+                </span>
               ) : (
                 <span className="text-4xl">{product.icon}</span>
               )}

@@ -130,6 +130,10 @@ function ProductGrid({
               <span className="w-14 h-14 rounded-md bg-white border border-[#c9a84c]/30 flex items-center justify-center overflow-hidden p-2">
                 <img src={p.vendorLogo} alt={p.vendor} className="w-full h-full object-contain" />
               </span>
+            ) : p.icon.startsWith("/") ? (
+              <span className="w-14 h-14 rounded-md border border-[#c9a84c]/30 overflow-hidden shrink-0">
+                <img src={p.icon} alt={p.vendor} className="w-full h-full object-cover" />
+              </span>
             ) : (
               <span className="text-3xl">{p.icon}</span>
             )}
