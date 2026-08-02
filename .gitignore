@@ -31,3 +31,4 @@ next-env.d.ts
 # processed asset actually used in code (e.g. public/logos/fudo-mark.png)
 # is committed
 /public/logos/Fudo/
+/public/logos/CommVault/
