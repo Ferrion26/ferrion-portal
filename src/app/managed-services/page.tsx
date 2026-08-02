@@ -4,7 +4,7 @@ import { resolveLocale } from "@/lib/i18n";
 import { pageMetadata } from "@/lib/seo";
 import Header from "@/components/home/Header";
 import Footer from "@/components/home/Footer";
-import { PRODUCTS } from "@/app/produkte/products-data";
+import { PRODUCTS, CARE_PACKAGE_ICONS } from "@/app/produkte/products-data";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +91,9 @@ export default function ManagedServicesIndexPage({ searchParams }: SP) {
                               {t.recommended}
                             </span>
                           )}
+                          <div className="w-12 h-12 rounded-full bg-[#c9a84c]/10 border border-[#c9a84c]/30 flex items-center justify-center mb-5 p-2.5">
+                            <img src={CARE_PACKAGE_ICONS[p.id]} alt="" className="w-full h-full object-contain" />
+                          </div>
                           <h3 className="text-white font-bold text-base uppercase tracking-wide mb-1">{p.name}</h3>
                           <p className="text-[#c9a84c] text-sm font-medium mb-5">{p.tagline[locale]}</p>
                           <ul className="space-y-2.5 flex-1">

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { type Locale } from "@/lib/i18n/translations";
 import FadeIn from "@/components/FadeIn";
-import { PRODUCTS } from "@/app/produkte/products-data";
+import { PRODUCTS, CARE_PACKAGE_ICONS } from "@/app/produkte/products-data";
 
 const content = {
   de: {
@@ -46,6 +46,9 @@ export default function ManagedServicesTeaser({ locale }: { locale: Locale }) {
                     {t.recommended}
                   </span>
                 )}
+                <div className="w-11 h-11 rounded-full bg-[#c9a84c]/10 border border-[#c9a84c]/30 flex items-center justify-center mb-4 p-2">
+                  <img src={CARE_PACKAGE_ICONS[p.id]} alt="" className="w-full h-full object-contain" />
+                </div>
                 <h3 className="text-white font-bold text-base uppercase tracking-wide mb-1">{p.name}</h3>
                 <p className="text-[#c9a84c] text-sm font-medium mb-5">{p.tagline[locale]}</p>
                 <ul className="space-y-2 mb-6 flex-1">

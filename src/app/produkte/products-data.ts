@@ -526,6 +526,15 @@ export function getProduct(slug: string) {
   return PRODUCTS.find((p) => p.slug === slug && p.status === "available");
 }
 
+// Shared package-tier icon set (used on the product detail page, the
+// Managed Services overview, and the homepage teaser) so all three stay
+// in sync automatically.
+export const CARE_PACKAGE_ICONS: Record<ManagedPackage["id"], string> = {
+  monitor: "/Icons/care_monitor_icon.png",
+  operate: "/Icons/care_operate_icon.png",
+  complete: "/Icons/care_complete_icon.png",
+};
+
 export function productsByCategory(categoryId: string) {
   return PRODUCTS.filter((p) => p.categoryIds.includes(categoryId) && p.status === "available");
 }
