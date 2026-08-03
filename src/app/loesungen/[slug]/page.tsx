@@ -59,7 +59,7 @@ export default function SolutionPage({ params, searchParams }: { params: { slug:
               {backLabel}
             </Link>
             <div className="flex items-center gap-4 mb-6">
-              <span className="text-4xl">{sol.icon}</span>
+              <img src={sol.icon} alt="" className="w-10 h-10 object-contain" />
               <p className="text-[#c9a84c] text-xs font-bold tracking-widest uppercase">{sol.eyebrow[locale]}</p>
             </div>
             <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-6">{sol.title[locale]}</h1>
@@ -134,7 +134,7 @@ export default function SolutionPage({ params, searchParams }: { params: { slug:
           <div className="grid sm:grid-cols-3 gap-4">
             {others.map((o) => (
               <Link key={o.slug} href={`/loesungen/${o.slug}`} className="bg-[#111827] border border-white/10 p-6 hover:border-[#c9a84c]/30 transition-colors group">
-                <span className="text-2xl">{o.icon}</span>
+                <img src={o.icon} alt="" className="w-8 h-8 object-contain" />
                 <p className="text-white font-bold text-sm mt-3 group-hover:text-[#c9a84c] transition-colors">{o.eyebrow[locale]}</p>
               </Link>
             ))}

@@ -17,7 +17,7 @@ export type SolutionContent = {
 export const SOLUTIONS: SolutionContent[] = [
   {
     slug: "storage",
-    icon: "🗄️",
+    icon: "/Icons/Infrastruktur.png",
     heroImage: "/images/Hero Visual/Storage_Infrastruktur_01.webp",
     eyebrow: { de: "Storage & Infrastruktur", en: "Storage & Infrastructure" },
     title: { de: "Storage, der mitwächst.", en: "Storage that scales with you." },
@@ -55,7 +55,7 @@ export const SOLUTIONS: SolutionContent[] = [
   },
   {
     slug: "backup",
-    icon: "🛡️",
+    icon: "/Icons/Backup.png",
     heroImage: "/images/Hero Visual/Backup_Security01.webp",
     eyebrow: { de: "Backup & Security", en: "Backup & Security" },
     title: { de: "Daten, die niemand kompromittiert.", en: "Data no one can compromise." },
@@ -93,7 +93,7 @@ export const SOLUTIONS: SolutionContent[] = [
   },
   {
     slug: "ai-infrastruktur",
-    icon: "🤖",
+    icon: "/Icons/ai_gehirn_icon_sauber_transparent.png",
     heroImage: "/images/Hero Visual/AI_Infrastruktur_02.webp",
     eyebrow: { de: "AI-Infrastruktur", en: "AI Infrastructure" },
     title: { de: "KI, die im eigenen Haus bleibt.", en: "AI that stays in-house." },
@@ -131,7 +131,7 @@ export const SOLUTIONS: SolutionContent[] = [
   },
   {
     slug: "managed-services",
-    icon: "⚙️",
+    icon: "/Icons/ManagedService.png",
     heroImage: "/images/Hero Visual/Managed_Services01.webp",
     eyebrow: { de: "Managed Services", en: "Managed Services" },
     title: { de: "Betrieb, der nie schläft.", en: "Operations that never sleep." },
