@@ -70,7 +70,7 @@ const content = {
         ),
       },
     ],
-    legalLinks: [{ label: "Impressum", href: "/impressum" }, { label: "Datenschutz", href: "/datenschutz" }],
+    legalLinks: [{ label: "Impressum", href: "/impressum" }, { label: "Datenschutz", href: "/datenschutz" }, { label: "AGB", href: "/agb" }],
     copyright: "Ferrion IT Systemhaus",
   },
   en: {
@@ -125,7 +125,7 @@ const content = {
         ),
       },
     ],
-    legalLinks: [{ label: "Legal Notice", href: "/impressum" }, { label: "Privacy Policy", href: "/datenschutz" }],
+    legalLinks: [{ label: "Legal Notice", href: "/impressum" }, { label: "Privacy Policy", href: "/datenschutz" }, { label: "Terms", href: "/agb" }],
     copyright: "Ferrion IT Systemhaus",
   },
 };

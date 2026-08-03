@@ -21,6 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/karriere",
     "/beratung",
     "/impressum",
+    "/agb",
     "/datenschutz",
   ].map((path) => ({
     url: `${BASE}${path}`,

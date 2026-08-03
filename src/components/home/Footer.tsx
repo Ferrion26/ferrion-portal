@@ -23,7 +23,7 @@ const content = {
     contact: "Kontakt",
     founders: "Gründer",
     copyright: "Ferrion IT Systemhaus. Alle Rechte vorbehalten.",
-    legal: [{ label: "Impressum", href: "/impressum" }, { label: "Datenschutz", href: "/datenschutz" }, { label: "AGB", href: "#" }],
+    legal: [{ label: "Impressum", href: "/impressum" }, { label: "Datenschutz", href: "/datenschutz" }, { label: "AGB", href: "/agb" }],
     madeWith: "— build to endure",
   },
   en: {
@@ -47,7 +47,7 @@ const content = {
     contact: "Contact",
     founders: "Founders",
     copyright: "Ferrion IT Systemhaus. All rights reserved.",
-    legal: [{ label: "Imprint", href: "/impressum" }, { label: "Privacy Policy", href: "/datenschutz" }, { label: "Terms", href: "#" }],
+    legal: [{ label: "Imprint", href: "/impressum" }, { label: "Privacy Policy", href: "/datenschutz" }, { label: "Terms", href: "/agb" }],
     madeWith: "— build to endure",
   },
 };

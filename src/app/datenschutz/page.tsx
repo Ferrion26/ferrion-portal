@@ -71,7 +71,7 @@ const de = {
   title: "Datenschutzerklärung",
   subtitle: "Gemäß DSGVO (EU) 2016/679 und DSG 2018",
   date: "Stand: August 2026",
-  legalLinks: [{ label: "Impressum", href: "/impressum" }, { label: "Datenschutz", href: "/datenschutz" }],
+  legalLinks: [{ label: "Impressum", href: "/impressum" }, { label: "Datenschutz", href: "/datenschutz" }, { label: "AGB", href: "/agb" }],
   sections: [
     {
       heading: "1. Verantwortlicher",
@@ -182,7 +182,7 @@ const en = {
   title: "Privacy Policy",
   subtitle: "Pursuant to GDPR (EU) 2016/679 and DSG 2018",
   date: "Last updated: August 2026",
-  legalLinks: [{ label: "Legal Notice", href: "/impressum" }, { label: "Privacy Policy", href: "/datenschutz" }],
+  legalLinks: [{ label: "Legal Notice", href: "/impressum" }, { label: "Privacy Policy", href: "/datenschutz" }, { label: "Terms", href: "/agb" }],
   sections: [
     {
       heading: "1. Data Controller",
