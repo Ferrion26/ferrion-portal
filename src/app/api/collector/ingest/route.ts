@@ -3,25 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { hashApiKey } from "@/lib/managed-reports/apiKey";
-import { z } from "zod";
-
-// Generic, product-agnostic ingestion payload — a collector running at a
-// customer site (any product, not just OceanProtect) pushes metric readings
-// here. Product-specific meaning (labels, units, chart grouping) lives in
-// src/lib/managed-reports/metrics/*, not in this schema.
-const ingestSchema = z.object({
-  collectedAt: z.string().datetime(),
-  metrics: z
-    .array(
-      z.object({
-        key: z.string().min(1).max(100),
-        value: z.number(),
-        unit: z.string().max(20).optional(),
-      })
-    )
-    .min(1)
-    .max(200),
-});
+import { ingestPayloadSchema } from "@/lib/managed-reports/ingestSchema";
 
 export async function POST(req: NextRequest) {
   const apiKeyHeader = req.headers.get("x-api-key");
@@ -39,7 +21,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
-  const parsed = ingestSchema.safeParse(body);
+  const parsed = ingestPayloadSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload", details: parsed.error.flatten() }, { status: 400 });
   }

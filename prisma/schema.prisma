@@ -55,6 +55,11 @@ enum ReportStatus {
   PUBLISHED
 }
 
+enum IngestionSource {
+  COLLECTOR
+  MANUAL_UPLOAD
+}
+
 model SiteSetting {
   key       String   @id
   value     Json
@@ -215,15 +220,19 @@ model CollectorApiKey {
 }
 
 model CollectorIngestion {
-  id         String   @id @default(cuid())
+  id         String          @id @default(cuid())
   payload    Json
-  receivedAt DateTime @default(now())
+  source     IngestionSource @default(COLLECTOR)
+  receivedAt DateTime        @default(now())
 
   subscriptionId String
   subscription   ManagedServiceSubscription @relation(fields: [subscriptionId], references: [id])
 
-  apiKeyId String
-  apiKey   CollectorApiKey @relation(fields: [apiKeyId], references: [id])
+  // Null for MANUAL_UPLOAD ingestions (admin-authenticated upload of an
+  // export file from an air-gapped/offline collector run — no API key
+  // involved, since the site has no network path to the ingestion API).
+  apiKeyId String?
+  apiKey   CollectorApiKey? @relation(fields: [apiKeyId], references: [id])
 
   metrics ManagedServiceMetric[]
 

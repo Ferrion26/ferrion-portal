@@ -6,6 +6,7 @@ import { quarterLabel } from "@/lib/managed-reports/quarter";
 import { Badge } from "@/components/ui/Badge";
 import ReportDownloadButton from "@/components/managed-reports/ReportDownloadButton";
 import ApiKeyManager from "./ApiKeyManager";
+import ManualUploadForm from "./ManualUploadForm";
 import GenerateReportButton from "./GenerateReportButton";
 import PublishButton from "./PublishButton";
 
@@ -51,6 +52,11 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
             createdAt: k.createdAt.toISOString(),
           }))}
         />
+      </div>
+
+      <div className="bg-[#111827] border border-white/10 p-6">
+        <h2 className="font-semibold text-white mb-4">Manueller Upload (air-gapped Standorte)</h2>
+        <ManualUploadForm subscriptionId={subscription.id} />
       </div>
 
       <div className="bg-[#111827] border border-white/10 p-6">

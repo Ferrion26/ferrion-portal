@@ -32,13 +32,42 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
 4. Node.js 18+ auf dem Collector-Host voraussetzen (nutzt das eingebaute
    `fetch`), keine weiteren Abhängigkeiten nötig.
 5. Testlauf: `node index.js config.json`
-6. Periodisch einplanen (z. B. täglich), damit über ein Quartal genug
-   Datenpunkte für die Aggregation vorliegen — per Windows Task Scheduler
-   oder cron:
-   - **cron (Linux):** `0 6 * * * cd /opt/ferrion-collector && node index.js config.json >> collector.log 2>&1`
-   - **Windows Task Scheduler:** Aktion `node.exe`, Argumente
-     `C:\ferrion-collector\index.js C:\ferrion-collector\config.json`,
-     täglich wiederholend.
+6. Periodisch einplanen — Installationsskripte übernehmen das:
+   - **Windows:** PowerShell als Administrator, im `collector`-Ordner:
+     `.\install-windows.ps1` (registriert einen täglichen Scheduled Task).
+   - **Linux:** `./install-linux.sh` (trägt einen täglichen cron-Eintrag für
+     den aktuellen Benutzer ein).
+   - Beide Skripte akzeptieren `--export-dir <Pfad>` für den Air-Gap-Modus
+     (siehe unten) statt des Live-Push.
+
+## Air-gapped Standorte ("Blacksite") — manueller Datentransfer
+
+Hat der Collector-Host keinen Netzwerkweg zu `ingestUrl` (z. B. eine isolierte
+Backup-Zone ohne Internetzugang), läuft der Collector im Export-Modus statt im
+Push-Modus:
+
+```bash
+node index.js config.json --export-dir ./exports
+```
+
+Statt live zu pushen, schreibt jeder Lauf eine Datei
+`exports/metrics-<Zeitstempel>.json` im selben Format, das die Ingestion-API
+erwartet (`ingestUrl`/`apiKey` in `config.json` werden für den Export-Modus
+nicht gebraucht). Regelmäßig einplanen wie oben (`install-windows.ps1
+-ExportDir ...` bzw. `install-linux.sh --export-dir ...`).
+
+Die gesammelten `.json`-Dateien werden periodisch (z. B. per USB-Stick) aus
+der isolierten Umgebung herausgetragen und im Ferrion-Admin-Bereich unter der
+jeweiligen Subscription (`/admin/managed-reports/<id>`, Abschnitt
+**"Manueller Upload"**) hochgeladen — mehrere Dateien gleichzeitig möglich,
+kein API-Key nötig (die Admin-Anmeldung übernimmt die Authentifizierung).
+
+## Installationspaket bauen
+
+`npm run collector:package` im Projekt-Root erzeugt
+`dist/ferrion-collector.zip` — enthält den kompletten `collector/`-Ordner
+(ohne ein eventuell vorhandenes `config.json` mit echten Zugangsdaten) für die
+Weitergabe an einen Kunden-Standort.
 
 ## Neues Produkt anbinden
 

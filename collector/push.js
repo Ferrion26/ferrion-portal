@@ -1,16 +1,15 @@
 // Generischer Push zum Ferrion-Portal — produktunabhängig, unabhängig vom
-// jeweiligen Collector-Adapter (siehe adapters/*.js).
-async function pushMetrics(config, metrics) {
+// jeweiligen Collector-Adapter (siehe adapters/*.js). Nimmt dasselbe
+// { collectedAt, metrics }-Payload-Format entgegen, das auch im
+// --export-dir-Modus (siehe index.js) in Dateien geschrieben wird.
+async function pushMetrics(config, payload) {
   const res = await fetch(config.ingestUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "x-api-key": config.apiKey,
     },
-    body: JSON.stringify({
-      collectedAt: new Date().toISOString(),
-      metrics,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
