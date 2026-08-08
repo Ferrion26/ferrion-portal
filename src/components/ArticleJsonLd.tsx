@@ -13,7 +13,7 @@ export default function ArticleJsonLd({ slug, locale }: { slug: string; locale: 
   const publisher = {
     "@type": "Organization",
     name: "Ferrion IT Systemhaus",
-    logo: { "@type": "ImageObject", url: `${SITE_URL}/logos/ferrion.svg` },
+    logo: { "@type": "ImageObject", url: `${SITE_URL}/logos/ferrion-full.webp` },
   };
 
   const article = {

@@ -25,7 +25,7 @@ export default function DatenschutzPage({ searchParams }: SP) {
   return (
     <div className="min-h-screen bg-[#0d1117] text-white">
       <header className="border-b border-white/10 h-16 flex items-center px-6">
-        <Link href="/"><img src="/logos/ferrion.svg" alt="Ferrion" className="h-9 w-auto" /></Link>
+        <Link href="/"><img src="/logos/ferrion-full.webp" alt="Ferrion" className="h-9 w-auto" /></Link>
         <div className="h-5 w-px bg-white/20 mx-6" />
         <span className="text-xs font-bold tracking-widest text-gray-500 uppercase">{t.navLabel}</span>
         <Link href="/" className="ml-auto text-xs text-gray-500 hover:text-gray-300 transition-colors">{t.back}</Link>

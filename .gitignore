@@ -32,3 +32,6 @@ next-env.d.ts
 # is committed
 /public/logos/Fudo/
 /public/logos/CommVault/
+
+# raw/unused source files kept locally for reference, not shipped
+/obsolete/

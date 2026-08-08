@@ -41,7 +41,7 @@ const run = (t, o = {}) => new TextRun({ text: t, font: FONT, ...o });
 const p = (c, o = {}) => new Paragraph({ children: Array.isArray(c) ? c : [c], ...o });
 const label = (t, color = GRAY) => run(t, { size: 15, bold: true, color, characterSpacing: 20 });
 
-const logoImg = () => new ImageRun({ type: "png", data: LOGO, transformation: { width: 176, height: 44 } });
+const logoImg = () => new ImageRun({ type: "png", data: LOGO, transformation: { width: 105, height: 56 } });
 
 function headerBand(cfg) {
   return new Table({

@@ -47,7 +47,7 @@ const organizationJsonLd = {
   "@type": "Organization",
   name: "Ferrion IT Systemhaus",
   url: SITE_URL,
-  logo: `${SITE_URL}/logos/ferrion.svg`,
+  logo: `${SITE_URL}/logos/ferrion-full.webp`,
   description:
     "Inhabergeführtes IT-Systemhaus mit Fokus auf Infrastruktur, Datenbank-Expertise und Managed Services.",
   email: "info@ferrion.at",

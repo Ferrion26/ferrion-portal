@@ -255,7 +255,7 @@ export default function FusionComputeArticle({ searchParams }: SP) {
       <ArticleJsonLd slug="fusioncompute-8-9-8-10" locale={locale} />
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0d1117]/95 backdrop-blur-md border-b border-white/10 h-16 flex items-center px-6">
         <Link href="/" className="mr-6">
-          <img src="/logos/ferrion.svg" alt="Ferrion" className="h-9 w-auto" />
+          <img src="/logos/ferrion-full.webp" alt="Ferrion" className="h-9 w-auto" />
         </Link>
         <div className="h-5 w-px bg-white/20 mr-6" />
         <Link href="/newsroom" className="text-xs text-gray-400 hover:text-[#c9a84c] transition-colors tracking-widest uppercase">

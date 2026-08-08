@@ -62,7 +62,7 @@ export default function Footer({ locale = "de" }: { locale?: Locale }) {
 
           {/* Brand */}
           <div className="md:col-span-1">
-            <img src="/logos/ferrion.svg" alt="Ferrion" className="h-9 w-auto mb-4" />
+            <img src="/logos/ferrion-full.webp" alt="Ferrion" className="h-9 w-auto mb-4" />
             <p className="text-gray-500 text-xs leading-relaxed mt-2 mb-4">{t.tagline}</p>
             <p className="text-[#c9a84c] text-[10px] font-bold tracking-widest uppercase">{t.madeWith}</p>
           </div>

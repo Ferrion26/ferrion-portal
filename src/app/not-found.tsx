@@ -5,7 +5,7 @@ export default function NotFound() {
     <main className="min-h-screen bg-[#0d1117] flex items-center justify-center px-6">
       <div className="text-center max-w-lg">
         {/* Logo */}
-        <img src="/logos/ferrion.svg" alt="Ferrion" className="h-10 w-auto mx-auto mb-12 opacity-60" />
+        <img src="/logos/ferrion-full.webp" alt="Ferrion" className="h-10 w-auto mx-auto mb-12 opacity-60" />
 
         {/* 404 */}
         <p className="text-[120px] font-bold text-white/5 leading-none select-none mb-0" aria-hidden>

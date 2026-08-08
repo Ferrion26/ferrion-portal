@@ -44,7 +44,7 @@ export default function Header({ locale }: { locale: Locale }) {
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0d1117]/90 backdrop-blur-md border-b border-white/10">
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-16">
         <Link href="/">
-          <img src="/logos/ferrion.svg" alt="Ferrion IT Systemhaus" className="h-10 w-auto" />
+          <img src="/logos/ferrion-full.webp" alt="Ferrion IT Systemhaus" className="h-10 w-auto" />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-8">

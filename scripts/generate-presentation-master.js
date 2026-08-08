@@ -109,7 +109,7 @@ async function buildDeck(t) {
 
   // ── 1 · Titel ─────────────────────────────────────────────
   let s = pres.addSlide({ masterName: "F_COVER" });
-  s.addImage({ path: t.logo, x: 0.6, y: 0.55, w: 2.5, h: 0.63 });
+  s.addImage({ path: t.logo, x: 0.6, y: 0.55, w: 1.18, h: 0.63 });
   eyebrow(s, "KUNDENPRÄSENTATION", 0.6, 2.05, 6);
   s.addText("{Titel der Präsentation}", { x: 0.6, y: 2.35, w: 8.8, h: 0.85, fontFace: FONT, fontSize: 40, bold: true, color: t.text, margin: 0 });
   s.addText("{Untertitel oder Anlass}   ·   {Kunde}   ·   {Datum}", { x: 0.6, y: 3.28, w: 8.8, h: 0.35, fontFace: FONT, fontSize: 14, color: t.body, margin: 0 });
@@ -273,7 +273,7 @@ async function buildDeck(t) {
   s.addText("Vielen Dank.", { x: 0.6, y: 1.15, w: 6, h: 0.9, fontFace: FONT, fontSize: 44, bold: true, color: t.text, margin: 0 });
   s.addText("{Wir freuen uns auf die Zusammenarbeit — Ihr nächster Schritt: …}",
     { x: 0.6, y: 2.15, w: 5.4, h: 0.7, fontFace: FONT, fontSize: 14, color: t.body, margin: 0 });
-  s.addImage({ path: t.logo, x: 0.6, y: 4.55, w: 2.1, h: 0.53 });
+  s.addImage({ path: t.logo, x: 0.6, y: 4.55, w: 0.99, h: 0.53 });
   card(s, { x: 6.1, y: 1.15, w: 3.3, h: 3.3 });
   s.addText("IHR KONTAKT", { x: 6.4, y: 1.45, w: 2.7, h: 0.26, fontFace: FONT, fontSize: 9.5, bold: true, color: t.goldT, charSpacing: 3, margin: 0 });
   s.addText("{Name der Person}", { x: 6.4, y: 1.78, w: 2.7, h: 0.3, fontFace: FONT, fontSize: 14, bold: true, color: t.text, margin: 0 });

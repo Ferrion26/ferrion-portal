@@ -15,7 +15,7 @@ export default async function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-[#0d1117] px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
-          <img src="/logos/ferrion.svg" alt="Ferrion" className="h-12 w-auto mx-auto mb-6" />
+          <img src="/logos/ferrion-full.webp" alt="Ferrion" className="h-12 w-auto mx-auto mb-6" />
           <p className="text-gray-500 text-xs tracking-widest uppercase">Bitte anmelden</p>
         </div>
         <div className="bg-[#111827] border border-white/10 p-8">
