@@ -14,10 +14,19 @@ function withInsecureTls(config, fn) {
 
 async function requestJson(config, url, options = {}) {
   return withInsecureTls(config, async () => {
-    const res = await fetch(url, {
-      ...options,
-      headers: { "Content-Type": "application/json", ...options.headers },
-    });
+    let res;
+    try {
+      res = await fetch(url, {
+        ...options,
+        headers: { "Content-Type": "application/json", ...options.headers },
+      });
+    } catch (err) {
+      // Node/undici wraps the real cause (DNS-Fehler, Verbindung abgelehnt,
+      // TLS-Zertifikatsproblem, Timeout, ...) in err.cause — ohne das ist
+      // "fetch failed" allein nicht diagnostizierbar.
+      const cause = err.cause ? ` — Ursache: ${err.cause.code ?? err.cause.message ?? err.cause}` : "";
+      throw new Error(`Verbindung zu ${url} fehlgeschlagen${cause}`);
+    }
     const text = await res.text();
     let body;
     try {
