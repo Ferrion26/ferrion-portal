@@ -21,6 +21,18 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     trendGood: "up",
   },
   {
+    // Quelle: /v1/report-data/jobs (derselbe Aufruf wie backup_success_rate).
+    // "last" statt "sum", da die zugrunde liegende Kennzahl bereits ein
+    // rollierendes 3-Monats-Fenster ist — Aufsummieren über mehrere
+    // Tagesmessungen würde denselben Zeitraum mehrfach zählen.
+    key: "backup_failed_jobs_count",
+    label: { de: "Fehlgeschlagene Backup-Jobs", en: "Failed Backup Jobs" },
+    format: "count",
+    aggregation: "last",
+    section: "availability",
+    trendGood: "down",
+  },
+  {
     key: "protected_capacity_tb",
     label: { de: "Geschützte Kapazität", en: "Protected Capacity" },
     unit: "TB",
@@ -106,11 +118,58 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     trendGood: "down",
   },
   {
+    // Nur vorhanden, wenn überhaupt Remote-Replication-Pairs konfiguriert
+    // sind — sonst wird die Kennzahl vom Collector gar nicht erst gemeldet.
+    key: "replication_pairs_unhealthy",
+    label: { de: "Replikationspaare mit Fehlstatus", en: "Unhealthy Replication Pairs" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+  },
+  {
     key: "air_gap_isolation_events",
     label: { de: "Air-Gap-Isolationen ausgelöst", en: "Air-Gap Isolations Triggered" },
     format: "count",
     aggregation: "sum",
     section: "security",
+  },
+  {
+    // Quelle: /v1/anti-ransomware/recovery-drill/plans/statistics.
+    // "last" statt "sum" — unklar aus der Doku, ob totalDrillExecutionCount
+    // kumulativ seit Einrichtung ist oder ein Zeitfenster abbildet; "last"
+    // vermeidet in beiden Fällen ein fehlerhaftes Aufsummieren.
+    key: "recovery_drills_executed",
+    label: { de: "Recovery-Drills durchgeführt", en: "Recovery Drills Executed" },
+    format: "count",
+    aggregation: "last",
+    section: "security",
+  },
+  {
+    key: "recovery_drill_success_rate",
+    label: { de: "Recovery-Drill-Erfolgsquote", en: "Recovery Drill Success Rate" },
+    format: "percent",
+    aggregation: "avg",
+    section: "security",
+    trendGood: "up",
+  },
+  {
+    // Quelle: /v1/copies/detect-statistics (Anti-Ransomware-Erkennung auf
+    // Kopien) — infizierte Kopien.
+    key: "ransomware_infected_copies",
+    label: { de: "Infizierte Kopien erkannt", en: "Infected Copies Detected" },
+    format: "count",
+    aggregation: "last",
+    section: "security",
+    trendGood: "down",
+  },
+  {
+    key: "ransomware_abnormal_copies",
+    label: { de: "Auffällige Kopien erkannt", en: "Abnormal Copies Detected" },
+    format: "count",
+    aggregation: "last",
+    section: "security",
+    trendGood: "down",
   },
   {
     key: "alerts_critical",
