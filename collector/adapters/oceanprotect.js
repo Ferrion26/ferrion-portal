@@ -144,6 +144,45 @@ async function collectDataBackupMetrics(config, token) {
   return metrics;
 }
 
+// Storage und DataBackup sind unabhängige Dienste mit unabhängigem Login.
+// Schlägt der Login für einen der beiden fehl (z. B. Konto-Problem bei
+// DataBackup), soll das die Kennzahlen des jeweils anderen, funktionierenden
+// Diensts nicht verhindern — nur der betroffene Teil wird übersprungen
+// (mit Warnung im Log), statt den kompletten Lauf abzubrechen.
+async function tryCollectStorage(config) {
+  let session;
+  try {
+    session = await loginStorage(config);
+  } catch (err) {
+    config.logger?.warn(`Storage-Login fehlgeschlagen — Storage-Kennzahlen werden übersprungen: ${err.message}`);
+    return [];
+  }
+  try {
+    return await collectStorageMetrics(config, session);
+  } catch (err) {
+    config.logger?.warn(`Storage-Kennzahlen konnten nicht erhoben werden: ${err.message}`);
+    return [];
+  } finally {
+    await logoutStorage(config, session);
+  }
+}
+
+async function tryCollectDataBackup(config) {
+  let token;
+  try {
+    token = await loginDataBackup(config);
+  } catch (err) {
+    config.logger?.warn(`DataBackup-Login fehlgeschlagen — DataBackup-Kennzahlen werden übersprungen: ${err.message}`);
+    return [];
+  }
+  try {
+    return await collectDataBackupMetrics(config, token);
+  } catch (err) {
+    config.logger?.warn(`DataBackup-Kennzahlen konnten nicht erhoben werden: ${err.message}`);
+    return [];
+  }
+}
+
 async function collect(config) {
   const oc = config.oceanprotect ?? {};
   const required = ["deviceManagerUrl", "deviceManagerUsername", "deviceManagerPassword", "dataBackupUrl", "dataBackupUsername", "dataBackupPassword"];
@@ -152,18 +191,16 @@ async function collect(config) {
     throw new Error(`collector/adapters/oceanprotect.js: config.oceanprotect fehlt: ${missing.join(", ")}`);
   }
 
-  const storageSession = await loginStorage(config);
-  const dataBackupToken = await loginDataBackup(config);
+  const [storageMetrics, dataBackupMetrics] = await Promise.all([
+    tryCollectStorage(config),
+    tryCollectDataBackup(config),
+  ]);
+  const metrics = [...storageMetrics, ...dataBackupMetrics];
 
-  try {
-    const [storageMetrics, dataBackupMetrics] = await Promise.all([
-      collectStorageMetrics(config, storageSession),
-      collectDataBackupMetrics(config, dataBackupToken),
-    ]);
-    return [...storageMetrics, ...dataBackupMetrics];
-  } finally {
-    await logoutStorage(config, storageSession);
+  if (metrics.length === 0) {
+    throw new Error("Weder Storage- noch DataBackup-Kennzahlen konnten erhoben werden — siehe Warnungen oben.");
   }
+  return metrics;
 }
 
 module.exports = { collect };
