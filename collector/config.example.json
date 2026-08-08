@@ -1,10 +1,15 @@
 {
-  "ingestUrl": "https://ferrion.at/api/collector/ingest",
+  "ingestUrl": "https://www.ferrion.at/api/collector/ingest",
   "apiKey": "fcs_… (im Admin-Bereich unter Managed Reports > Subscription > API-Keys erzeugen)",
   "productSlug": "oceanprotect",
+  "allowInsecureTls": false,
   "oceanprotect": {
-    "deviceManagerUrl": "https://<oceanprotect-host>:8088",
-    "username": "collector-readonly",
-    "password": "…"
+    "storagePoolId": "0",
+    "deviceManagerUrl": "https://<oceanprotect-x8000-host>:8088",
+    "deviceManagerUsername": "collector-readonly",
+    "deviceManagerPassword": "…",
+    "dataBackupUrl": "https://<oceanprotect-x8000-host>:25081",
+    "dataBackupUsername": "collector-readonly",
+    "dataBackupPassword": "…"
   }
 }

@@ -2,6 +2,7 @@ import { getT } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
+import NewCustomerForm from "./NewCustomerForm";
 
 export const metadata = { title: "Kunden — Admin" };
 
@@ -14,8 +15,14 @@ export default async function CustomersPage() {
   });
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-white mb-6">{t.customers}</h1>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-white mb-6">{t.customers}</h1>
+        <div className="bg-[#111827] border border-white/10 p-6">
+          <h2 className="font-semibold text-white mb-4">Neuen Kunden anlegen</h2>
+          <NewCustomerForm />
+        </div>
+      </div>
       <div className="bg-[#111827] border border-white/10 overflow-hidden">
         <table className="w-full text-sm">
           <thead>

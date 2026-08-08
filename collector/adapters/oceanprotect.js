@@ -1,46 +1,169 @@
-// Adapter für Huawei OceanProtect: liest Kennzahlen aus DeviceManager/eBackup
-// aus und bringt sie in das generische { key, value, unit? }-Format, das
-// POST /api/collector/ingest erwartet.
+// Adapter für Huawei OceanProtect X8000: liest Kennzahlen aus zwei
+// getrennten REST-APIs der Appliance aus und bringt sie in das generische
+// { key, value, unit? }-Format, das POST /api/collector/ingest erwartet.
 //
-// TODO (pro Kunde einzurichten): Die untenstehenden Werte sind Platzhalter.
-// Ich habe keinen Zugriff auf eine echte OceanProtect-DeviceManager-Instanz
-// oder deren API-Dokumentation — die konkreten REST-Aufrufe (Endpunkte,
-// Auth-Flow, Feldnamen für Job-Erfolgsquote/Kapazität/Dedup/Alarme) müssen
-// hier anhand der Huawei-API-Doku des jeweiligen Kunden ergänzt werden.
+// Quelle: die vom Kunden bereitgestellte Huawei-REST-Doku
+// ("OceanProtect Backup Storage V200R001C30 REST Interface Reference" und
+// "OceanProtect DataBackup V200R001C10 REST Interface Reference", siehe
+// docs/Rest/ im Repo).
 //
-// Die metricKeys müssen exakt zu den Definitionen in
+// Zwei getrennte Dienste auf derselben Appliance, mit unterschiedlicher
+// Authentifizierung:
+//   1. Backup Storage / DeviceManager (Storage-Ebene: Kapazität, Dedup,
+//      Alarme) — Login per POST .../sessions, danach Header iBaseToken +
+//      Cookie auf allen Folgeaufrufen.
+//   2. DataBackup (Container-App auf der X8000: Backup-Jobs, SLA/RPO,
+//      Air-Gap-Isolation) — Login per POST /v1/auth/token, danach Header
+//      X-Auth-Token auf allen Folgeaufrufen.
+//
+// metricKeys müssen exakt zu den Definitionen in
 // src/lib/managed-reports/metrics/oceanprotect.ts passen.
-async function collect(config) {
-  const { deviceManagerUrl, username, password } = config.oceanprotect ?? {};
-  if (!deviceManagerUrl) {
-    throw new Error("collector/adapters/oceanprotect.js: config.oceanprotect.deviceManagerUrl fehlt.");
+const { requestJson } = require("../httpClient");
+
+async function loginStorage(config) {
+  const { deviceManagerUrl, deviceManagerUsername, deviceManagerPassword } = config.oceanprotect;
+  const { body, headers } = await requestJson(config, `${deviceManagerUrl}/deviceManager/rest/xxxxx/sessions`, {
+    method: "POST",
+    body: JSON.stringify({ username: deviceManagerUsername, password: deviceManagerPassword, scope: "0" }),
+  });
+  const cookie = headers.get("set-cookie");
+  if (!cookie) throw new Error("Storage-Login: kein Set-Cookie-Header in der Antwort.");
+  return { deviceId: body.data.deviceid, iBaseToken: body.data.iBaseToken, cookie };
+}
+
+async function logoutStorage(config, session) {
+  const { deviceManagerUrl } = config.oceanprotect;
+  await requestJson(config, `${deviceManagerUrl}/deviceManager/rest/${session.deviceId}/sessions`, {
+    method: "DELETE",
+    headers: { iBaseToken: session.iBaseToken, Cookie: session.cookie },
+  }).catch((err) => console.error("Storage-Logout fehlgeschlagen (ignoriert):", err.message));
+}
+
+async function loginDataBackup(config) {
+  const { dataBackupUrl, dataBackupUsername, dataBackupPassword } = config.oceanprotect;
+  const { body } = await requestJson(config, `${dataBackupUrl}/v1/auth/token`, {
+    method: "POST",
+    body: JSON.stringify({ userName: dataBackupUsername, password: dataBackupPassword }),
+  });
+  return body.token;
+}
+
+async function collectStorageMetrics(config, session) {
+  const { deviceManagerUrl } = config.oceanprotect;
+  const poolId = config.oceanprotect.storagePoolId ?? "0";
+  const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
+  const base = `${deviceManagerUrl}/deviceManager/rest/${session.deviceId}`;
+
+  const [dataInfo, poolInfo, critical, major, warning] = await Promise.all([
+    requestJson(config, `${base}/storagepool_data_info/${poolId}`, { headers: authHeaders }),
+    requestJson(config, `${base}/storagepool/${poolId}`, { headers: authHeaders }),
+    requestJson(config, `${base}/alarm/currentalarm/count?filter=level::6`, { headers: authHeaders }),
+    requestJson(config, `${base}/alarm/currentalarm/count?filter=level::5`, { headers: authHeaders }),
+    requestJson(config, `${base}/alarm/currentalarm/count?filter=level::3`, { headers: authHeaders }),
+  ]);
+
+  const metrics = [];
+
+  // DEDUPLICATIONRATE ist laut Doku ein JSON-String wie
+  // {"numerator":"10","denominator":"10","logic":"="}.
+  try {
+    const dedup = JSON.parse(dataInfo.body.data.DEDUPLICATIONRATE);
+    const ratio = Number(dedup.numerator) / Number(dedup.denominator);
+    if (Number.isFinite(ratio)) metrics.push({ key: "dedup_ratio", value: ratio, unit: "x" });
+  } catch (err) {
+    console.error("dedup_ratio konnte nicht ausgewertet werden (übersprungen):", err.message);
   }
 
-  // Beispiel-Grundgerüst für den echten Aufruf — ersetzen durch die
-  // tatsächliche DeviceManager/eBackup-REST-API des Kunden:
-  //
-  //   const token = await authenticate(deviceManagerUrl, username, password);
-  //   const jobs = await fetchJson(`${deviceManagerUrl}/api/v2/backup-jobs/summary`, token);
-  //   const capacity = await fetchJson(`${deviceManagerUrl}/api/v2/storage/capacity`, token);
-  //   const alerts = await fetchJson(`${deviceManagerUrl}/api/v2/alarms/summary`, token);
-  //
-  // und daraus die untenstehenden Werte berechnen.
+  // USERCONSUMEDCAPACITY ist in Sektoren (512 Byte) angegeben.
+  const usedSectors = Number(poolInfo.body.data.USERCONSUMEDCAPACITY);
+  if (Number.isFinite(usedSectors)) {
+    const usedTB = (usedSectors * 512) / 1024 ** 4;
+    metrics.push({ key: "protected_capacity_tb", value: usedTB, unit: "TB" });
+  }
 
-  // Erwartete Rückgabeform, sobald die echte Anbindung steht:
-  //   return [
-  //     { key: "backup_success_rate", value: 99.2, unit: "%" },
-  //     { key: "rpo_compliance_rate", value: 98.5, unit: "%" },
-  //     { key: "protected_capacity_tb", value: 42.7, unit: "TB" },
-  //     { key: "dedup_ratio", value: 6.3, unit: "x" },
-  //     { key: "air_gap_isolation_events", value: 4, unit: "count" },
-  //     { key: "alerts_critical", value: 0, unit: "count" },
-  //     { key: "alerts_warning", value: 2, unit: "count" },
-  //     { key: "incidents_count", value: 1, unit: "count" },
-  //   ];
-  throw new Error(
-    "collector/adapters/oceanprotect.js: collect() ist noch nicht implementiert — " +
-      "siehe TODO-Kommentar im Adapter. Ohne echte DeviceManager-Anbindung können keine Kennzahlen erhoben werden."
-  );
+  // Alarm-Level laut Doku: 3 = warning, 5 = major, 6 = critical.
+  // "major" wird hier zusammen mit "warning" gezählt, da unser Report nur
+  // zwei Stufen (kritisch/Warnung) unterscheidet.
+  metrics.push({ key: "alerts_critical", value: Number(critical.body.data.COUNT) || 0, unit: "count" });
+  metrics.push({
+    key: "alerts_warning",
+    value: (Number(major.body.data.COUNT) || 0) + (Number(warning.body.data.COUNT) || 0),
+    unit: "count",
+  });
+
+  return metrics;
+}
+
+async function collectDataBackupMetrics(config, token) {
+  const { dataBackupUrl } = config.oceanprotect;
+  const authHeaders = { "X-Auth-Token": token };
+
+  const [sla, jobStats, airgap] = await Promise.all([
+    requestJson(config, `${dataBackupUrl}/v1/protected-objects/sla-compliance`, { headers: authHeaders }),
+    requestJson(config, `${dataBackupUrl}/v1/report-data/jobs`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({ timeRange: "LAST_THREE_MONTH", dataQueryTypeEnum: "RESOURCE" }),
+    }),
+    requestJson(config, `${dataBackupUrl}/v1/anti-ransomware/airgap/job/isolation`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({ pageNo: "1", pageSize: "1" }),
+    }),
+  ]);
+
+  const metrics = [];
+
+  const inCompliance = Number(sla.body.in_compliance) || 0;
+  const outOfCompliance = Number(sla.body.out_of_compliance) || 0;
+  if (inCompliance + outOfCompliance > 0) {
+    metrics.push({
+      key: "rpo_compliance_rate",
+      value: (inCompliance / (inCompliance + outOfCompliance)) * 100,
+      unit: "%",
+    });
+  }
+
+  // Die Doku listet für ResourceTaskSummary.status keine feste Werteliste —
+  // hier wird case-insensitive auf "success" gematcht. Bei Abweichungen im
+  // realen Antwortformat ggf. anpassen (Log-Ausgabe der Rohdaten prüfen).
+  const summary = jobStats.body.resourceTaskSummary ?? [];
+  let successCount = 0;
+  let totalCount = 0;
+  for (const entry of summary) {
+    const count = Number(entry.count) || 0;
+    totalCount += count;
+    if (/success/i.test(entry.status ?? "")) successCount += count;
+  }
+  if (totalCount > 0) {
+    metrics.push({ key: "backup_success_rate", value: (successCount / totalCount) * 100, unit: "%" });
+  }
+
+  metrics.push({ key: "air_gap_isolation_events", value: Number(airgap.body.totalCount) || 0, unit: "count" });
+
+  return metrics;
+}
+
+async function collect(config) {
+  const oc = config.oceanprotect ?? {};
+  const required = ["deviceManagerUrl", "deviceManagerUsername", "deviceManagerPassword", "dataBackupUrl", "dataBackupUsername", "dataBackupPassword"];
+  const missing = required.filter((k) => !oc[k]);
+  if (missing.length > 0) {
+    throw new Error(`collector/adapters/oceanprotect.js: config.oceanprotect fehlt: ${missing.join(", ")}`);
+  }
+
+  const storageSession = await loginStorage(config);
+  const dataBackupToken = await loginDataBackup(config);
+
+  try {
+    const [storageMetrics, dataBackupMetrics] = await Promise.all([
+      collectStorageMetrics(config, storageSession),
+      collectDataBackupMetrics(config, dataBackupToken),
+    ]);
+    return [...storageMetrics, ...dataBackupMetrics];
+  } finally {
+    await logoutStorage(config, storageSession);
+  }
 }
 
 module.exports = { collect };

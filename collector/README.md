@@ -11,11 +11,24 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    Collector-API-Key erzeugen (Klartext-Key wird nur einmal angezeigt).
 2. `config.example.json` nach `config.json` kopieren und ausfüllen:
    `ingestUrl`, `apiKey` (aus Schritt 1), `productSlug` sowie die
-   produktspezifischen Zugangsdaten (z. B. `oceanprotect.deviceManagerUrl`).
-3. Für OceanProtect: `adapters/oceanprotect.js` enthält noch keine echte
-   DeviceManager/eBackup-API-Anbindung (siehe TODO-Kommentar dort) — das muss
-   pro Kunde anhand der Huawei-API-Dokumentation ergänzt werden, bevor der
-   Collector produktiv läuft.
+   produktspezifischen Zugangsdaten.
+3. Für OceanProtect (X8000) braucht `adapters/oceanprotect.js` Zugangsdaten zu
+   **zwei getrennten REST-APIs derselben Appliance** (siehe
+   `config.oceanprotect` in `config.example.json`):
+   - **Backup Storage / DeviceManager** (Storage-Ebene — Kapazität, Dedup,
+     Alarme), Standardport 8088, Login per Benutzername/Passwort.
+   - **DataBackup** (Container-App auf der X8000 — Backup-Jobs, SLA/RPO,
+     Air-Gap-Isolation), Standardport 25081, eigener Login.
+   Für beide empfiehlt sich ein dedizierter, read-only Service-Account statt
+   der Admin-Zugangsdaten. Quelle der Endpunkte: die vom Kunden bereitgestellte
+   Huawei-REST-Doku (`docs/Rest/` im Repo — "OceanProtect Backup Storage REST
+   Interface Reference" und "OceanProtect DataBackup REST Interface
+   Reference").
+   Läuft die Appliance mit einem selbstsignierten Zertifikat im internen Netz,
+   `allowInsecureTls: true` setzen (deaktiviert die TLS-Zertifikatsprüfung nur
+   für die Collector-Requests an diese eine Appliance — bewusster
+   Sicherheits-Trade-off, besser wäre das interne CA-Zertifikat zu
+   vertrauen).
 4. Node.js 18+ auf dem Collector-Host voraussetzen (nutzt das eingebaute
    `fetch`), keine weiteren Abhängigkeiten nötig.
 5. Testlauf: `node index.js config.json`
