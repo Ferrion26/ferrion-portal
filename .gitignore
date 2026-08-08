@@ -13,6 +13,9 @@
 .env.local
 .env.*.local
 
+# collector — real config holds a customer API key + device credentials
+collector/config.json
+
 # debug
 npm-debug.log*
 yarn-debug.log*

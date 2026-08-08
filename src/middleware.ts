@@ -42,11 +42,14 @@ export const config = {
      * Runs on all routes except:
      * - /login
      * - /api/auth/* (NextAuth)
+     * - /api/collector/* (machine-to-machine ingestion, authenticated via
+     *   x-api-key inside the route itself, not a browser session)
+     * - /api/cron/* (Vercel Cron triggers, authenticated via CRON_SECRET)
      * - /_next/* (static assets)
      * - /logos, /images, /favicon.ico (public files)
      * The authorized() callback above decides per-request whether a
      * session is actually required.
      */
-    "/((?!login|api/auth|_next/static|_next/image|logos|images|favicon\\.ico|sitemap\\.xml|robots\\.txt).*)",
+    "/((?!login|api/auth|api/collector|api/cron|_next/static|_next/image|logos|images|favicon\\.ico|sitemap\\.xml|robots\\.txt).*)",
   ],
 };

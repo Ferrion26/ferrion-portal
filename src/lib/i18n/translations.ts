@@ -78,6 +78,7 @@ export const translations = {
         quotes: "Angebote",
         documents: "Dokumente",
         support: "Support",
+        reports: "Berichte",
       },
     },
     admin: {
@@ -106,6 +107,7 @@ export const translations = {
         quotes: "Angebote",
         documents: "Dokumente",
         tickets: "Support-Tickets",
+        managedReports: "Managed Reports",
       },
     },
     header: {
@@ -190,6 +192,7 @@ export const translations = {
         quotes: "Quotes",
         documents: "Documents",
         support: "Support",
+        reports: "Reports",
       },
     },
     admin: {
@@ -218,6 +221,7 @@ export const translations = {
         quotes: "Quotes",
         documents: "Documents",
         tickets: "Support Tickets",
+        managedReports: "Managed Reports",
       },
     },
     header: {

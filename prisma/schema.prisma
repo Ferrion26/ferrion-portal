@@ -44,6 +44,17 @@ enum TicketPriority {
   URGENT
 }
 
+enum SubscriptionPackage {
+  MONITOR
+  OPERATE
+  COMPLETE
+}
+
+enum ReportStatus {
+  DRAFT
+  PUBLISHED
+}
+
 model SiteSetting {
   key       String   @id
   value     Json
@@ -51,22 +62,23 @@ model SiteSetting {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  passwordHash  String
-  role          Role      @default(CUSTOMER)
-  company       String?
-  phone         String?
-  active        Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  role         Role     @default(CUSTOMER)
+  company      String?
+  phone        String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  orders        Order[]
-  quotes        Quote[]
-  documents     Document[]
-  tickets       SupportTicket[]
-  messages      TicketMessage[]
+  orders                      Order[]
+  quotes                      Quote[]
+  documents                   Document[]
+  tickets                     SupportTicket[]
+  messages                    TicketMessage[]
+  managedServiceSubscriptions ManagedServiceSubscription[]
 
   @@index([email])
 }
@@ -77,15 +89,15 @@ model Order {
   status      OrderStatus @default(PENDING)
   totalAmount Decimal     @db.Decimal(12, 2)
   currency    String      @default("EUR")
-  lineItems   Json        // [{sku, description, qty, unitPrice}]
+  lineItems   Json // [{sku, description, qty, unitPrice}]
   notes       String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  customerId  String
-  customer    User        @relation(fields: [customerId], references: [id])
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id])
 
-  documents   Document[]
+  documents Document[]
 
   @@index([customerId])
   @@index([reference])
@@ -103,43 +115,46 @@ model Quote {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  customerId  String
-  customer    User        @relation(fields: [customerId], references: [id])
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id])
 
   @@index([customerId])
 }
 
 model Document {
-  id           String   @id @default(cuid())
-  name         String
-  description  String?
-  storagePath  String   // path inside Supabase Storage bucket
-  mimeType     String
-  sizeBytes    Int
-  createdAt    DateTime @default(now())
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  storagePath String // path inside Supabase Storage bucket
+  mimeType    String
+  sizeBytes   Int
+  createdAt   DateTime @default(now())
 
-  customerId   String?
-  customer     User?    @relation(fields: [customerId], references: [id])
+  customerId String?
+  customer   User?   @relation(fields: [customerId], references: [id])
 
-  orderId      String?
-  order        Order?   @relation(fields: [orderId], references: [id])
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id])
+
+  reportId String?          @unique
+  report   QuarterlyReport? @relation(fields: [reportId], references: [id])
 
   @@index([customerId])
   @@index([orderId])
 }
 
 model SupportTicket {
-  id          String         @id @default(cuid())
-  subject     String
-  status      TicketStatus   @default(OPEN)
-  priority    TicketPriority @default(MEDIUM)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id        String         @id @default(cuid())
+  subject   String
+  status    TicketStatus   @default(OPEN)
+  priority  TicketPriority @default(MEDIUM)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
-  customerId  String
-  customer    User           @relation(fields: [customerId], references: [id])
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id])
 
-  messages    TicketMessage[]
+  messages TicketMessage[]
 
   @@index([customerId])
   @@index([status])
@@ -150,11 +165,102 @@ model TicketMessage {
   body      String
   createdAt DateTime @default(now())
 
-  ticketId  String
-  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
-  authorId  String
-  author    User          @relation(fields: [authorId], references: [id])
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
 
   @@index([ticketId])
+}
+
+// ── Managed-Service-Quartalsberichte ────────────────────────
+// productSlug referenziert bewusst das slug-Feld aus
+// src/app/produkte/products-data.ts (z.B. "oceanprotect"), statt eine
+// eigene Produkt-Taxonomie zu pflegen.
+model ManagedServiceSubscription {
+  id          String              @id @default(cuid())
+  productSlug String
+  packageId   SubscriptionPackage
+  active      Boolean             @default(true)
+  startDate   DateTime            @default(now())
+  createdAt   DateTime            @default(now())
+
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id])
+
+  apiKeys    CollectorApiKey[]
+  ingestions CollectorIngestion[]
+  metrics    ManagedServiceMetric[]
+  reports    QuarterlyReport[]
+
+  @@index([customerId])
+  @@index([productSlug])
+}
+
+model CollectorApiKey {
+  id         String    @id @default(cuid())
+  keyHash    String    @unique
+  label      String
+  lastSeenAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  subscriptionId String
+  subscription   ManagedServiceSubscription @relation(fields: [subscriptionId], references: [id])
+
+  ingestions CollectorIngestion[]
+
+  @@index([subscriptionId])
+}
+
+model CollectorIngestion {
+  id         String   @id @default(cuid())
+  payload    Json
+  receivedAt DateTime @default(now())
+
+  subscriptionId String
+  subscription   ManagedServiceSubscription @relation(fields: [subscriptionId], references: [id])
+
+  apiKeyId String
+  apiKey   CollectorApiKey @relation(fields: [apiKeyId], references: [id])
+
+  metrics ManagedServiceMetric[]
+
+  @@index([subscriptionId])
+}
+
+model ManagedServiceMetric {
+  id         String   @id @default(cuid())
+  metricKey  String
+  value      Float
+  unit       String?
+  recordedAt DateTime
+
+  subscriptionId String
+  subscription   ManagedServiceSubscription @relation(fields: [subscriptionId], references: [id])
+
+  ingestionId String
+  ingestion   CollectorIngestion @relation(fields: [ingestionId], references: [id])
+
+  @@index([subscriptionId, metricKey, recordedAt])
+}
+
+model QuarterlyReport {
+  id          String       @id @default(cuid())
+  periodStart DateTime
+  periodEnd   DateTime
+  status      ReportStatus @default(DRAFT)
+  summary     Json // berechnete Kennzahlen zum Erstellzeitpunkt (reproduzierbar)
+  adminNotes  String?
+  generatedAt DateTime     @default(now())
+  publishedAt DateTime?
+
+  subscriptionId String
+  subscription   ManagedServiceSubscription @relation(fields: [subscriptionId], references: [id])
+
+  document Document?
+
+  @@index([subscriptionId])
+  @@index([periodStart, periodEnd])
 }

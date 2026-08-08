@@ -14,6 +14,7 @@ export default function CustomerSidebar({ userName, locale }: { userName?: strin
     { href: "/dashboard/orders", label: s.orders, icon: "📦" },
     { href: "/dashboard/quotes", label: s.quotes, icon: "📋" },
     { href: "/dashboard/documents", label: s.documents, icon: "📄" },
+    { href: "/dashboard/reports", label: s.reports, icon: "📊" },
     { href: "/dashboard/tickets", label: s.support, icon: "🎟" },
   ];
 

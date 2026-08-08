@@ -1,0 +1,10 @@
+{
+  "ingestUrl": "https://ferrion.at/api/collector/ingest",
+  "apiKey": "fcs_… (im Admin-Bereich unter Managed Reports > Subscription > API-Keys erzeugen)",
+  "productSlug": "oceanprotect",
+  "oceanprotect": {
+    "deviceManagerUrl": "https://<oceanprotect-host>:8088",
+    "username": "collector-readonly",
+    "password": "…"
+  }
+}
