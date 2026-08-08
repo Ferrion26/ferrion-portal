@@ -321,6 +321,66 @@ export const PRODUCTS: Product[] = [
       { icon: "/Icons/fast-recovery.png", title: { de: "Schnelle Wiederherstellung", en: "Fast recovery" }, desc: { de: "Hoher Durchsatz sorgt für kurze Recovery-Zeiten auch bei großen Datenmengen.", en: "High throughput keeps recovery times short even for large data volumes." } },
     ],
     relatedArticleSlugs: ["oceanprotect-dcig-top5"],
+    managedServices: {
+      eyebrow: { de: "Managed Services", en: "Managed Services" },
+      headline: { de: "OceanProtect im Betrieb — drei Stufen für Ihre Backup-Resilienz", en: "OceanProtect in Operation — Three Tiers for Your Backup Resilience" },
+      intro: {
+        de: "Sie entscheiden, wie viel Betriebsverantwortung Sie abgeben möchten. Von reinem Job-Monitoring bis zur vollen Recovery-Garantie — jede Stufe baut auf derselben Backup-Plattform auf und lässt sich jederzeit erweitern.",
+        en: "You decide how much operational responsibility you want to hand over. From pure job monitoring to full recovery ownership — each tier builds on the same backup platform and can be upgraded at any time.",
+      },
+      trustBadges: [
+        { de: "Transparente SLAs", en: "Transparent SLAs" },
+        { de: "Österreichisches Service-Team", en: "Austria-based service team" },
+        { de: "Skaliert mit Ihrem Wachstum", en: "Scales with your growth" },
+      ],
+      packages: [
+        {
+          id: "monitor",
+          name: "Care Monitor",
+          tagline: { de: "Sie behalten den Betrieb", en: "You keep operational control" },
+          bullets: {
+            de: ["Wir überwachen Backup-Jobs und Air-Gap-Status rund um die Uhr", "Auffälligkeiten werden analysiert und gemeldet", "Wiederherstellung durch Ihr IT-Team", "Quartalsbericht"],
+            en: ["We monitor backup jobs and air-gap status around the clock", "Anomalies are analysed and reported", "Recovery is carried out by your own IT team", "Quarterly report"],
+          },
+        },
+        {
+          id: "operate",
+          name: "Care Operate",
+          tagline: { de: "Wir übernehmen den Betrieb", en: "We take over day-to-day operations" },
+          bullets: {
+            de: ["Betrieb von Backup-Policies, Jobs und Air-Gap-Kopien", "Fehlgeschlagene Jobs werden von uns behoben", "Patch- und Firmware-Management inklusive", "Monatsbericht, benannter Service Manager"],
+            en: ["Operation of backup policies, jobs and air-gapped copies", "Failed jobs are resolved by us", "Patch and firmware management included", "Monthly report, named service manager"],
+          },
+          recommended: true,
+        },
+        {
+          id: "complete",
+          name: "Care Complete",
+          tagline: { de: "Wir verantworten die Wiederherstellung", en: "We own recovery end to end" },
+          bullets: {
+            de: ["Vollbetrieb inkl. Recovery-Verantwortung", "Rund-um-die-Uhr-Betreuung, 24×7×365", "Standard-Changes ohne Mengenbegrenzung", "Quartals-Review, Restore-Test, NIS2-Nachweise"],
+            en: ["Full operation including recovery ownership", "Round-the-clock coverage, 24×7×365", "Unlimited standard changes", "Quarterly review, restore test, NIS2 evidence"],
+          },
+        },
+      ],
+      comparisonLabel: { de: "Die drei Stufen im Vergleich", en: "The Three Tiers Compared" },
+      comparison: [
+        { label: { de: "Servicezeit", en: "Service hours" }, values: ["Mo–Fr 08–17", "Mo–Fr 07–19", "24×7×365"] },
+        { label: { de: "Monitoring der Backup-Jobs", en: "Backup job monitoring" }, values: ["24×7", "24×7", "24×7 + Rufbereitschaft"] },
+        { label: { de: "Störungsbehebung", en: "Incident resolution" }, values: ["Analyse & Meldung", "Behebung", "Behebung inkl. Hersteller-Eskalation"] },
+        { label: { de: "Air-Gap- & Ransomware-Erkennung", en: "Air-gap & ransomware detection" }, values: ["Reporting", "Tuning & Reaktion", "Tuning, Reaktion & Eskalation"] },
+        { label: { de: "Restore-Tests", en: "Restore tests" }, values: ["–", "1× jährlich", "1× je Quartal"] },
+        { label: { de: "Inkludierte Changes", en: "Included changes" }, values: ["2 / Quartal", "6 / Quartal", "Standard-Changes unbegrenzt"] },
+        { label: { de: "Inkludierte Servicestunden", en: "Included service hours" }, values: ["4 h / Monat", "12 h / Monat", "24 h / Monat"] },
+        { label: { de: "Reporting", en: "Reporting" }, values: ["Quartalsbericht", "Monatsbericht", "Monatsbericht + Quartals-Review"] },
+        { label: { de: "Benannter Service Manager", en: "Named service manager" }, values: ["–", "ja", "ja, mit Quartals-Review"] },
+        { label: { de: "NIS2-Nachweise", en: "NIS2 evidence" }, values: ["–", "auf Anfrage", "inkludiert"] },
+      ],
+      note: {
+        de: "Jede Stufe wird auf Ihre Backup-Umgebung zugeschnitten. Ihr individuelles Angebot erstellen wir nach einem kurzen, unverbindlichen Umgebungs-Check.",
+        en: "Every tier is tailored to your backup environment. We prepare your individual, no-obligation quote after a short environment check.",
+      },
+    },
   },
   {
     slug: "commvault",
@@ -352,6 +412,67 @@ export const PRODUCTS: Product[] = [
       { icon: "/Icons/tested_recovery.png", title: { de: "Getestete Recovery", en: "Tested recovery" }, desc: { de: "Regelmäßige Restore-Verifikation statt ungeprüfter Backup-Jobs.", en: "Regular restore verification instead of unverified backup jobs." } },
     ],
     relatedArticleSlugs: [],
+    managedServices: {
+      eyebrow: { de: "Managed Services", en: "Managed Services" },
+      headline: { de: "Commvault im Betrieb — drei Stufen für Ihre Datensicherung", en: "Commvault in Operation — Three Tiers for Your Data Protection" },
+      intro: {
+        de: "Sie entscheiden, wie viel Betriebsverantwortung Sie abgeben möchten. Von reinem Job-Monitoring bis zur vollen Recovery-Garantie über alle Workloads hinweg — jede Stufe baut auf derselben Plattform auf und lässt sich jederzeit erweitern.",
+        en: "You decide how much operational responsibility you want to hand over. From pure job monitoring to full recovery ownership across every workload — each tier builds on the same platform and can be upgraded at any time.",
+      },
+      trustBadges: [
+        { de: "Transparente SLAs", en: "Transparent SLAs" },
+        { de: "Österreichisches Service-Team", en: "Austria-based service team" },
+        { de: "Skaliert mit Ihrem Wachstum", en: "Scales with your growth" },
+      ],
+      packages: [
+        {
+          id: "monitor",
+          name: "Care Monitor",
+          tagline: { de: "Sie behalten den Betrieb", en: "You keep operational control" },
+          bullets: {
+            de: ["Wir überwachen Backup- und Recovery-Jobs rund um die Uhr", "Fehlgeschlagene Jobs werden analysiert und gemeldet", "Behebung durch Ihr IT-Team", "Quartalsbericht"],
+            en: ["We monitor backup and recovery jobs around the clock", "Failed jobs are analysed and reported", "Remediation by your own IT team", "Quarterly report"],
+          },
+        },
+        {
+          id: "operate",
+          name: "Care Operate",
+          tagline: { de: "Wir übernehmen den Betrieb", en: "We take over day-to-day operations" },
+          bullets: {
+            de: ["Betrieb von Policies, Storage-Targets und Jobs", "Fehlgeschlagene Jobs werden von uns behoben", "Patch- und Lizenz-Management inklusive", "Monatsbericht, benannter Service Manager"],
+            en: ["Operation of policies, storage targets and jobs", "Failed jobs are resolved by us", "Patch and licence management included", "Monthly report, named service manager"],
+          },
+          recommended: true,
+        },
+        {
+          id: "complete",
+          name: "Care Complete",
+          tagline: { de: "Wir verantworten die Wiederherstellung", en: "We own recovery end to end" },
+          bullets: {
+            de: ["Vollbetrieb inkl. Restore-Verantwortung", "Rund-um-die-Uhr-Betreuung, 24×7×365", "Standard-Changes ohne Mengenbegrenzung", "Quartals-Review, Restore-Test, NIS2-Nachweise"],
+            en: ["Full operation including restore ownership", "Round-the-clock coverage, 24×7×365", "Unlimited standard changes", "Quarterly review, restore test, NIS2 evidence"],
+          },
+        },
+      ],
+      comparisonLabel: { de: "Die drei Stufen im Vergleich", en: "The Three Tiers Compared" },
+      comparison: [
+        { label: { de: "Servicezeit", en: "Service hours" }, values: ["Mo–Fr 08–17", "Mo–Fr 07–19", "24×7×365"] },
+        { label: { de: "Monitoring der Jobs", en: "Job monitoring" }, values: ["24×7", "24×7", "24×7 + Rufbereitschaft"] },
+        { label: { de: "Störungsbehebung", en: "Incident resolution" }, values: ["Analyse & Meldung", "Behebung", "Behebung inkl. Hersteller-Eskalation"] },
+        { label: { de: "Policy- & Lizenz-Management", en: "Policy & licence management" }, values: ["Reporting", "Verwaltung", "Verwaltung inkl. Optimierung"] },
+        { label: { de: "Abgedeckte Workloads", en: "Covered workloads" }, values: ["On-Prem", "On-Prem + Cloud", "On-Prem + Cloud + SaaS"] },
+        { label: { de: "Restore-Tests", en: "Restore tests" }, values: ["–", "1× jährlich", "1× je Quartal"] },
+        { label: { de: "Inkludierte Changes", en: "Included changes" }, values: ["2 / Quartal", "6 / Quartal", "Standard-Changes unbegrenzt"] },
+        { label: { de: "Inkludierte Servicestunden", en: "Included service hours" }, values: ["4 h / Monat", "12 h / Monat", "24 h / Monat"] },
+        { label: { de: "Reporting", en: "Reporting" }, values: ["Quartalsbericht", "Monatsbericht", "Monatsbericht + Quartals-Review"] },
+        { label: { de: "Benannter Service Manager", en: "Named service manager" }, values: ["–", "ja", "ja, mit Quartals-Review"] },
+        { label: { de: "NIS2-Nachweise", en: "NIS2 evidence" }, values: ["–", "auf Anfrage", "inkludiert"] },
+      ],
+      note: {
+        de: "Jede Stufe wird auf Ihre Datensicherungs-Umgebung zugeschnitten. Ihr individuelles Angebot erstellen wir nach einem kurzen, unverbindlichen Umgebungs-Check.",
+        en: "Every tier is tailored to your data protection environment. We prepare your individual, no-obligation quote after a short environment check.",
+      },
+    },
   },
 
   // ── Virtualization ──────────────────────────────────────────────
@@ -496,9 +617,9 @@ export const PRODUCTS: Product[] = [
       { value: { de: "n/a", en: "n/a" }, label: { de: "Kennzahl folgt", en: "Metric to follow" } },
     ],
     highlights: [
-      { icon: "🏭", title: { de: "Referenzarchitektur statt Bastellösung", en: "Reference architecture, not a DIY build" }, desc: { de: "Vorab abgestimmte Kombination aus Server, Storage, Netzwerk und Software.", en: "Pre-validated combination of server, storage, network and software." } },
-      { icon: "🔒", title: { de: "Daten bleiben im Haus", en: "Data stays on-premises" }, desc: { de: "Private AI-Infrastruktur ohne Datenabfluss in die Public Cloud.", en: "Private AI infrastructure without data leaving for the public cloud." } },
-      { icon: "📈", title: { de: "Skalierbar geplant", en: "Planned to scale" }, desc: { de: "Wächst von Pilotprojekten zu produktiven KI-Clustern.", en: "Grows from pilot projects to production AI clusters." } },
+      { icon: "/Icons/reference_architecture.png", title: { de: "Referenzarchitektur statt Bastellösung", en: "Reference architecture, not a DIY build" }, desc: { de: "Vorab abgestimmte Kombination aus Server, Storage, Netzwerk und Software.", en: "Pre-validated combination of server, storage, network and software." } },
+      { icon: "/Icons/Daten_im_Haus.png", title: { de: "Daten bleiben im Haus", en: "Data stays on-premises" }, desc: { de: "Private AI-Infrastruktur ohne Datenabfluss in die Public Cloud.", en: "Private AI infrastructure without data leaving for the public cloud." } },
+      { icon: "/Icons/planed_scaling.png", title: { de: "Skalierbar geplant", en: "Planned to scale" }, desc: { de: "Wächst von Pilotprojekten zu produktiven KI-Clustern.", en: "Grows from pilot projects to production AI clusters." } },
     ],
     relatedArticleSlugs: [],
   },
