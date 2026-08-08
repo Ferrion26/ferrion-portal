@@ -41,4 +41,11 @@ async function requestJson(config, url, options = {}) {
   });
 }
 
-module.exports = { requestJson };
+// Baut eine URL aus Basis + Pfad, egal ob die Basis (aus config.json) einen
+// trailing slash hat oder nicht — vermeidet doppelte Slashes wie
+// "https://host:8088//deviceManager/...".
+function joinUrl(base, path) {
+  return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+}
+
+module.exports = { requestJson, joinUrl };

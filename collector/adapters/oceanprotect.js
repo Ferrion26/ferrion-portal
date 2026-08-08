@@ -18,11 +18,11 @@
 //
 // metricKeys müssen exakt zu den Definitionen in
 // src/lib/managed-reports/metrics/oceanprotect.ts passen.
-const { requestJson } = require("../httpClient");
+const { requestJson, joinUrl } = require("../httpClient");
 
 async function loginStorage(config) {
   const { deviceManagerUrl, deviceManagerUsername, deviceManagerPassword } = config.oceanprotect;
-  const { body, headers } = await requestJson(config, `${deviceManagerUrl}/deviceManager/rest/xxxxx/sessions`, {
+  const { body, headers } = await requestJson(config, joinUrl(deviceManagerUrl, "/deviceManager/rest/xxxxx/sessions"), {
     method: "POST",
     body: JSON.stringify({ username: deviceManagerUsername, password: deviceManagerPassword, scope: "0" }),
   });
@@ -33,7 +33,7 @@ async function loginStorage(config) {
 
 async function logoutStorage(config, session) {
   const { deviceManagerUrl } = config.oceanprotect;
-  await requestJson(config, `${deviceManagerUrl}/deviceManager/rest/${session.deviceId}/sessions`, {
+  await requestJson(config, joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}/sessions`), {
     method: "DELETE",
     headers: { iBaseToken: session.iBaseToken, Cookie: session.cookie },
   }).catch((err) => console.error("Storage-Logout fehlgeschlagen (ignoriert):", err.message));
@@ -41,7 +41,7 @@ async function logoutStorage(config, session) {
 
 async function loginDataBackup(config) {
   const { dataBackupUrl, dataBackupUsername, dataBackupPassword } = config.oceanprotect;
-  const { body } = await requestJson(config, `${dataBackupUrl}/v1/auth/token`, {
+  const { body } = await requestJson(config, joinUrl(dataBackupUrl, "/v1/auth/token"), {
     method: "POST",
     body: JSON.stringify({ userName: dataBackupUsername, password: dataBackupPassword }),
   });
@@ -52,14 +52,14 @@ async function collectStorageMetrics(config, session) {
   const { deviceManagerUrl } = config.oceanprotect;
   const poolId = config.oceanprotect.storagePoolId ?? "0";
   const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
-  const base = `${deviceManagerUrl}/deviceManager/rest/${session.deviceId}`;
+  const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
 
   const [dataInfo, poolInfo, critical, major, warning] = await Promise.all([
-    requestJson(config, `${base}/storagepool_data_info/${poolId}`, { headers: authHeaders }),
-    requestJson(config, `${base}/storagepool/${poolId}`, { headers: authHeaders }),
-    requestJson(config, `${base}/alarm/currentalarm/count?filter=level::6`, { headers: authHeaders }),
-    requestJson(config, `${base}/alarm/currentalarm/count?filter=level::5`, { headers: authHeaders }),
-    requestJson(config, `${base}/alarm/currentalarm/count?filter=level::3`, { headers: authHeaders }),
+    requestJson(config, joinUrl(base, `/storagepool_data_info/${poolId}`), { headers: authHeaders }),
+    requestJson(config, joinUrl(base, `/storagepool/${poolId}`), { headers: authHeaders }),
+    requestJson(config, joinUrl(base, "/alarm/currentalarm/count?filter=level::6"), { headers: authHeaders }),
+    requestJson(config, joinUrl(base, "/alarm/currentalarm/count?filter=level::5"), { headers: authHeaders }),
+    requestJson(config, joinUrl(base, "/alarm/currentalarm/count?filter=level::3"), { headers: authHeaders }),
   ]);
 
   const metrics = [];
@@ -99,13 +99,13 @@ async function collectDataBackupMetrics(config, token) {
   const authHeaders = { "X-Auth-Token": token };
 
   const [sla, jobStats, airgap] = await Promise.all([
-    requestJson(config, `${dataBackupUrl}/v1/protected-objects/sla-compliance`, { headers: authHeaders }),
-    requestJson(config, `${dataBackupUrl}/v1/report-data/jobs`, {
+    requestJson(config, joinUrl(dataBackupUrl, "/v1/protected-objects/sla-compliance"), { headers: authHeaders }),
+    requestJson(config, joinUrl(dataBackupUrl, "/v1/report-data/jobs"), {
       method: "POST",
       headers: authHeaders,
       body: JSON.stringify({ timeRange: "LAST_THREE_MONTH", dataQueryTypeEnum: "RESOURCE" }),
     }),
-    requestJson(config, `${dataBackupUrl}/v1/anti-ransomware/airgap/job/isolation`, {
+    requestJson(config, joinUrl(dataBackupUrl, "/v1/anti-ransomware/airgap/job/isolation"), {
       method: "POST",
       headers: authHeaders,
       body: JSON.stringify({ pageNo: "1", pageSize: "1" }),
