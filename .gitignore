@@ -16,8 +16,8 @@
 # collector — real config holds a customer API key + device credentials
 collector/config.json
 
-# scratch text extraction of vendor REST API PDFs (not for version control)
-docs/Rest/extracted/
+# vendor REST API reference docs (confidential Huawei partner docs — keep local only)
+docs/Rest/
 
 # debug
 npm-debug.log*
