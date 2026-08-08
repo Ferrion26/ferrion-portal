@@ -47,9 +47,9 @@ export const SOLUTIONS: SolutionContent[] = [
       en: ["Consolidation of grown storage landscapes", "Performance tuning for SQL and Oracle databases", "Storage refresh at end of support", "Building highly available two-site architectures"],
     },
     stats: [
-      { value: "0 min", label: { de: "Downtime bei Migration", en: "Downtime during migration" } },
-      { value: "4:1", label: { de: "Ø Datenreduktion", en: "Avg. data reduction" } },
-      { value: "15×", label: { de: "Performance-Gewinn", en: "Performance gain" } },
+      { value: "0 min", label: { de: "Downtime bei geplanten Migrationen", en: "Downtime for planned migrations" } },
+      { value: "100 TB–PB", label: { de: "Realisierte Projektgrößen", en: "Project sizes delivered" } },
+      { value: "1", label: { de: "Ansprechpartner für Planung, Betrieb & Support", en: "Point of contact for planning, operations & support" } },
     ],
     cta: { de: "Storage-Beratung anfragen →", en: "Request Storage Consultation →" },
   },
