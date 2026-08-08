@@ -8,12 +8,16 @@
 // Aufruf:
 //   node index.js config.json                         Live-Push (Standard)
 //   node index.js config.json --export-dir ./exports   Export-Datei statt Push
+//   node index.js config.json --debug                  + volle Request/Response-Logs
+//
+// Logs landen immer zusätzlich in logs/collector-<Datum>.log (siehe logger.js).
 //
 // Ein zweites Produkt anbinden: neue Datei adapters/<produktslug>.js mit
 // collect(config) anlegen und hier registrieren — sonst nichts.
 const fs = require("fs");
 const path = require("path");
 const { pushMetrics } = require("./push");
+const { createLogger } = require("./logger");
 
 const ADAPTERS = {
   oceanprotect: require("./adapters/oceanprotect"),
@@ -22,14 +26,17 @@ const ADAPTERS = {
 function parseArgs(argv) {
   let configPath;
   let exportDir;
+  let debug = false;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--export-dir") {
       exportDir = argv[++i];
+    } else if (argv[i] === "--debug") {
+      debug = true;
     } else if (!configPath) {
       configPath = argv[i];
     }
   }
-  return { configPath: configPath || path.join(__dirname, "config.json"), exportDir };
+  return { configPath: configPath || path.join(__dirname, "config.json"), exportDir, debug };
 }
 
 function loadConfig(configPath) {
@@ -47,31 +54,40 @@ function writeExportFile(exportDir, payload) {
   return filePath;
 }
 
+const { configPath, exportDir, debug } = parseArgs(process.argv.slice(2));
+
 async function main() {
-  const { configPath, exportDir } = parseArgs(process.argv.slice(2));
   const config = loadConfig(configPath);
+  // config.debug in der Datei wirkt wie --debug auf der Kommandozeile.
+  const log = createLogger({ debug: debug || config.debug === true });
+  config.logger = log;
+
+  log.info(`Log-Datei: ${log.logFile}`);
+
   const adapter = ADAPTERS[config.productSlug];
   if (!adapter) {
     throw new Error(`Kein Collector-Adapter für productSlug "${config.productSlug}" registriert.`);
   }
 
-  console.log(`[${new Date().toISOString()}] Erhebe Kennzahlen für ${config.productSlug} …`);
+  log.info(`Erhebe Kennzahlen für ${config.productSlug} …`);
   const metrics = await adapter.collect(config);
   const payload = { collectedAt: new Date().toISOString(), metrics };
 
   if (exportDir) {
     const filePath = writeExportFile(exportDir, payload);
-    console.log(`[${new Date().toISOString()}] OK — ${metrics.length} Kennzahlen in ${filePath} geschrieben.`);
-    console.log("Diese Datei(en) regelmäßig aus der isolierten Umgebung mitnehmen und im Admin-Bereich unter der Subscription (\"Manueller Upload\") hochladen.");
+    log.info(`OK — ${metrics.length} Kennzahlen in ${filePath} geschrieben.`);
+    log.info('Diese Datei(en) regelmäßig aus der isolierten Umgebung mitnehmen und im Admin-Bereich unter der Subscription ("Manueller Upload") hochladen.');
     return;
   }
 
-  console.log(`[${new Date().toISOString()}] Sende ${metrics.length} Kennzahlen an ${config.ingestUrl} …`);
+  log.info(`Sende ${metrics.length} Kennzahlen an ${config.ingestUrl} …`);
   const result = await pushMetrics(config, payload);
-  console.log(`[${new Date().toISOString()}] OK — ${result.metricsStored} Kennzahlen gespeichert (Ingestion ${result.id}).`);
+  log.info(`OK — ${result.metricsStored} Kennzahlen gespeichert (Ingestion ${result.id}).`);
 }
 
 main().catch((err) => {
-  console.error(`[${new Date().toISOString()}] Collector-Lauf fehlgeschlagen:`, err.message);
+  const log = createLogger({ debug });
+  log.error(`Collector-Lauf fehlgeschlagen: ${err.message}`);
+  if (err.stack) log.debug(err.stack);
   process.exitCode = 1;
 });

@@ -3,6 +3,7 @@
   "apiKey": "fcs_… (im Admin-Bereich unter Managed Reports > Subscription > API-Keys erzeugen)",
   "productSlug": "oceanprotect",
   "allowInsecureTls": false,
+  "debug": false,
   "oceanprotect": {
     "storagePoolId": "0",
     "deviceManagerUrl": "https://<oceanprotect-x8000-host>:8088",

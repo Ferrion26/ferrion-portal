@@ -62,6 +62,25 @@ jeweiligen Subscription (`/admin/managed-reports/<id>`, Abschnitt
 **"Manueller Upload"**) hochgeladen — mehrere Dateien gleichzeitig möglich,
 kein API-Key nötig (die Admin-Anmeldung übernimmt die Authentifizierung).
 
+## Logging & Fehlersuche
+
+Jeder Lauf schreibt zusätzlich zur Konsole eine Tages-Logdatei nach
+`logs/collector-<Datum>.log` (relativ zum `collector`-Ordner) — damit ein
+fehlgeschlagener geplanter Lauf (Task Scheduler/cron) auch nachträglich
+nachvollziehbar ist, nicht nur bei manuellem Testlauf. Passwörter, API-Keys
+und Session-Tokens werden dabei nie im Klartext geloggt.
+
+Für tiefere Fehlersuche (z. B. bei unklaren Antworten der X8000-APIs)
+`--debug` anhängen oder `"debug": true` in `config.json` setzen:
+
+```bash
+node index.js config.json --debug
+```
+
+Loggt dann zusätzlich jede HTTP-Anfrage/-Antwort (Request-Body mit
+redigierten Zugangsdaten, Response-Body gekürzt auf 1000 Zeichen) sowie den
+vollen Stacktrace bei einem Fehlschlag.
+
 ## Installationspaket bauen
 
 `npm run collector:package` im Projekt-Root erzeugt

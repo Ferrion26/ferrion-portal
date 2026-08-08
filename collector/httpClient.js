@@ -1,3 +1,5 @@
+const { redact } = require("./logger");
+
 // Kleiner fetch-Wrapper für die beiden Huawei-REST-APIs (DeviceManager /
 // Backup Storage und DataBackup). Viele OceanProtect-Appliances laufen mit
 // einem selbstsignierten Zertifikat im internen Netz — dafür gibt es die
@@ -13,7 +15,22 @@ function withInsecureTls(config, fn) {
 }
 
 async function requestJson(config, url, options = {}) {
+  const log = config.logger;
+  const method = options.method ?? "GET";
+
   return withInsecureTls(config, async () => {
+    if (options.body) {
+      let parsedBody = options.body;
+      try {
+        parsedBody = JSON.parse(options.body);
+      } catch {
+        // war kein JSON-String, unverändert loggen
+      }
+      log?.debug(`→ ${method} ${url} body=${JSON.stringify(redact(parsedBody))}`);
+    } else {
+      log?.debug(`→ ${method} ${url}`);
+    }
+
     let res;
     try {
       res = await fetch(url, {
@@ -28,6 +45,8 @@ async function requestJson(config, url, options = {}) {
       throw new Error(`Verbindung zu ${url} fehlgeschlagen${cause}`);
     }
     const text = await res.text();
+    log?.debug(`← ${res.status} ${method} ${url} body=${text.slice(0, 1000)}`);
+
     let body;
     try {
       body = text ? JSON.parse(text) : {};
@@ -35,7 +54,7 @@ async function requestJson(config, url, options = {}) {
       throw new Error(`Antwort von ${url} ist kein gültiges JSON: ${text.slice(0, 200)}`);
     }
     if (!res.ok) {
-      throw new Error(`${options.method ?? "GET"} ${url} → HTTP ${res.status}: ${text.slice(0, 300)}`);
+      throw new Error(`${method} ${url} → HTTP ${res.status}: ${text.slice(0, 300)}`);
     }
     return { body, headers: res.headers };
   });

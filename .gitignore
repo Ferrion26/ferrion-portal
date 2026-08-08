@@ -16,6 +16,7 @@
 
 # collector — real config holds a customer API key + device credentials
 collector/config.json
+collector/logs/
 
 # vendor REST API reference docs (confidential Huawei partner docs — keep local only)
 docs/Rest/

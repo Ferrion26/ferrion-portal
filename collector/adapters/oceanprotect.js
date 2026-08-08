@@ -36,7 +36,7 @@ async function logoutStorage(config, session) {
   await requestJson(config, joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}/sessions`), {
     method: "DELETE",
     headers: { iBaseToken: session.iBaseToken, Cookie: session.cookie },
-  }).catch((err) => console.error("Storage-Logout fehlgeschlagen (ignoriert):", err.message));
+  }).catch((err) => config.logger?.warn(`Storage-Logout fehlgeschlagen (ignoriert): ${err.message}`));
 }
 
 async function loginDataBackup(config) {
@@ -71,7 +71,7 @@ async function collectStorageMetrics(config, session) {
     const ratio = Number(dedup.numerator) / Number(dedup.denominator);
     if (Number.isFinite(ratio)) metrics.push({ key: "dedup_ratio", value: ratio, unit: "x" });
   } catch (err) {
-    console.error("dedup_ratio konnte nicht ausgewertet werden (übersprungen):", err.message);
+    config.logger?.warn(`dedup_ratio konnte nicht ausgewertet werden (übersprungen): ${err.message}`);
   }
 
   // USERCONSUMEDCAPACITY ist in Sektoren (512 Byte) angegeben.
