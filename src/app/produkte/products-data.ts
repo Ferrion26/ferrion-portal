@@ -93,9 +93,9 @@ export const PRODUCTS: Product[] = [
       { value: { de: "99,99 %", en: "99.99%" }, label: { de: "Ransomware-Erkennung", en: "Ransomware detection" } },
     ],
     highlights: [
-      { icon: "⚡", title: { de: "Konstant niedrige Latenz", en: "Consistently low latency" }, desc: { de: "FlashLink-Architektur hält die Antwortzeiten auch unter Volllast im Mikrosekundenbereich.", en: "FlashLink architecture keeps response times in the microsecond range even under full load." } },
-      { icon: "🛡️", title: { de: "Eingebaute Cyber-Resilienz", en: "Built-in cyber resilience" }, desc: { de: "KI-gestützte Ransomware-Erkennung direkt im Storage-Controller, ohne separate Appliance.", en: "AI-based ransomware detection directly in the storage controller, no separate appliance required." } },
-      { icon: "🔗", title: { de: "Konvergente Protokolle", en: "Converged protocols" }, desc: { de: "Block, File und Object auf derselben Plattform — weniger Silos, weniger Betriebsaufwand.", en: "Block, file and object on the same platform — fewer silos, less operational overhead." } },
+      { icon: "/Icons/Latenz_Icon.png", title: { de: "Konstant niedrige Latenz", en: "Consistently low latency" }, desc: { de: "FlashLink-Architektur hält die Antwortzeiten auch unter Volllast im Mikrosekundenbereich.", en: "FlashLink architecture keeps response times in the microsecond range even under full load." } },
+      { icon: "/Icons/Cyber-Resilien_icon.png", title: { de: "Eingebaute Cyber-Resilienz", en: "Built-in cyber resilience" }, desc: { de: "KI-gestützte Ransomware-Erkennung direkt im Storage-Controller, ohne separate Appliance.", en: "AI-based ransomware detection directly in the storage controller, no separate appliance required." } },
+      { icon: "/Icons/Konvergente_Protokolle_icon.png", title: { de: "Konvergente Protokolle", en: "Converged protocols" }, desc: { de: "Block, File und Object auf derselben Plattform — weniger Silos, weniger Betriebsaufwand.", en: "Block, file and object on the same platform — fewer silos, less operational overhead." } },
     ],
     relatedArticleSlugs: ["huawei-dorado-v7"],
   },

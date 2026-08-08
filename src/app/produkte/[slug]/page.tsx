@@ -141,7 +141,11 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
           <div className="grid sm:grid-cols-3 gap-6">
             {product.highlights.map((h, i) => (
               <div key={i} className="bg-[#111827] border border-white/10 p-7 hover:border-[#c9a84c]/30 transition-colors">
-                <span className="text-2xl mb-4 block">{h.icon}</span>
+                {h.icon.startsWith("/") ? (
+                  <img src={h.icon} alt="" className="w-12 h-12 mb-4 object-contain" />
+                ) : (
+                  <span className="text-2xl mb-4 block">{h.icon}</span>
+                )}
                 <h3 className="text-white font-bold text-base mb-2">{h.title[locale]}</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">{h.desc[locale]}</p>
               </div>
