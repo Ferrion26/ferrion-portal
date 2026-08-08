@@ -1,0 +1,4 @@
+Contact: mailto:info@ferrion.at
+Expires: 2027-08-08T23:59:00.000Z
+Preferred-Languages: de, en
+Canonical: https://ferrion.at/.well-known/security.txt
