@@ -81,6 +81,11 @@ async function collectStorageMetrics(config, session) {
     metrics.push({ key: "protected_capacity_tb", value: usedTB, unit: "TB" });
   }
 
+  const fillLevel = Number(poolInfo.body.data.USERCONSUMEDCAPACITYPERCENTAGE);
+  if (Number.isFinite(fillLevel)) {
+    metrics.push({ key: "storage_pool_fill_level", value: fillLevel, unit: "%" });
+  }
+
   // Alarm-Level laut Doku: 3 = warning, 5 = major, 6 = critical.
   // "major" wird hier zusammen mit "warning" gezählt, da unser Report nur
   // zwei Stufen (kritisch/Warnung) unterscheidet.
@@ -88,6 +93,72 @@ async function collectStorageMetrics(config, session) {
   metrics.push({
     key: "alerts_warning",
     value: (Number(major.body.data.COUNT) || 0) + (Number(warning.body.data.COUNT) || 0),
+    unit: "count",
+  });
+
+  return metrics;
+}
+
+// Geräte-/Komponentenstatus: Systemzustand, Controller (CPU/Speicher),
+// Disks, Lüfter, Netzteile, Netzwerk-Ports — alles über die jeweiligen
+// "Batch Querying"-Endpunkte des DeviceManager (ein Aufruf liefert alle
+// Instanzen als Array, kein Durchpaginieren nötig).
+async function collectHardwareMetrics(config, session) {
+  const { deviceManagerUrl } = config.oceanprotect;
+  const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
+  const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
+
+  const [system, controllers, disks, fans, power, ethPorts] = await Promise.all([
+    requestJson(config, joinUrl(base, "/system/"), { headers: authHeaders }),
+    requestJson(config, joinUrl(base, "/controller"), { headers: authHeaders }),
+    requestJson(config, joinUrl(base, "/disk"), { headers: authHeaders }),
+    requestJson(config, joinUrl(base, "/fan"), { headers: authHeaders }),
+    requestJson(config, joinUrl(base, "/power"), { headers: authHeaders }),
+    requestJson(config, joinUrl(base, "/eth_port"), { headers: authHeaders }),
+  ]);
+
+  const metrics = [];
+
+  // System HEALTHSTATUS/RUNNINGSTATUS: 1 = Normal für beide.
+  const sys = system.body.data;
+  const systemHealthy = Number(sys.HEALTHSTATUS) === 1 && Number(sys.RUNNINGSTATUS) === 1 ? 100 : 0;
+  metrics.push({ key: "system_availability", value: systemHealthy, unit: "%" });
+
+  const controllerList = Array.isArray(controllers.body.data) ? controllers.body.data : [];
+  const cpuValues = controllerList.map((c) => Number(c.CPUUSAGE)).filter(Number.isFinite);
+  const memValues = controllerList.map((c) => Number(c.MEMORYUSAGE)).filter(Number.isFinite);
+  if (cpuValues.length > 0) {
+    metrics.push({ key: "controller_cpu_usage_avg", value: cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length, unit: "%" });
+  }
+  if (memValues.length > 0) {
+    metrics.push({ key: "controller_memory_usage_avg", value: memValues.reduce((a, b) => a + b, 0) / memValues.length, unit: "%" });
+  }
+  metrics.push({
+    key: "controllers_faulty",
+    value: controllerList.filter((c) => Number(c.HEALTHSTATUS) !== 1).length,
+    unit: "count",
+  });
+
+  // HEALTHSTATUS-Konvention für Disk/Fan/Power laut Doku: 1 = Normal, alles
+  // andere (0 Unknown, 2 Faulty, 3 About to fail, 9 Inconsistent, 11 No
+  // input, 17 Single link, ...) zählt hier als "nicht normal".
+  const diskList = Array.isArray(disks.body.data) ? disks.body.data : [];
+  metrics.push({ key: "disks_faulty", value: diskList.filter((d) => Number(d.HEALTHSTATUS) !== 1).length, unit: "count" });
+
+  const fanList = Array.isArray(fans.body.data) ? fans.body.data : [];
+  metrics.push({ key: "fans_faulty", value: fanList.filter((f) => Number(f.HEALTHSTATUS) !== 1).length, unit: "count" });
+
+  const powerList = Array.isArray(power.body.data) ? power.body.data : [];
+  metrics.push({ key: "power_modules_faulty", value: powerList.filter((p) => Number(p.HEALTHSTATUS) !== 1).length, unit: "count" });
+
+  // Nur Ports zählen, die überhaupt in Betrieb sind (HEALTHSTATUS != 0
+  // Unknown — unbestückte/inaktive Ports haben sonst RUNNINGSTATUS 0, was
+  // fälschlich als "down" durchgehen würde).
+  const ethList = Array.isArray(ethPorts.body.data) ? ethPorts.body.data : [];
+  const activePorts = ethList.filter((p) => Number(p.HEALTHSTATUS) !== 0);
+  metrics.push({
+    key: "eth_ports_down",
+    value: activePorts.filter((p) => Number(p.RUNNINGSTATUS) === 11).length,
     unit: "count",
   });
 
@@ -158,10 +229,22 @@ async function tryCollectStorage(config) {
     return [];
   }
   try {
-    return await collectStorageMetrics(config, session);
-  } catch (err) {
-    config.logger?.warn(`Storage-Kennzahlen konnten nicht erhoben werden: ${err.message}`);
-    return [];
+    const [capacityResult, hardwareResult] = await Promise.allSettled([
+      collectStorageMetrics(config, session),
+      collectHardwareMetrics(config, session),
+    ]);
+    const metrics = [];
+    if (capacityResult.status === "fulfilled") {
+      metrics.push(...capacityResult.value);
+    } else {
+      config.logger?.warn(`Kapazitäts-/Alarm-Kennzahlen konnten nicht erhoben werden: ${capacityResult.reason.message}`);
+    }
+    if (hardwareResult.status === "fulfilled") {
+      metrics.push(...hardwareResult.value);
+    } else {
+      config.logger?.warn(`Hardware-Kennzahlen konnten nicht erhoben werden: ${hardwareResult.reason.message}`);
+    }
+    return metrics;
   } finally {
     await logoutStorage(config, session);
   }

@@ -5,7 +5,7 @@ export type MetricFormat = "percent" | "tb" | "gb" | "ratio" | "count";
 // "last" for point-in-time levels (capacity currently in use).
 export type MetricAggregation = "avg" | "sum" | "last";
 
-export type ReportSection = "availability" | "capacity" | "security" | "operations";
+export type ReportSection = "availability" | "hardware" | "capacity" | "security" | "operations";
 
 export interface MetricDefinition {
   key: string;

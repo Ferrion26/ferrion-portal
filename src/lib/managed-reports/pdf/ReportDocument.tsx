@@ -19,6 +19,7 @@ const LOGO_DATA_URI = `data:image/png;base64,${fs
 
 const SECTION_LABELS: Record<ReportSection, { de: string; en: string }> = {
   availability: { de: "Verfügbarkeit", en: "Availability" },
+  hardware: { de: "Hardware & Infrastruktur", en: "Hardware & Infrastructure" },
   capacity: { de: "Kapazität", en: "Capacity" },
   security: { de: "Sicherheit", en: "Security" },
   operations: { de: "Betrieb", en: "Operations" },
@@ -104,7 +105,7 @@ const COPY = {
 
 export function ReportDocument({ locale, customerCompany, productName, vendor, packageLabel, periodLabel, entries, adminNotes }: ReportDocumentProps) {
   const t = COPY[locale];
-  const sections: ReportSection[] = ["availability", "capacity", "security", "operations"];
+  const sections: ReportSection[] = ["availability", "hardware", "capacity", "security", "operations"];
   const bySection = (s: ReportSection) => entries.filter((e) => e.section === s);
 
   return (
