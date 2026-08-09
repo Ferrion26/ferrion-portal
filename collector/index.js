@@ -70,8 +70,13 @@ async function main() {
   }
 
   log.info(`Erhebe Kennzahlen für ${config.productSlug} …`);
-  const metrics = await adapter.collect(config);
-  const payload = { collectedAt: new Date().toISOString(), metrics };
+  // Adapter geben entweder nur ein Array (metrics) oder { metrics, meta }
+  // zurück (meta z. B. für die Geräte-Seriennummer) — beide Formen erlaubt,
+  // damit bestehende Adapter ohne meta nicht angepasst werden müssen.
+  const collected = await adapter.collect(config);
+  const metrics = Array.isArray(collected) ? collected : collected.metrics;
+  const meta = Array.isArray(collected) ? undefined : collected.meta;
+  const payload = { collectedAt: new Date().toISOString(), metrics, ...(meta ? { meta } : {}) };
 
   if (exportDir) {
     const filePath = writeExportFile(exportDir, payload);

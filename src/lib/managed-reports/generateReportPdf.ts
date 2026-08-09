@@ -4,15 +4,21 @@ import { prisma } from "@/lib/prisma";
 import { createAdminClient, DOCUMENTS_BUCKET } from "@/lib/supabase";
 import { PRODUCTS } from "@/app/produkte/products-data";
 import { computeQuarterSummary } from "./aggregate";
-import { quarterLabel } from "./quarter";
+import { periodLabel, PeriodType } from "./quarter";
 import { ReportDocument } from "./pdf/ReportDocument";
 
-// Erstellt einen Quartalsbericht als DRAFT: aggregiert die im Zeitraum
-// eingegangenen Collector-Metriken, rendert das PDF im Ferrion-Branding und
-// legt Document + QuarterlyReport an. Wird sowohl vom Admin-Button
+// Erstellt einen Bericht als DRAFT: aggregiert die im Zeitraum eingegangenen
+// Collector-Metriken, rendert das PDF im Ferrion-Branding und legt Document +
+// QuarterlyReport an. Wird sowohl vom Admin-Button
 // (POST /api/admin/managed-reports/[id]/generate) als auch vom Quartals-Cron
-// (POST /api/cron/generate-quarterly-reports) verwendet.
-export async function generateQuarterlyReport(subscriptionId: string, periodStart: Date, periodEnd: Date) {
+// (POST /api/cron/generate-quarterly-reports) verwendet — der Cron lässt
+// periodType weg und bekommt damit immer QUARTER (sein einziger Anwendungsfall).
+export async function generateQuarterlyReport(
+  subscriptionId: string,
+  periodStart: Date,
+  periodEnd: Date,
+  periodType: PeriodType = "QUARTER"
+) {
   const subscription = await prisma.managedServiceSubscription.findUniqueOrThrow({
     where: { id: subscriptionId },
     include: { customer: true },
@@ -27,6 +33,7 @@ export async function generateQuarterlyReport(subscriptionId: string, periodStar
 
   const entries = await computeQuarterSummary(subscriptionId, periodStart, periodEnd);
   const locale: "de" | "en" = "de";
+  const label = periodLabel(periodType, periodStart, locale);
 
   // react-pdf's renderToBuffer types only accept a literal <Document> element,
   // not a wrapper component that returns one — cast around that typing gap.
@@ -36,7 +43,8 @@ export async function generateQuarterlyReport(subscriptionId: string, periodStar
     productName,
     vendor,
     packageLabel,
-    periodLabel: quarterLabel(periodStart),
+    deviceSerialNumber: subscription.deviceSerialNumber ?? undefined,
+    periodLabel: label,
     entries,
   }) as Parameters<typeof renderToBuffer>[0];
 
@@ -58,11 +66,12 @@ export async function generateQuarterlyReport(subscriptionId: string, periodStar
       subscriptionId,
       periodStart,
       periodEnd,
+      periodType,
       summary: entries as unknown as object,
       document: {
         create: {
-          name: `Quartalsbericht ${quarterLabel(periodStart)} — ${productName}`,
-          description: `Managed-Service-Quartalsbericht für ${subscription.customer.company ?? subscription.customer.name}`,
+          name: `Bericht ${label} — ${productName}`,
+          description: `Managed-Service-Bericht für ${subscription.customer.company ?? subscription.customer.name}`,
           storagePath,
           mimeType: "application/pdf",
           sizeBytes: pdfBuffer.length,

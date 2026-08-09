@@ -18,4 +18,14 @@ export interface MetricDefinition {
   // report. Omit for metrics without a clear "better" direction (e.g. a
   // capacity level).
   trendGood?: "up" | "down";
+  // Shown in the "Wichtigste Kennzahlen" headline row at the top of the
+  // report (max ~4 recommended — it's a single row). Curated per product.
+  headline?: boolean;
+  // Compact label for the headline row's tighter cards — falls back to
+  // `label` when omitted.
+  shortLabel?: { de: string; en: string };
+  // Short explanation of how the figure is derived, shown as a footnote
+  // under the metric — only worth adding where the calculation isn't
+  // self-evident from the label (e.g. "Backup-Erfolgsquote").
+  methodology?: { de: string; en: string };
 }

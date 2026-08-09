@@ -19,6 +19,13 @@ export const ingestPayloadSchema = z.object({
     )
     .min(1)
     .max(200),
+  // Geräteattribute statt Zeitreihen-Kennzahlen — aktuell nur die
+  // Seriennummer, wird auf die Subscription geschrieben statt als Metrik.
+  meta: z
+    .object({
+      deviceSerialNumber: z.string().min(1).max(100).optional(),
+    })
+    .optional(),
 });
 
 export type IngestPayload = z.infer<typeof ingestPayloadSchema>;

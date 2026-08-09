@@ -323,7 +323,7 @@ async function tryCollectStorage(config) {
     session = await loginStorage(config);
   } catch (err) {
     config.logger?.warn(`Storage-Login fehlgeschlagen — Storage-Kennzahlen werden übersprungen: ${err.message}`);
-    return [];
+    return { metrics: [], deviceSerialNumber: null };
   }
   try {
     const [capacityResult, hardwareResult] = await Promise.allSettled([
@@ -341,7 +341,9 @@ async function tryCollectStorage(config) {
     } else {
       config.logger?.warn(`Hardware-Kennzahlen konnten nicht erhoben werden: ${hardwareResult.reason.message}`);
     }
-    return metrics;
+    // deviceId aus der Login-Antwort ist bei Huawei die Geräte-ESN
+    // (Seriennummer) — dieselbe Kennung, die schon in jeder Request-URL steckt.
+    return { metrics, deviceSerialNumber: session.deviceId };
   } finally {
     await logoutStorage(config, session);
   }
@@ -371,16 +373,18 @@ async function collect(config) {
     throw new Error(`collector/adapters/oceanprotect.js: config.oceanprotect fehlt: ${missing.join(", ")}`);
   }
 
-  const [storageMetrics, dataBackupMetrics] = await Promise.all([
+  const [storageResult, dataBackupMetrics] = await Promise.all([
     tryCollectStorage(config),
     tryCollectDataBackup(config),
   ]);
-  const metrics = [...storageMetrics, ...dataBackupMetrics];
+  const metrics = [...storageResult.metrics, ...dataBackupMetrics];
 
   if (metrics.length === 0) {
     throw new Error("Weder Storage- noch DataBackup-Kennzahlen konnten erhoben werden — siehe Warnungen oben.");
   }
-  return metrics;
+
+  const meta = storageResult.deviceSerialNumber ? { deviceSerialNumber: storageResult.deviceSerialNumber } : undefined;
+  return { metrics, meta };
 }
 
 module.exports = { collect };

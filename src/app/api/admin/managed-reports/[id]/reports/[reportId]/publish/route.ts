@@ -3,7 +3,7 @@ import { Resend } from "resend";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { quarterLabel } from "@/lib/managed-reports/quarter";
+import { periodLabel } from "@/lib/managed-reports/quarter";
 import { PRODUCTS } from "@/app/produkte/products-data";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
       .send({
         from: "Ferrion IT Systemhaus <kontakt@ferrion.at>",
         to: [customer.email],
-        subject: `Ihr Quartalsbericht ${quarterLabel(report.periodStart)} — ${product?.name ?? report.subscription.productSlug}`,
+        subject: `Ihr Bericht ${periodLabel(report.periodType, report.periodStart)} — ${product?.name ?? report.subscription.productSlug}`,
         html: `
 <!DOCTYPE html>
 <html>
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
 </style></head>
 <body>
   <h1>Ferrion IT Systemhaus</h1>
-  <p style="color:#9ca3af;font-size:14px">Ihr Quartalsbericht für ${product?.name ?? report.subscription.productSlug} (${quarterLabel(report.periodStart)}) steht ab sofort in Ihrem Kundenportal zum Download bereit.</p>
+  <p style="color:#9ca3af;font-size:14px">Ihr Bericht für ${product?.name ?? report.subscription.productSlug} (${periodLabel(report.periodType, report.periodStart)}) steht ab sofort in Ihrem Kundenportal zum Download bereit.</p>
   <p style="font-size:14px"><a href="${process.env.NEXTAUTH_URL ?? "https://ferrion.at"}/dashboard/reports" style="color:#c9a84c">Zum Kundenportal →</a></p>
   <div class="footer">
     <strong style="color:#c9a84c">Ferrion IT Systemhaus GmbH</strong><br>

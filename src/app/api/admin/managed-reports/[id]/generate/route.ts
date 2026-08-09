@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { generateQuarterlyReport } from "@/lib/managed-reports/generateReportPdf";
-import { getMostRecentCompletedQuarter, getCurrentQuarter } from "@/lib/managed-reports/quarter";
+import { getMostRecentCompletedPeriod, getCurrentPeriod, PeriodType } from "@/lib/managed-reports/quarter";
 
 export const dynamic = "force-dynamic";
 
-// Erzeugt einen QuarterlyReport als DRAFT. Standardmäßig für das zuletzt
-// abgeschlossene Quartal (period: "last", auch vom Cron verwendet).
-// period: "current" erzeugt stattdessen einen Vorschau-Bericht für das
-// laufende, noch nicht abgeschlossene Quartal — z. B. um einen frisch
-// eingerichteten Collector zu testen, bevor das erste volle Quartal um ist.
+const VALID_PERIOD_TYPES: PeriodType[] = ["MONTH", "QUARTER", "HALF_YEAR", "YEAR"];
+
+// Erzeugt einen Bericht als DRAFT für den gewählten Zeitraumtyp (Monat/
+// Quartal/Halbjahr/Jahr, Standard: Quartal). Standardmäßig für den zuletzt
+// abgeschlossenen Zeitraum (period: "last", auch vom Cron verwendet).
+// period: "current" erzeugt stattdessen einen Vorschau-Bericht für den
+// laufenden, noch nicht abgeschlossenen Zeitraum — z. B. um einen frisch
+// eingerichteten Collector zu testen, bevor der erste volle Zeitraum um ist.
 // Der Admin prüft/veröffentlicht den Bericht danach separat
 // (POST .../reports/[reportId]/publish).
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -20,10 +23,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const body = await req.json().catch(() => ({}));
   const period = body.period === "current" ? "current" : "last";
-  const { periodStart, periodEnd } = period === "current" ? getCurrentQuarter() : getMostRecentCompletedQuarter();
+  const periodType: PeriodType = VALID_PERIOD_TYPES.includes(body.periodType) ? body.periodType : "QUARTER";
+  const { periodStart, periodEnd } = period === "current" ? getCurrentPeriod(periodType) : getMostRecentCompletedPeriod(periodType);
 
   try {
-    const report = await generateQuarterlyReport(params.id, periodStart, periodEnd);
+    const report = await generateQuarterlyReport(params.id, periodStart, periodEnd, periodType);
     return NextResponse.json(report, { status: 201 });
   } catch (err) {
     console.error("Report generation failed:", err);

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payload", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { collectedAt, metrics } = parsed.data;
+  const { collectedAt, metrics, meta } = parsed.data;
   const recordedAt = new Date(collectedAt);
 
   const [, ingestion] = await prisma.$transaction([
@@ -50,6 +50,14 @@ export async function POST(req: NextRequest) {
         },
       },
     }),
+    ...(meta?.deviceSerialNumber
+      ? [
+          prisma.managedServiceSubscription.update({
+            where: { id: apiKey.subscriptionId },
+            data: { deviceSerialNumber: meta.deviceSerialNumber },
+          }),
+        ]
+      : []),
   ]);
 
   return NextResponse.json({ id: ingestion.id, metricsStored: metrics.length }, { status: 201 });

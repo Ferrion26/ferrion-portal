@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { PRODUCTS } from "@/app/produkte/products-data";
-import { quarterLabel } from "@/lib/managed-reports/quarter";
+import { periodLabel } from "@/lib/managed-reports/quarter";
 import ReportDownloadButton from "@/components/managed-reports/ReportDownloadButton";
 
 export const metadata = { title: "Berichte — Ferrion Portal" };
@@ -23,7 +23,7 @@ export default async function ReportsPage() {
           <thead>
             <tr className="border-b border-white/10 text-left text-gray-500">
               <th className="px-6 py-3 font-medium">Produkt</th>
-              <th className="px-6 py-3 font-medium">Quartal</th>
+              <th className="px-6 py-3 font-medium">Zeitraum</th>
               <th className="px-6 py-3 font-medium">Veröffentlicht</th>
               <th className="px-6 py-3 font-medium"></th>
             </tr>
@@ -36,7 +36,7 @@ export default async function ReportsPage() {
                   <td className="px-6 py-4 font-medium text-gray-300">
                     {product?.vendor ?? ""} {product?.name ?? report.subscription.productSlug}
                   </td>
-                  <td className="px-6 py-4 text-gray-400">{quarterLabel(report.periodStart)}</td>
+                  <td className="px-6 py-4 text-gray-400">{periodLabel(report.periodType, report.periodStart)}</td>
                   <td className="px-6 py-4 text-gray-400">{report.publishedAt ? formatDate(report.publishedAt) : "—"}</td>
                   <td className="px-6 py-4">
                     {report.document && (

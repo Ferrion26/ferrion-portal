@@ -8,6 +8,9 @@ export interface QuarterSummaryEntry {
   format: MetricDefinition["format"];
   section: MetricDefinition["section"];
   trendGood?: MetricDefinition["trendGood"];
+  headline?: MetricDefinition["headline"];
+  shortLabel?: MetricDefinition["shortLabel"];
+  methodology?: MetricDefinition["methodology"];
   value: number;
   previousValue?: number;
 }
@@ -79,6 +82,9 @@ export async function computeQuarterSummary(
       format: def.format,
       section: def.section,
       trendGood: def.trendGood,
+      headline: def.headline,
+      shortLabel: def.shortLabel,
+      methodology: def.methodology,
       value: current.get(def.key)!,
       previousValue: previous.get(def.key),
     }));

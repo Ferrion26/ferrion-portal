@@ -1,14 +1,43 @@
 import fs from "fs";
 import path from "path";
-import { Document, Page, View, Text, Image, StyleSheet, Svg, Path as SvgPath } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet, Svg, Path as SvgPath, Font } from "@react-pdf/renderer";
 import { QuarterSummaryEntry } from "../aggregate";
 import { ReportSection } from "../metrics";
+import { formatValue } from "../reportFormat";
+import { deriveStatus, buildExecutiveSummary, buildRecommendations, buildBannerHighlights, MetricStatus } from "../reportNarrative";
+
+// Ohne das hier splittet react-pdf lange Wörter (Seriennummern, lange
+// zusammengesetzte deutsche Begriffe) mit einem eingefügten Bindestrich
+// beim Zeilenumbruch — für Kennungen wie eine Geräte-SN sieht das nach
+// einem Darstellungsfehler aus, nicht nach Silbentrennung.
+Font.registerHyphenationCallback((word) => [word]);
 
 const GOLD = "#C9A84C";
+const GOLD_DARK = "#A9852E";
 const INK = "#111827";
 const GRAY = "#6B7280";
-const LIGHT = "#E5E7EB";
+const MUTED = "#9CA3AF";
 const WHITE = "#FFFFFF";
+const PAGE_BG = "#F3F4F6";
+const DARK = "#0D1117";
+const ROW_DIVIDER = "#F3F4F6";
+
+const STATUS_COLORS: Record<MetricStatus, { bg: string; text: string; dot: string }> = {
+  good: { bg: "#DCFCE7", text: "#15803D", dot: "#22C55E" },
+  warning: { bg: "#FEF3C7", text: "#92400E", dot: "#F59E0B" },
+  critical: { bg: "#FEE2E2", text: "#991B1B", dot: "#EF4444" },
+  neutral: { bg: "#DBEAFE", text: "#1E40AF", dot: "#3B82F6" },
+};
+
+const STATUS_LABEL: Record<"de" | "en", Record<MetricStatus, string>> = {
+  de: { good: "Ziel erreicht", warning: "Hinweis", critical: "Kritisch", neutral: "Überwacht" },
+  en: { good: "On target", warning: "Note", critical: "Critical", neutral: "Monitored" },
+};
+
+const LIST_PILL_LABEL: Record<"de" | "en", Record<MetricStatus, string | null>> = {
+  de: { good: "OK", warning: "Hinweis", critical: "Kritisch", neutral: null },
+  en: { good: "OK", warning: "Note", critical: "Critical", neutral: null },
+};
 
 // Passed as a data URI rather than a bare file path — @react-pdf/renderer's
 // path resolver is unreliable for local files in a Node/serverless context
@@ -25,65 +54,198 @@ const SECTION_LABELS: Record<ReportSection, { de: string; en: string }> = {
   operations: { de: "Betrieb", en: "Operations" },
 };
 
-function formatValue(entry: Pick<QuarterSummaryEntry, "format" | "value" | "unit">, locale: "de" | "en") {
-  const n = (digits: number) => entry.value.toLocaleString(locale === "de" ? "de-AT" : "en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
-  switch (entry.format) {
-    case "percent":
-      return `${n(1)} %`;
-    case "tb":
-      return `${n(1)} TB`;
-    case "gb":
-      return `${n(1)} GB`;
-    case "ratio":
-      return `${n(2)}×`;
-    case "count":
-      return n(0);
-  }
+function headlinePillText(entry: QuarterSummaryEntry, status: MetricStatus, locale: "de" | "en") {
+  if (entry.key === "protected_capacity_tb") return locale === "de" ? "geschützt" : "protected";
+  if (entry.key === "storage_pool_fill_level") return locale === "de" ? "überwacht" : "monitored";
+  return STATUS_LABEL[locale][status];
 }
 
-function trendInfo(entry: QuarterSummaryEntry, locale: "de" | "en") {
+function trendInfo(entry: QuarterSummaryEntry) {
   if (entry.previousValue === undefined || entry.previousValue === 0) return null;
   const delta = entry.value - entry.previousValue;
   const pct = (delta / Math.abs(entry.previousValue)) * 100;
+  // Unter 0.5% Veränderung lieber gar kein Pfeil als ein irreführendes
+  // "-0%" (Rundungsartefakt bei sehr kleinen Deltas).
+  if (Math.abs(pct) < 0.5) return null;
   const direction: "up" | "down" = delta >= 0 ? "up" : "down";
   const good = entry.trendGood ? entry.trendGood === direction : null;
-  const color = good === null ? GRAY : good ? "#22C55E" : "#DC2626";
+  const color = good === null ? MUTED : good ? "#22C55E" : "#DC2626";
   const sign = delta >= 0 ? "+" : "";
-  const label = `${sign}${pct.toFixed(1)}%`;
-  return { direction, color, label };
+  return { direction, color, label: `${sign}${pct.toFixed(1)}%` };
 }
 
 const styles = StyleSheet.create({
-  page: { paddingTop: 40, paddingBottom: 56, paddingHorizontal: 40, fontFamily: "Helvetica", color: INK, fontSize: 10 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderBottomWidth: 2, borderBottomColor: GOLD, paddingBottom: 12, marginBottom: 20 },
-  logo: { width: 90, height: 48, objectFit: "contain" },
-  headerRight: { alignItems: "flex-end" },
-  headTitle: { fontSize: 20, fontFamily: "Helvetica-Bold", color: INK, letterSpacing: 1 },
-  headSub: { fontSize: 8, color: GOLD, letterSpacing: 2, marginTop: 3 },
-  metaBlock: { flexDirection: "row", justifyContent: "space-between", marginBottom: 26 },
-  metaLabel: { fontSize: 8, color: GRAY, letterSpacing: 1, marginBottom: 3, textTransform: "uppercase" },
-  metaValue: { fontSize: 12, fontFamily: "Helvetica-Bold", color: INK },
-  sectionHeading: { fontSize: 12, fontFamily: "Helvetica-Bold", color: INK, marginTop: 18, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: GOLD, paddingBottom: 4 },
-  tileGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  tile: { width: "31.5%", borderWidth: 1, borderColor: LIGHT, padding: 10, marginBottom: 10 },
-  tileLabel: { fontSize: 8, color: GRAY, marginBottom: 6 },
-  tileValue: { fontSize: 16, fontFamily: "Helvetica-Bold", color: INK },
-  tileTrendRow: { flexDirection: "row", alignItems: "center", marginTop: 5 },
-  tileTrendLabel: { fontSize: 8, marginLeft: 4 },
-  notesBlock: { marginTop: 20, borderWidth: 1, borderColor: LIGHT, padding: 12 },
-  notesLabel: { fontSize: 8, color: GRAY, letterSpacing: 1, marginBottom: 6, textTransform: "uppercase" },
-  notesText: { fontSize: 10, color: INK, lineHeight: 1.5 },
-  footer: { position: "absolute", bottom: 24, left: 40, right: 40, borderTopWidth: 1, borderTopColor: GOLD, paddingTop: 8, textAlign: "center" },
-  footerText: { fontSize: 8, color: GRAY },
-  footerTagline: { fontSize: 7, color: GOLD, letterSpacing: 1, marginTop: 3 },
+  page: { padding: 26, fontFamily: "Helvetica", color: INK, fontSize: 9, backgroundColor: PAGE_BG },
+
+  headerCard: { backgroundColor: WHITE, borderRadius: 8, padding: 16, marginBottom: 10 },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  logo: { width: 64, height: 34, objectFit: "contain" },
+  headTitle: { fontSize: 19, fontFamily: "Helvetica-Bold", color: INK },
+  headSub: { fontSize: 7, color: GOLD_DARK, letterSpacing: 2, marginTop: 2 },
+  goldRule: { borderBottomWidth: 2, borderBottomColor: GOLD, marginTop: 10 },
+
+  metaRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
+  metaCard: { flex: 1, backgroundColor: WHITE, borderRadius: 8, padding: 9 },
+  metaLabel: { fontSize: 6.5, color: GRAY, letterSpacing: 0.5, marginBottom: 3 },
+  metaValue: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: INK },
+  metaSubValue: { fontSize: 6.5, color: MUTED, marginTop: 3 },
+
+  summaryBanner: { flexDirection: "row", backgroundColor: DARK, borderRadius: 8, padding: 15, marginBottom: 14, justifyContent: "space-between" },
+  summaryLeft: { flex: 1, paddingRight: 12 },
+  summaryHeadline: { fontSize: 12, fontFamily: "Helvetica-Bold", color: WHITE, marginBottom: 5 },
+  summaryText: { fontSize: 8.5, color: "#C3C2B7", lineHeight: 1.45 },
+  pillColumn: { justifyContent: "center", gap: 5, width: 130 },
+
+  sectionTitle: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 8, marginTop: 6, borderBottomWidth: 1, borderBottomColor: GOLD, paddingBottom: 4 },
+
+  headlineRow: { flexDirection: "row", gap: 9, marginBottom: 14 },
+  headlineCard: { flex: 1, backgroundColor: WHITE, borderRadius: 8, padding: 11 },
+  headlineTopRow: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 6 },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  headlineLabel: { fontSize: 7.5, color: GRAY },
+  headlineValue: { fontSize: 17, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 7 },
+
+  twoColRow: { flexDirection: "row", gap: 10, marginBottom: 14 },
+  leftCol: { flex: 1 },
+  rightCol: { flex: 1, flexDirection: "column", gap: 10 },
+
+  listCard: { backgroundColor: WHITE, borderRadius: 8, padding: 13 },
+  listCardTitle: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 2 },
+  listCardSub: { fontSize: 7.5, color: GRAY, marginBottom: 8 },
+  listRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 5.5, borderBottomWidth: 1, borderBottomColor: ROW_DIVIDER },
+  listRowLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
+  listRowLabel: { fontSize: 8.5, color: INK },
+  listRowRight: { flexDirection: "row", alignItems: "center", gap: 7 },
+  listRowValue: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: INK },
+  listRowTrend: { fontSize: 6.5 },
+
+  pill: { borderRadius: 8, paddingVertical: 3, paddingHorizontal: 7 },
+  pillText: { fontSize: 6.5, fontFamily: "Helvetica-Bold" },
+
+  barCard: { backgroundColor: WHITE, borderRadius: 8, padding: 13, flex: 1 },
+  barCardTitle: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 8 },
+  barValue: { fontSize: 18, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 9 },
+  barTrack: { height: 6, borderRadius: 3, backgroundColor: "#E5E7EB", position: "relative" },
+  barFill: { height: 6, borderRadius: 3, backgroundColor: GOLD, position: "absolute", left: 0, top: 0 },
+
+  statRow: { flexDirection: "row", gap: 9 },
+  statCard: { flex: 1, borderRadius: 8, padding: 11 },
+  statLabel: { fontSize: 7.5, marginBottom: 6 },
+  statValue: { fontSize: 15, fontFamily: "Helvetica-Bold", color: INK },
+
+  recCard: { backgroundColor: WHITE, borderRadius: 8, padding: 13, marginBottom: 14 },
+  recTitle: { fontSize: 10, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 7 },
+  recLine: { fontSize: 8, color: "#374151", marginBottom: 5, lineHeight: 1.4 },
+
+  capacityRow: { flexDirection: "row", gap: 10, marginBottom: 14 },
+
+  methodologyBlock: { backgroundColor: WHITE, borderRadius: 8, padding: 12, marginBottom: 10 },
+  methodologyTitle: { fontSize: 8, fontFamily: "Helvetica-Bold", color: GRAY, marginBottom: 4 },
+  methodologyLine: { fontSize: 7, color: MUTED, lineHeight: 1.4, marginBottom: 3 },
+
+  notesBlock: { backgroundColor: WHITE, borderRadius: 8, padding: 13, marginBottom: 10 },
+  notesLabel: { fontSize: 8, color: GRAY, letterSpacing: 1, marginBottom: 6 },
+  notesText: { fontSize: 9, color: INK, lineHeight: 1.5 },
+
+  footer: { position: "absolute", bottom: 18, left: 26, right: 26, borderTopWidth: 1, borderTopColor: GOLD, paddingTop: 7, textAlign: "center" },
+  footerText: { fontSize: 7, color: GRAY },
+  footerTagline: { fontSize: 6, color: GOLD, letterSpacing: 1, marginTop: 2 },
 });
+
+function Dot({ status }: { status: MetricStatus }) {
+  return <View style={{ ...styles.dot, backgroundColor: STATUS_COLORS[status].dot }} />;
+}
+
+function StatusPill({ status, text }: { status: MetricStatus; text: string }) {
+  const c = STATUS_COLORS[status];
+  return (
+    <View style={{ ...styles.pill, backgroundColor: c.bg }}>
+      <Text style={{ ...styles.pillText, color: c.text }}>{text}</Text>
+    </View>
+  );
+}
 
 function TrendArrow({ direction, color }: { direction: "up" | "down"; color: string }) {
   const d = direction === "up" ? "M0 6 L4 0 L8 6 Z" : "M0 0 L4 6 L8 0 Z";
   return (
-    <Svg width={8} height={6} viewBox="0 0 8 6">
+    <Svg width={7} height={5} viewBox="0 0 8 6">
       <SvgPath d={d} fill={color} />
     </Svg>
+  );
+}
+
+function HeadlineCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "de" | "en" }) {
+  const status = deriveStatus(entry);
+  const label = entry.shortLabel?.[locale] ?? entry.label[locale];
+  return (
+    <View style={styles.headlineCard} wrap={false}>
+      <View style={styles.headlineTopRow}>
+        <Dot status={status} />
+        <Text style={styles.headlineLabel}>{label}</Text>
+      </View>
+      <Text style={styles.headlineValue}>{formatValue(entry, locale)}</Text>
+      <StatusPill status={status} text={headlinePillText(entry, status, locale)} />
+    </View>
+  );
+}
+
+function CompactListRow({ entry, locale }: { entry: QuarterSummaryEntry; locale: "de" | "en" }) {
+  const status = deriveStatus(entry);
+  const pillLabel = LIST_PILL_LABEL[locale][status];
+  const trend = trendInfo(entry);
+  return (
+    <View style={styles.listRow}>
+      <View style={styles.listRowLeft}>
+        <Dot status={status} />
+        <Text style={styles.listRowLabel}>{entry.label[locale]}</Text>
+      </View>
+      <View style={styles.listRowRight}>
+        {trend && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+            <TrendArrow direction={trend.direction} color={trend.color} />
+            <Text style={{ ...styles.listRowTrend, color: trend.color }}>{trend.label}</Text>
+          </View>
+        )}
+        <Text style={styles.listRowValue}>{formatValue(entry, locale)}</Text>
+        {pillLabel && <StatusPill status={status} text={pillLabel} />}
+      </View>
+    </View>
+  );
+}
+
+function ListCard({ title, sub, entries, locale }: { title: string; sub?: string; entries: QuarterSummaryEntry[]; locale: "de" | "en" }) {
+  if (entries.length === 0) return null;
+  return (
+    <View style={styles.listCard} wrap={false}>
+      <Text style={styles.listCardTitle}>{title}</Text>
+      {sub && <Text style={styles.listCardSub}>{sub}</Text>}
+      {entries.map((e) => (
+        <CompactListRow key={e.key} entry={e} locale={locale} />
+      ))}
+    </View>
+  );
+}
+
+function UsageBarCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "de" | "en" }) {
+  const pct = Math.max(0, Math.min(100, entry.value));
+  return (
+    <View style={styles.barCard} wrap={false}>
+      <Text style={styles.barCardTitle}>{entry.label[locale]}</Text>
+      <Text style={styles.barValue}>{formatValue(entry, locale)}</Text>
+      <View style={styles.barTrack}>
+        <View style={{ ...styles.barFill, width: `${pct}%` }} />
+      </View>
+    </View>
+  );
+}
+
+function CapacityStatCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "de" | "en" }) {
+  const tinted = entry.format === "percent" ? { bg: "#FEF3C7", text: "#92400E" } : { bg: "#DBEAFE", text: "#1E40AF" };
+  return (
+    <View style={{ ...styles.statCard, backgroundColor: tinted.bg }} wrap={false}>
+      <Text style={{ ...styles.statLabel, color: tinted.text }}>{entry.label[locale]}</Text>
+      <Text style={styles.statValue}>{formatValue(entry, locale)}</Text>
+    </View>
   );
 }
 
@@ -93,83 +255,186 @@ export interface ReportDocumentProps {
   productName: string;
   vendor: string;
   packageLabel?: string;
+  deviceSerialNumber?: string;
   periodLabel: string;
   entries: QuarterSummaryEntry[];
   adminNotes?: string;
 }
 
 const COPY = {
-  de: { title: "QUARTALSBERICHT", sub: "MANAGED SERVICE REPORT", customer: "Kunde", product: "Produkt", period: "Zeitraum", package: "Servicestufe", notes: "Anmerkungen", generatedBy: "Erstellt von Ferrion IT Systemhaus GmbH" },
-  en: { title: "QUARTERLY REPORT", sub: "MANAGED SERVICE REPORT", customer: "Customer", product: "Product", period: "Period", package: "Service Tier", notes: "Notes", generatedBy: "Prepared by Ferrion IT Systemhaus GmbH" },
+  de: {
+    title: "QUARTALSBERICHT",
+    sub: "MANAGED SERVICE REPORT",
+    customer: "Kunde",
+    product: "Produkt",
+    period: "Zeitraum",
+    package: "Servicestufe",
+    sn: "Seriennummer",
+    headlineTitle: "Wichtigste Kennzahlen",
+    infraTitle: "Infrastrukturstatus",
+    infraSub: "Auffälligkeiten sind farblich markiert.",
+    recTitle: "Empfehlung",
+    methodologyTitle: "Methodik",
+    notes: "Anmerkungen",
+    generatedBy: "Erstellt von Ferrion IT Systemhaus GmbH",
+  },
+  en: {
+    title: "QUARTERLY REPORT",
+    sub: "MANAGED SERVICE REPORT",
+    customer: "Customer",
+    product: "Product",
+    period: "Period",
+    package: "Service Tier",
+    sn: "Serial Number",
+    headlineTitle: "Key Metrics",
+    infraTitle: "Infrastructure Status",
+    infraSub: "Issues are color-coded.",
+    recTitle: "Recommendation",
+    methodologyTitle: "Methodology",
+    notes: "Notes",
+    generatedBy: "Prepared by Ferrion IT Systemhaus GmbH",
+  },
 };
 
-export function ReportDocument({ locale, customerCompany, productName, vendor, packageLabel, periodLabel, entries, adminNotes }: ReportDocumentProps) {
+export function ReportDocument({
+  locale,
+  customerCompany,
+  productName,
+  vendor,
+  packageLabel,
+  deviceSerialNumber,
+  periodLabel,
+  entries,
+  adminNotes,
+}: ReportDocumentProps) {
   const t = COPY[locale];
-  const sections: ReportSection[] = ["availability", "hardware", "capacity", "security", "operations"];
-  const bySection = (s: ReportSection) => entries.filter((e) => e.section === s);
+
+  const headlineEntries = entries.filter((e) => e.headline);
+  const hardwareFaultEntries = entries.filter((e) => e.section === "hardware" && e.format === "count");
+  const usageBarEntries = entries.filter((e) => e.section === "hardware" && e.format === "percent" && e.key !== "system_availability");
+  const capacityEntries = entries.filter((e) => e.section === "capacity");
+  const securityEntries = entries.filter((e) => e.section === "security");
+  const operationsEntries = entries.filter((e) => e.section === "operations");
+  const availabilityDetailEntries = entries.filter((e) => e.section === "availability" && !e.headline);
+  const methodologyEntries = entries.filter((e) => e.methodology);
+
+  const summary = buildExecutiveSummary(entries, locale);
+  const recommendations = buildRecommendations(entries, locale);
+  const bannerHighlights = buildBannerHighlights(entries, locale);
 
   return (
     <Document title={`${t.title} — ${customerCompany} — ${productName} — ${periodLabel}`}>
       <Page size="A4" style={styles.page}>
-        <View style={styles.headerRow}>
-          <Image style={styles.logo} src={LOGO_DATA_URI} />
-          <View style={styles.headerRight}>
-            <Text style={styles.headTitle}>{t.title}</Text>
-            <Text style={styles.headSub}>{t.sub}</Text>
+        <View style={styles.headerCard} wrap={false}>
+          <View style={styles.headerRow}>
+            <Image style={styles.logo} src={LOGO_DATA_URI} />
+            <View>
+              <Text style={styles.headTitle}>{t.title}</Text>
+              <Text style={styles.headSub}>{t.sub}</Text>
+            </View>
           </View>
+          <View style={styles.goldRule} />
         </View>
 
-        <View style={styles.metaBlock}>
-          <View>
-            <Text style={styles.metaLabel}>{t.customer}</Text>
+        <View style={styles.metaRow} wrap={false}>
+          <View style={styles.metaCard}>
+            <Text style={styles.metaLabel}>{t.customer.toUpperCase()}</Text>
             <Text style={styles.metaValue}>{customerCompany}</Text>
           </View>
-          <View>
-            <Text style={styles.metaLabel}>{t.product}</Text>
+          <View style={styles.metaCard}>
+            <Text style={styles.metaLabel}>{t.product.toUpperCase()}</Text>
             <Text style={styles.metaValue}>{vendor} {productName}</Text>
+            {deviceSerialNumber && <Text style={styles.metaSubValue}>{t.sn.toUpperCase()}: {deviceSerialNumber}</Text>}
           </View>
           {packageLabel && (
-            <View>
-              <Text style={styles.metaLabel}>{t.package}</Text>
+            <View style={styles.metaCard}>
+              <Text style={styles.metaLabel}>{t.package.toUpperCase()}</Text>
               <Text style={styles.metaValue}>{packageLabel}</Text>
             </View>
           )}
-          <View>
-            <Text style={styles.metaLabel}>{t.period}</Text>
+          <View style={styles.metaCard}>
+            <Text style={styles.metaLabel}>{t.period.toUpperCase()}</Text>
             <Text style={styles.metaValue}>{periodLabel}</Text>
           </View>
         </View>
 
-        {sections.map((section) => {
-          const items = bySection(section);
-          if (items.length === 0) return null;
-          return (
-            <View key={section} wrap={false}>
-              <Text style={styles.sectionHeading}>{SECTION_LABELS[section][locale]}</Text>
-              <View style={styles.tileGrid}>
-                {items.map((entry) => {
-                  const trend = trendInfo(entry, locale);
-                  return (
-                    <View key={entry.key} style={styles.tile}>
-                      <Text style={styles.tileLabel}>{entry.label[locale]}</Text>
-                      <Text style={styles.tileValue}>{formatValue(entry, locale)}</Text>
-                      {trend && (
-                        <View style={styles.tileTrendRow}>
-                          <TrendArrow direction={trend.direction} color={trend.color} />
-                          <Text style={{ ...styles.tileTrendLabel, color: trend.color }}>{trend.label}</Text>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
+        <View style={styles.summaryBanner} wrap={false}>
+          <View style={styles.summaryLeft}>
+            <Text style={styles.summaryHeadline}>{summary.headline}</Text>
+            <Text style={styles.summaryText}>{summary.text}</Text>
+          </View>
+          <View style={styles.pillColumn}>
+            {bannerHighlights.map((h) => (
+              <StatusPill key={h.entry.key} status={h.status} text={h.text} />
+            ))}
+          </View>
+        </View>
+
+        {headlineEntries.length > 0 && (
+          <View wrap={false}>
+            <Text style={styles.sectionTitle}>{t.headlineTitle}</Text>
+            <View style={styles.headlineRow}>
+              {headlineEntries.map((e) => (
+                <HeadlineCard key={e.key} entry={e} locale={locale} />
+              ))}
             </View>
-          );
-        })}
+          </View>
+        )}
+
+        {(hardwareFaultEntries.length > 0 || usageBarEntries.length > 0) && (
+          <View style={styles.twoColRow}>
+            <View style={styles.leftCol}>
+              <ListCard title={t.infraTitle} sub={t.infraSub} entries={hardwareFaultEntries} locale={locale} />
+            </View>
+            <View style={styles.rightCol}>
+              {usageBarEntries.map((e) => (
+                <UsageBarCard key={e.key} entry={e} locale={locale} />
+              ))}
+            </View>
+          </View>
+        )}
+
+        {capacityEntries.length > 0 && (
+          <View wrap={false}>
+            <Text style={styles.sectionTitle}>{SECTION_LABELS.capacity[locale]}</Text>
+            <View style={styles.capacityRow}>
+              {capacityEntries.map((e) => (
+                <CapacityStatCard key={e.key} entry={e} locale={locale} />
+              ))}
+            </View>
+          </View>
+        )}
+
+        <View style={styles.recCard} wrap={false}>
+          <Text style={styles.recTitle}>{t.recTitle}</Text>
+          {recommendations.map((line, i) => (
+            <Text key={i} style={styles.recLine}>• {line}</Text>
+          ))}
+        </View>
+
+        <ListCard title={SECTION_LABELS.availability[locale]} entries={availabilityDetailEntries} locale={locale} />
+        {availabilityDetailEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
+
+        <ListCard title={SECTION_LABELS.security[locale]} entries={securityEntries} locale={locale} />
+        {securityEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
+
+        <ListCard title={SECTION_LABELS.operations[locale]} entries={operationsEntries} locale={locale} />
+        {operationsEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
+
+        {methodologyEntries.length > 0 && (
+          <View style={styles.methodologyBlock} wrap={false}>
+            <Text style={styles.methodologyTitle}>{t.methodologyTitle.toUpperCase()}</Text>
+            {methodologyEntries.map((e) => (
+              <Text key={e.key} style={styles.methodologyLine}>
+                {e.label[locale]}: {e.methodology![locale]}
+              </Text>
+            ))}
+          </View>
+        )}
 
         {adminNotes && (
-          <View style={styles.notesBlock}>
-            <Text style={styles.notesLabel}>{t.notes}</Text>
+          <View style={styles.notesBlock} wrap={false}>
+            <Text style={styles.notesLabel}>{t.notes.toUpperCase()}</Text>
             <Text style={styles.notesText}>{adminNotes}</Text>
           </View>
         )}

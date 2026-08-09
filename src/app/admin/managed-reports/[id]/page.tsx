@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { PRODUCTS } from "@/app/produkte/products-data";
-import { quarterLabel } from "@/lib/managed-reports/quarter";
+import { periodLabel } from "@/lib/managed-reports/quarter";
 import { Badge } from "@/components/ui/Badge";
 import ReportDownloadButton from "@/components/managed-reports/ReportDownloadButton";
 import ApiKeyManager from "./ApiKeyManager";
@@ -61,14 +61,14 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
 
       <div className="bg-[#111827] border border-white/10 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-white">Quartalsberichte</h2>
+          <h2 className="font-semibold text-white">Berichte</h2>
           <GenerateReportButton subscriptionId={subscription.id} />
         </div>
 
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/10 text-left text-gray-500">
-              <th className="py-2 font-medium">Quartal</th>
+              <th className="py-2 font-medium">Zeitraum</th>
               <th className="py-2 font-medium">Erstellt</th>
               <th className="py-2 font-medium">Status</th>
               <th className="py-2 font-medium"></th>
@@ -77,7 +77,7 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
           <tbody>
             {subscription.reports.map((report) => (
               <tr key={report.id} className="border-b border-white/5">
-                <td className="py-2 text-gray-300">{quarterLabel(report.periodStart)}</td>
+                <td className="py-2 text-gray-300">{periodLabel(report.periodType, report.periodStart)}</td>
                 <td className="py-2 text-gray-400">{formatDate(report.generatedAt)}</td>
                 <td className="py-2">
                   <Badge variant={report.status === "PUBLISHED" ? "green" : "yellow"}>

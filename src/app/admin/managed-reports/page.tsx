@@ -29,7 +29,7 @@ export default async function ManagedReportsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white mb-6">Managed-Service-Quartalsberichte</h1>
+        <h1 className="text-2xl font-bold text-white mb-6">Managed-Service-Berichte</h1>
 
         <div className="bg-[#111827] border border-white/10 p-6">
           <h2 className="font-semibold text-white mb-4">Neue Subscription anlegen</h2>

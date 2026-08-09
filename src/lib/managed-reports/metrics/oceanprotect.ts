@@ -7,10 +7,16 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
   {
     key: "backup_success_rate",
     label: { de: "Backup-Erfolgsquote", en: "Backup Success Rate" },
+    shortLabel: { de: "Backup-Erfolg", en: "Backup Success" },
     format: "percent",
     aggregation: "avg",
     section: "availability",
     trendGood: "up",
+    headline: true,
+    methodology: {
+      de: "Anteil erfolgreich abgeschlossener Backup-Jobs an allen Backup-Jobs im Berichtszeitraum, je Ressource ausgewertet (Quelle: OceanProtect DataBackup Job-Statistik).",
+      en: "Share of backup jobs completed successfully out of all backup jobs in the reporting period, evaluated per resource (source: OceanProtect DataBackup job statistics).",
+    },
   },
   {
     key: "rpo_compliance_rate",
@@ -35,17 +41,21 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
   {
     key: "protected_capacity_tb",
     label: { de: "Geschützte Kapazität", en: "Protected Capacity" },
+    shortLabel: { de: "Kapazität", en: "Capacity" },
     unit: "TB",
     format: "tb",
     aggregation: "last",
     section: "capacity",
+    headline: true,
   },
   {
     key: "storage_pool_fill_level",
     label: { de: "Füllgrad Storage Pool", en: "Storage Pool Fill Level" },
+    shortLabel: { de: "Pool-Füllgrad", en: "Pool Fill Level" },
     format: "percent",
     aggregation: "last",
     section: "capacity",
+    headline: true,
   },
   {
     key: "dedup_ratio",
@@ -58,10 +68,12 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
   {
     key: "system_availability",
     label: { de: "Systemverfügbarkeit", en: "System Availability" },
+    shortLabel: { de: "System", en: "System" },
     format: "percent",
     aggregation: "avg",
     section: "hardware",
     trendGood: "up",
+    headline: true,
   },
   {
     key: "controller_cpu_usage_avg",

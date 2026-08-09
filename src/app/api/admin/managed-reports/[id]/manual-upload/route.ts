@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         continue;
       }
 
-      const { collectedAt, metrics } = parsed.data;
+      const { collectedAt, metrics, meta } = parsed.data;
       const recordedAt = new Date(collectedAt);
 
       await prisma.collectorIngestion.create({
@@ -55,6 +55,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           },
         },
       });
+
+      if (meta?.deviceSerialNumber) {
+        await prisma.managedServiceSubscription.update({
+          where: { id: params.id },
+          data: { deviceSerialNumber: meta.deviceSerialNumber },
+        });
+      }
 
       results.push({ fileName: file.name, ok: true, metricsStored: metrics.length });
     } catch (err) {

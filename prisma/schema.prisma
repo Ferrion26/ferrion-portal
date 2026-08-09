@@ -55,6 +55,13 @@ enum ReportStatus {
   PUBLISHED
 }
 
+enum ReportPeriodType {
+  MONTH
+  QUARTER
+  HALF_YEAR
+  YEAR
+}
+
 enum IngestionSource {
   COLLECTOR
   MANUAL_UPLOAD
@@ -191,6 +198,12 @@ model ManagedServiceSubscription {
   startDate   DateTime            @default(now())
   createdAt   DateTime            @default(now())
 
+  // Vom Collector gemeldet (meta.deviceSerialNumber im Ingest-Payload) —
+  // bei OceanProtect die Huawei-ESN, gleichzeitig die deviceId, mit der der
+  // Collector sich am DeviceManager anmeldet. Geräteattribut, keine
+  // Zeitreihen-Kennzahl, daher hier statt in ManagedServiceMetric.
+  deviceSerialNumber String?
+
   customerId String
   customer   User   @relation(fields: [customerId], references: [id])
 
@@ -256,13 +269,14 @@ model ManagedServiceMetric {
 }
 
 model QuarterlyReport {
-  id          String       @id @default(cuid())
+  id          String           @id @default(cuid())
   periodStart DateTime
   periodEnd   DateTime
-  status      ReportStatus @default(DRAFT)
+  periodType  ReportPeriodType @default(QUARTER)
+  status      ReportStatus     @default(DRAFT)
   summary     Json // berechnete Kennzahlen zum Erstellzeitpunkt (reproduzierbar)
   adminNotes  String?
-  generatedAt DateTime     @default(now())
+  generatedAt DateTime         @default(now())
   publishedAt DateTime?
 
   subscriptionId String
