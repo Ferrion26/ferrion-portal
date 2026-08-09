@@ -69,7 +69,7 @@ function Donut({ percent }: { percent: number }) {
         transform="rotate(-90 50 50)"
       />
       <text x="50" y="46" textAnchor="middle" className="fill-white" style={{ fontSize: 20, fontWeight: 700 }}>
-        {clamped.toLocaleString("de-AT", { maximumFractionDigits: 1 })}%
+        {clamped.toLocaleString("de-DE", { maximumFractionDigits: 1 })}%
       </text>
       <text x="50" y="62" textAnchor="middle" className="fill-gray-500" style={{ fontSize: 9 }}>
         Pool

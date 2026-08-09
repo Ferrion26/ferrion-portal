@@ -31,6 +31,11 @@ const ROW_DIVIDER = "#F3F4F6";
 // Bericht muss die Sidebar aber pro Produkt unterschiedliche Werte zeigen.
 const SIDEBAR_WIDTH = 148;
 const PAGE_PADDING = 24;
+// A4 in PDF-Punkten (react-pdfs Standardgröße für size="A4"). Explizit statt
+// dem Hauptinhalt seine Breite implizit über marginLeft berechnen zu lassen
+// — sicherer bei einer absolut positionierten Sidebar auf mehrseitigen,
+// automatisch umbrechenden <Page>-Inhalten.
+const PAGE_WIDTH = 595.28;
 
 const STATUS_COLORS: Record<MetricStatus, { bg: string; text: string; dot: string }> = {
   good: { bg: "#DCFCE7", text: "#15803D", dot: "#22C55E" },
@@ -85,7 +90,13 @@ function trendInfo(entry: QuarterSummaryEntry) {
 }
 
 const styles = StyleSheet.create({
-  page: { fontFamily: "Helvetica", color: INK, fontSize: 9, backgroundColor: PAGE_BG },
+  // paddingBottom hier statt (nur) auf `main`: react-pdfs Seitenumbruch-
+  // Berechnung für automatisch fließenden Inhalt bemisst den verfügbaren
+  // Platz am Page-eigenen Padding, nicht am Padding verschachtelter Views —
+  // und weiß nichts vom fixed-positionierten Footer. Ohne dieses Padding
+  // hier hält react-pdf eine Zeile für "passt noch", obwohl sie den fixed
+  // Footer überlappt, statt sie auf die nächste Seite zu schieben.
+  page: { fontFamily: "Helvetica", color: INK, fontSize: 9, backgroundColor: PAGE_BG, paddingBottom: 48 },
 
   sidebar: {
     position: "absolute",
@@ -111,7 +122,7 @@ const styles = StyleSheet.create({
   sidebarFooterTagline: { fontSize: 6.5, color: GOLD, letterSpacing: 1 },
   sidebarFooterUrl: { fontSize: 6, color: "#6B7280", marginTop: 2 },
 
-  main: { marginLeft: SIDEBAR_WIDTH, paddingHorizontal: PAGE_PADDING, paddingTop: PAGE_PADDING, paddingBottom: 42 },
+  main: { marginLeft: SIDEBAR_WIDTH, width: PAGE_WIDTH - SIDEBAR_WIDTH, paddingHorizontal: PAGE_PADDING, paddingTop: PAGE_PADDING },
 
   topBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
   topBarKicker: { fontSize: 7, color: GRAY, letterSpacing: 1, marginBottom: 2 },
@@ -260,7 +271,7 @@ function Donut({ percent, label }: { percent: number; label: string }) {
       </Svg>
       <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
         <Text style={{ fontSize: 12, fontFamily: "Helvetica-Bold", color: INK }}>
-          {clamped.toLocaleString("de-AT", { maximumFractionDigits: 1 })}%
+          {clamped.toLocaleString("de-DE", { maximumFractionDigits: 1 })}%
         </Text>
         <Text style={{ fontSize: 6, color: GRAY, marginTop: 1 }}>{label}</Text>
       </View>
@@ -310,7 +321,7 @@ function CompactListRow({ entry, locale }: { entry: QuarterSummaryEntry; locale:
   const trend = trendInfo(entry);
   const tags = metricTags(entry, locale);
   return (
-    <View style={styles.listRow}>
+    <View style={styles.listRow} wrap={false}>
       <View style={styles.listRowLeft}>
         <Dot status={status} />
         <Text style={styles.listRowLabel}>
@@ -335,7 +346,12 @@ function CompactListRow({ entry, locale }: { entry: QuarterSummaryEntry; locale:
 function ListCard({ title, sub, entries, locale }: { title: string; sub?: string; entries: QuarterSummaryEntry[]; locale: "de" | "en" }) {
   if (entries.length === 0) return null;
   return (
-    <View style={styles.listCard} wrap={false}>
+    // Kein wrap={false} auf dem Container: die Zeilenzahl wächst mit jeder
+    // neuen Metrik im Abschnitt (Infrastrukturstatus/Betrieb sind inzwischen
+    // 10+ Zeilen) — ein starr unteilbarer Block kann dann größer als eine
+    // Seite werden. Stattdessen bricht nur jede einzelne Zeile nicht um
+    // (CompactListRow, siehe unten).
+    <View style={styles.listCard}>
       <Text style={styles.listCardTitle}>{title}</Text>
       {sub && <Text style={styles.listCardSub}>{sub}</Text>}
       {entries.map((e) => (
@@ -353,7 +369,10 @@ function UsageBarCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "
   const fillColor = entry.trendGood ? STATUS_COLORS[status].dot : GOLD;
   return (
     <View style={styles.barCard} wrap={false}>
-      <Text style={styles.barCardTitle}>{entry.label[locale]}</Text>
+      {/* shortLabel statt label: die vollen Metriknamen ("Controller-CPU-
+          Auslastung (Ø aller Controller)") brechen in dieser schmalen Karte
+          auf 2 Zeilen um und überlappen dann mit dem Wert darunter. */}
+      <Text style={styles.barCardTitle}>{entry.shortLabel?.[locale] ?? entry.label[locale]}</Text>
       <Text style={styles.barValue}>{formatValue(entry, locale)}</Text>
       <View style={styles.barTrack}>
         <View style={{ ...styles.barFill, width: `${pct}%`, backgroundColor: fillColor }} />
@@ -489,11 +508,14 @@ function SuccessfulChecksCard({ checks, locale }: { checks: ComponentCheck[]; lo
   const shown = ok.slice(0, MAX_SUCCESSFUL_CHECKS_SHOWN);
   const overflow = ok.length - shown.length;
   return (
-    <View style={styles.tableCardBlock} wrap={false}>
+    // Kein wrap={false} auf dem Container: bis zu MAX_SUCCESSFUL_CHECKS_SHOWN
+    // (60) Zeilen sprengen als starr unteilbarer Block leicht eine Seite
+    // (siehe dieselbe Korrektur bei AlarmCard/ComponentFaultsCard/ListCard).
+    <View style={styles.tableCardBlock}>
       <Text style={styles.listCardTitle}>{t.successTitle}</Text>
       <Text style={styles.listCardSub}>{t.successSub}</Text>
       {shown.map((check, i) => (
-        <View key={i} style={{ ...styles.tableRow, alignItems: "flex-start" }}>
+        <View key={i} wrap={false} style={{ ...styles.tableRow, alignItems: "flex-start" }}>
           <Text style={{ width: 90, color: MUTED, fontSize: 7, paddingTop: 1 }}>{check.category}</Text>
           <Text style={{ width: 110, fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, paddingRight: 6 }}>{check.id}</Text>
           <Text style={{ flex: 1, fontSize: 8, color: "#374151" }}>{check.description}</Text>
@@ -528,9 +550,9 @@ function ResourceBreakdownCard({ breakdown, locale }: { breakdown: ResourceBreak
       {sorted.map((row) => (
         <View key={row.resourceType} style={styles.tableRow}>
           <Text style={styles.tableCellName}>{row.resourceType}</Text>
-          <Text style={styles.tableCellNum}>{row.protectedCount.toLocaleString(locale === "de" ? "de-AT" : "en-US")}</Text>
+          <Text style={styles.tableCellNum}>{row.protectedCount.toLocaleString(locale === "de" ? "de-DE" : "en-US")}</Text>
           <Text style={{ ...styles.tableCellNum, color: row.unprotectedCount > 0 ? STATUS_COLORS.warning.dot : INK }}>
-            {row.unprotectedCount.toLocaleString(locale === "de" ? "de-AT" : "en-US")}
+            {row.unprotectedCount.toLocaleString(locale === "de" ? "de-DE" : "en-US")}
           </Text>
         </View>
       ))}
@@ -922,26 +944,37 @@ function ProductPage({
         {operationsEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
 
         {(methodologyEntries.length > 0 || entries.some((e) => e.derived) || entries.some((e) => e.source)) && (
-          <View style={styles.methodologyBlock} wrap={false}>
+          // Kein wrap={false} auf dem Container: die Zahl der Methodik-
+          // Zeilen wächst mit der Anzahl der Metriken mit methodology-Text
+          // (inzwischen ~10+) — ein starr unteilbarer Block kann dann größer
+          // als eine Seite werden und den PDF-Export zum Absturz bringen
+          // (siehe die gleiche Korrektur bei AlarmCard/ComponentFaultsCard).
+          <View style={styles.methodologyBlock}>
             <Text style={styles.methodologyTitle}>{t.methodologyTitle.toUpperCase()}</Text>
             {entries.some((e) => e.derived) && (
-              <Text style={styles.methodologyLine}>
-                {locale === "de"
-                  ? `Mit "${DERIVED_LABEL.de}" markierte Kennzahlen werden von uns aus mehreren Rohwerten des Geräts berechnet (z. B. gemittelt oder als Quote) — sie sind kein einzelner, vom Gerät direkt gemeldeter Messwert.`
-                  : `Metrics marked "${DERIVED_LABEL.en}" are calculated by us from several raw device readings (e.g. averaged or as a rate) — not a single value reported directly by the device.`}
-              </Text>
+              <View wrap={false}>
+                <Text style={styles.methodologyLine}>
+                  {locale === "de"
+                    ? `Mit "${DERIVED_LABEL.de}" markierte Kennzahlen werden von uns aus mehreren Rohwerten des Geräts berechnet (z. B. gemittelt oder als Quote) — sie sind kein einzelner, vom Gerät direkt gemeldeter Messwert.`
+                    : `Metrics marked "${DERIVED_LABEL.en}" are calculated by us from several raw device readings (e.g. averaged or as a rate) — not a single value reported directly by the device.`}
+                </Text>
+              </View>
             )}
             {entries.some((e) => e.source === "databackup") && (
-              <Text style={styles.methodologyLine}>
-                {locale === "de"
-                  ? `Mit "DataBackup" markierte Kennzahlen kommen aus der separaten Backup-Software-Oberfläche (ProtectManager), nicht aus dem DeviceManager der Storage-Appliance selbst — alle anderen Kennzahlen dieses Abschnitts kommen vom Storage-Gerät.`
-                  : `Metrics marked "DataBackup" come from the separate backup software interface (ProtectManager), not from the storage appliance's own DeviceManager — every other metric in this section comes from the storage device.`}
-              </Text>
+              <View wrap={false}>
+                <Text style={styles.methodologyLine}>
+                  {locale === "de"
+                    ? `Mit "DataBackup" markierte Kennzahlen kommen aus der separaten Backup-Software-Oberfläche (ProtectManager), nicht aus dem DeviceManager der Storage-Appliance selbst — alle anderen Kennzahlen dieses Abschnitts kommen vom Storage-Gerät.`
+                    : `Metrics marked "DataBackup" come from the separate backup software interface (ProtectManager), not from the storage appliance's own DeviceManager — every other metric in this section comes from the storage device.`}
+                </Text>
+              </View>
             )}
             {methodologyEntries.map((e) => (
-              <Text key={e.key} style={styles.methodologyLine}>
-                {e.label[locale]}: {e.methodology![locale]}
-              </Text>
+              <View key={e.key} wrap={false}>
+                <Text style={styles.methodologyLine}>
+                  {e.label[locale]}: {e.methodology![locale]}
+                </Text>
+              </View>
             ))}
           </View>
         )}

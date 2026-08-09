@@ -4,8 +4,14 @@ import { QuarterSummaryEntry } from "./aggregate";
 // narrative/recommendation text so a number reads identically everywhere
 // in the report.
 export function formatValue(entry: Pick<QuarterSummaryEntry, "format" | "value" | "unit">, locale: "de" | "en") {
+  // "de-DE" statt "de-AT": Austrians Tausendertrennzeichen ist laut ICU ein
+  // geschütztes Leerzeichen (U+00A0) statt eines Punkts — react-pdfs
+  // Textumbruch behandelt das nicht als unteilbar und bricht die Zahl mitten
+  // in der Zahl um (z. B. "1 554,3" → "1" / "554,3" auf zwei Zeilen). "de-DE"
+  // verwendet einen echten Punkt, der nie umbricht und optisch identisch zur
+  // in Österreich gebräuchlichen Schreibweise ist.
   const n = (digits: number) =>
-    entry.value.toLocaleString(locale === "de" ? "de-AT" : "en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    entry.value.toLocaleString(locale === "de" ? "de-DE" : "en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
   switch (entry.format) {
     case "percent":
       return `${n(1)} %`;
