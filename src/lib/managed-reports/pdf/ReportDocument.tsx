@@ -286,6 +286,29 @@ const ALARM_CARD_COPY = {
 
 const MAX_ALARM_SAMPLES_SHOWN = 8;
 
+const HTML_NAMED_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+};
+
+// Huaweis Alarm-Klartext (description/suggestion/name) kommt HTML-kodiert
+// zurück (z. B. "&#40;" statt "(", "&gt;" statt ">") — vermutlich weil der
+// Text ursprünglich für die Web-GUI gedacht ist. react-pdf's <Text> rendert
+// das wörtlich statt es zu interpretieren, daher hier von Hand dekodieren.
+function decodeHtmlEntities(text: string): string {
+  return text.replace(/&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity: string) => {
+    if (entity[0] === "#") {
+      const code = entity[1] === "x" || entity[1] === "X" ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+    }
+    return HTML_NAMED_ENTITIES[entity] ?? match;
+  });
+}
+
 function AlarmCard({ alarms, locale }: { alarms: AlarmSample[]; locale: "de" | "en" }) {
   const t = ALARM_CARD_COPY[locale];
   const shown = alarms.slice(0, MAX_ALARM_SAMPLES_SHOWN);
@@ -298,13 +321,17 @@ function AlarmCard({ alarms, locale }: { alarms: AlarmSample[]; locale: "de" | "
           <View style={styles.alarmTopRow}>
             <View style={styles.alarmTitleGroup}>
               <Dot status={ALARM_SEVERITY_TO_STATUS[alarm.severity]} />
-              <Text style={styles.alarmName}>{alarm.name}</Text>
+              <Text style={styles.alarmName}>{decodeHtmlEntities(alarm.name)}</Text>
               <StatusPill status={ALARM_SEVERITY_TO_STATUS[alarm.severity]} text={ALARM_SEVERITY_LABEL[locale][alarm.severity]} />
             </View>
             {alarm.time && <Text style={styles.alarmTime}>{formatDateTime(alarm.time, locale)}</Text>}
           </View>
-          <Text style={styles.alarmDesc}>{alarm.description}</Text>
-          {alarm.suggestion && <Text style={styles.alarmSuggestion}>{(locale === "de" ? "Empfehlung: " : "Suggestion: ") + alarm.suggestion}</Text>}
+          <Text style={styles.alarmDesc}>{decodeHtmlEntities(alarm.description)}</Text>
+          {alarm.suggestion && (
+            <Text style={styles.alarmSuggestion}>
+              {(locale === "de" ? "Empfehlung: " : "Suggestion: ") + decodeHtmlEntities(alarm.suggestion)}
+            </Text>
+          )}
         </View>
       ))}
     </View>
