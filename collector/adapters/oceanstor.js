@@ -57,7 +57,11 @@ const ALARM_LEVELS = [
   { level: 5, severity: "major" },
   { level: 3, severity: "warning" },
 ];
+// Wie viele UNTERSCHIEDLICHE Alarmtypen pro Schweregrad im Bericht gezeigt
+// werden (siehe oceanprotect.js für die ausführliche Begründung, warum das
+// Fetch-Fenster deutlich größer ist als die Sample-Größe).
 const ALARM_SAMPLE_SIZE = 5;
+const ALARM_FETCH_RANGE = 50;
 
 async function fetchAlarmSamples(config, base, authHeaders, rawEndpoints) {
   const samples = [];
@@ -65,15 +69,20 @@ async function fetchAlarmSamples(config, base, authHeaders, rawEndpoints) {
     try {
       const { body } = await requestJson(
         config,
-        joinUrl(base, `/alarm/currentalarm?filter=level::${level}&sortby=startTime,d&range=[0-${ALARM_SAMPLE_SIZE - 1}]`),
+        joinUrl(base, `/alarm/currentalarm?filter=level::${level}&sortby=startTime,d&range=[0-${ALARM_FETCH_RANGE - 1}]`),
         { headers: authHeaders }
       );
       if (rawEndpoints) rawEndpoints[`/alarm/currentalarm?level=${level}`] = body.data;
+      const seenNames = new Set();
       for (const alarm of body.data ?? []) {
+        const name = String(alarm.name ?? "").slice(0, 200) || "Alarm";
+        if (seenNames.has(name)) continue;
+        if (seenNames.size >= ALARM_SAMPLE_SIZE) break;
+        seenNames.add(name);
         samples.push({
           severity,
           sequence: alarm.sequence !== undefined ? String(alarm.sequence) : undefined,
-          name: String(alarm.name ?? "").slice(0, 200) || "Alarm",
+          name,
           description: String(alarm.description ?? "").slice(0, 500) || "—",
           suggestion: alarm.suggestion ? String(alarm.suggestion).slice(0, 500) : undefined,
           time: Number.isFinite(Number(alarm.startTime)) ? new Date(Number(alarm.startTime) * 1000).toISOString() : undefined,
@@ -99,10 +108,13 @@ async function fetchOptional(config, label, promise) {
 // die Detailreferenz am Ende des Berichts, wenn eine Fehler-Kennzahl > 0 ist.
 const HEALTH_STATUS_LABELS = {
   0: "Unbekannt",
+  1: "Normal",
   2: "Fehlerhaft",
   3: "Fällt demnächst aus",
+  5: "Beeinträchtigt",
   9: "Inkonsistent",
   11: "Kein Eingang",
+  14: "Ungültig",
   17: "Nur ein Link",
 };
 function describeHealthStatus(code) {
@@ -119,10 +131,18 @@ function componentDisplayName(item) {
   return String(item.NAME ?? item.LOCALRESNAME ?? item.location ?? item.LOCATION ?? item.ID ?? item.id ?? "—");
 }
 
-function collectFaultDetails(componentFaults, category, list, isOk) {
+// Sammelt Details zu den NICHT normalen Einträgen (componentFaults) UND —
+// sofern componentChecks übergeben wird — zu JEDEM geprüften Element inkl.
+// der normalen (für den abschließenden "erfolgreich geprüft"-
+// Referenzabschnitt im Bericht).
+function collectFaultDetails(componentFaults, componentChecks, category, list, isOk) {
   for (const item of list) {
     const status = Number(item.HEALTHSTATUS ?? item.healthStatus);
-    if (isOk(status)) continue;
+    const ok = isOk(status);
+    if (componentChecks) {
+      componentChecks.push({ category, id: componentDisplayName(item), description: describeHealthStatus(status), ok });
+    }
+    if (ok) continue;
     componentFaults.push({
       category,
       id: componentDisplayName(item),
@@ -236,6 +256,9 @@ async function collectHardwareMetrics(config, session) {
 
   const metrics = [];
   const componentFaults = [];
+  // Jede geprüfte Komponente (Normal UND fehlerhaft) — Grundlage für den
+  // abschließenden "erfolgreich geprüft"-Referenzabschnitt im Bericht.
+  const componentChecks = [];
 
   const sys = system.body.data;
   const systemHealthy = Number(sys.HEALTHSTATUS) === 1 && Number(sys.RUNNINGSTATUS) === 1 ? 100 : 0;
@@ -257,13 +280,20 @@ async function collectHardwareMetrics(config, session) {
     metrics.push({ key: "controller_memory_usage_avg", value: memValues.reduce((a, b) => a + b, 0) / memValues.length, unit: "%" });
   }
   metrics.push({ key: "controllers_faulty", value: controllerList.filter((c) => Number(c.HEALTHSTATUS) !== 1).length, unit: "count" });
-  collectFaultDetails(componentFaults, "Controller", controllerList, (s) => s === 1);
+  collectFaultDetails(componentFaults, componentChecks, "Controller", controllerList, (s) => s === 1);
 
   // Firmware-Konsistenz zwischen Controllern (aus dem Inspector-Healthcheck).
   const firmwareVersions = new Set(controllerList.map((c) => c.SOFTVER).filter(Boolean));
   if (firmwareVersions.size > 0) {
-    metrics.push({ key: "controllers_firmware_inconsistent", value: firmwareVersions.size > 1 ? 1 : 0, unit: "count" });
-    if (firmwareVersions.size > 1) {
+    const firmwareOk = firmwareVersions.size <= 1;
+    metrics.push({ key: "controllers_firmware_inconsistent", value: firmwareOk ? 0 : 1, unit: "count" });
+    componentChecks.push({
+      category: "Firmware",
+      id: "Alle Controller",
+      description: `Versionen: ${[...firmwareVersions].join(", ")}`,
+      ok: firmwareOk,
+    });
+    if (!firmwareOk) {
       for (const c of controllerList) {
         componentFaults.push({ category: "Firmware", id: `Controller ${c.ID}`, description: `Version ${c.SOFTVER}` });
       }
@@ -272,15 +302,15 @@ async function collectHardwareMetrics(config, session) {
 
   const diskList = Array.isArray(disks.body.data) ? disks.body.data : [];
   metrics.push({ key: "disks_faulty", value: diskList.filter((d) => Number(d.HEALTHSTATUS) !== 1).length, unit: "count" });
-  collectFaultDetails(componentFaults, "Festplatte", diskList, (s) => s === 1);
+  collectFaultDetails(componentFaults, componentChecks, "Festplatte", diskList, (s) => s === 1);
 
   const fanList = Array.isArray(fans.body.data) ? fans.body.data : [];
   metrics.push({ key: "fans_faulty", value: fanList.filter((f) => Number(f.HEALTHSTATUS) !== 1).length, unit: "count" });
-  collectFaultDetails(componentFaults, "Lüfter", fanList, (s) => s === 1);
+  collectFaultDetails(componentFaults, componentChecks, "Lüfter", fanList, (s) => s === 1);
 
   const powerList = Array.isArray(power.body.data) ? power.body.data : [];
   metrics.push({ key: "power_modules_faulty", value: powerList.filter((p) => Number(p.HEALTHSTATUS) !== 1).length, unit: "count" });
-  collectFaultDetails(componentFaults, "Netzteil", powerList, (s) => s === 1);
+  collectFaultDetails(componentFaults, componentChecks, "Netzteil", powerList, (s) => s === 1);
 
   // Wartungsports (z. B. "CTE0.A.MAINTENANCE") sind regulär nicht
   // angeschlossen und würden sonst dauerhaft als "down" mitgezählt.
@@ -288,8 +318,10 @@ async function collectHardwareMetrics(config, session) {
   const activePorts = ethList.filter((p) => Number(p.HEALTHSTATUS) !== 0 && !/maintenance/i.test(String(p.NAME ?? p.ID ?? "")));
   const downPorts = activePorts.filter((p) => Number(p.RUNNINGSTATUS) === 11);
   metrics.push({ key: "eth_ports_down", value: downPorts.length, unit: "count" });
-  for (const p of downPorts) {
-    componentFaults.push({ category: "Netzwerk-Port", id: componentDisplayName(p), description: "Offline" });
+  for (const p of activePorts) {
+    const down = Number(p.RUNNINGSTATUS) === 11;
+    componentChecks.push({ category: "Netzwerk-Port", id: componentDisplayName(p), description: down ? "Offline" : "Online", ok: !down });
+    if (down) componentFaults.push({ category: "Netzwerk-Port", id: componentDisplayName(p), description: "Offline" });
   }
 
   // Nur melden, wenn überhaupt Replikationspaare konfiguriert sind — sonst
@@ -302,7 +334,7 @@ async function collectHardwareMetrics(config, session) {
       value: replicationPairList.filter((r) => Number(r.HEALTHSTATUS) !== 1).length,
       unit: "count",
     });
-    collectFaultDetails(componentFaults, "Replikationspaar", replicationPairList, (s) => s === 1);
+    collectFaultDetails(componentFaults, componentChecks, "Replikationspaar", replicationPairList, (s) => s === 1);
   }
 
   // Remote-Devices: eigenständiger Verbindungsstatus zu Replikationszielen
@@ -314,7 +346,7 @@ async function collectHardwareMetrics(config, session) {
       value: remoteDeviceList.filter((d) => Number(d.HEALTHSTATUS) !== 1).length,
       unit: "count",
     });
-    collectFaultDetails(componentFaults, "Remote-Device", remoteDeviceList, (s) => s === 1);
+    collectFaultDetails(componentFaults, componentChecks, "Remote-Device", remoteDeviceList, (s) => s === 1);
   }
 
   if (fsSnapshots) {
@@ -330,7 +362,7 @@ async function collectHardwareMetrics(config, session) {
       value: sfpList.filter((s) => ![0, 1].includes(Number(s.healthStatus))).length,
       unit: "count",
     });
-    collectFaultDetails(componentFaults, "Optikmodul", sfpList, (s) => s === 0 || s === 1);
+    collectFaultDetails(componentFaults, componentChecks, "Optikmodul", sfpList, (s) => s === 0 || s === 1);
   }
 
   if (email) {
@@ -385,7 +417,7 @@ async function collectHardwareMetrics(config, session) {
     }
   }
 
-  return { metrics, deviceInfo, componentFaults, rawEndpoints };
+  return { metrics, deviceInfo, componentFaults, componentChecks, rawEndpoints };
 }
 
 async function collect(config) {
@@ -407,6 +439,7 @@ async function collect(config) {
     let deviceInfo = null;
     let alarmSamples;
     let componentFaults;
+    let componentChecks;
     const rawEndpoints = {};
     if (capacityResult.status === "fulfilled") {
       metrics.push(...capacityResult.value.metrics);
@@ -419,6 +452,7 @@ async function collect(config) {
       metrics.push(...hardwareResult.value.metrics);
       deviceInfo = hardwareResult.value.deviceInfo;
       componentFaults = hardwareResult.value.componentFaults;
+      componentChecks = hardwareResult.value.componentChecks;
       Object.assign(rawEndpoints, hardwareResult.value.rawEndpoints);
     } else {
       config.logger?.warn(`Hardware-Kennzahlen konnten nicht erhoben werden: ${hardwareResult.reason.message}`);
@@ -437,6 +471,9 @@ async function collect(config) {
     // ("aktuell keine Alarme/Fehler"), wird mitgeschickt.
     if (alarmSamples !== undefined) meta.alarmSamples = alarmSamples;
     if (componentFaults !== undefined) meta.componentFaults = componentFaults;
+    // Reine Momentaufnahme (kein aktiv/gelöst-Historienkonzept wie bei
+    // componentFaults) — wird bei jedem Ingest einfach überschrieben.
+    if (componentChecks?.length > 0) meta.componentChecks = componentChecks;
     // Vollständige Rohantworten aller abgefragten Endpunkte (siehe captureRaw
     // oben) — für spätere Auswertungen, ohne dafür einen neuen Collector zu
     // benötigen, falls in einem Adapter mal ein Feld vergessen wurde.

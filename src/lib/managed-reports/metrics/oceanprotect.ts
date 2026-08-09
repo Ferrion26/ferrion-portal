@@ -119,7 +119,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     // Gesamte Datenreduktion (Dedup + Kompression) — entspricht dem
     // "Reduction Ratio" im DeviceManager (Kachel "Data Reduction").
     key: "data_reduction_ratio",
-    label: { de: "Datenreduktionsrate (gesamt)", en: "Data Reduction Ratio (Overall)" },
+    label: { de: "Data Reduction – Reduction Ratio", en: "Data Reduction – Reduction Ratio" },
     unit: "×",
     format: "ratio",
     aggregation: "avg",
@@ -138,7 +138,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     // logische Kapazität, die ohne Reduktion belegt wäre ("Pre-Savings" im
     // DeviceManager).
     key: "capacity_before_reduction_tb",
-    label: { de: "Kapazität vor Reduktion", en: "Capacity Before Reduction" },
+    label: { de: "Data Reduction – Pre-Savings", en: "Data Reduction – Pre-Savings" },
     unit: "TB",
     format: "tb",
     aggregation: "last",

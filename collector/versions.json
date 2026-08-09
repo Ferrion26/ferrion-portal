@@ -8,5 +8,10 @@
     "version": "1.3.0",
     "releasedAt": "2026-08-10",
     "notes": "Vollständige Rohantworten jedes abgefragten REST-Endpunkts werden zusätzlich mitgeschickt (meta.rawEndpoints), damit spätere Auswertungen auf bereits gesammelten Ingestions aufsetzen können, ohne einen neuen Collector zu benötigen."
+  },
+  {
+    "version": "1.4.0",
+    "releasedAt": "2026-08-10",
+    "notes": "Erfasst jetzt jede geprüfte Komponente (auch die unauffälligen) als componentChecks — Grundlage für den neuen 'erfolgreich geprüft'-Referenzabschnitt im Bericht. Alarm-Sampling dedupliziert jetzt nach Alarmtyp statt nur die zeitlich jüngsten zu nehmen."
   }
 ]

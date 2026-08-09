@@ -80,6 +80,7 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
     resourceBreakdown: (subscription.resourceBreakdown as unknown as ProductReportData["resourceBreakdown"]) ?? undefined,
     topJobFailures: (subscription.topJobFailures as unknown as ProductReportData["topJobFailures"]) ?? undefined,
     componentFaults: componentFaults.length > 0 ? componentFaults : undefined,
+    componentChecks: (subscription.componentChecks as unknown as ProductReportData["componentChecks"]) ?? undefined,
     replicationNote: subscription.replicationNote ?? undefined,
   };
 }

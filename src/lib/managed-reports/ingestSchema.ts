@@ -89,6 +89,22 @@ export const ingestPayloadSchema = z.object({
         )
         .max(50)
         .optional(),
+      // JEDE geprüfte Komponente (normal UND fehlerhaft) — anders als
+      // componentFaults keine Historie, sondern eine reine Momentaufnahme des
+      // letzten Ingests. Grundlage für den abschließenden "erfolgreich
+      // geprüft"-Referenzabschnitt im Bericht (zeigt, was tatsächlich
+      // überprüft wurde, nicht nur was auffällig war).
+      componentChecks: z
+        .array(
+          z.object({
+            category: z.string().min(1).max(100),
+            id: z.string().min(1).max(200),
+            description: z.string().min(1).max(300),
+            ok: z.boolean(),
+          })
+        )
+        .max(300)
+        .optional(),
       // Vollständige Rohantworten der abgefragten REST-Endpunkte, unter dem
       // jeweiligen Pfad als Schlüssel (siehe captureRaw in den Collector-
       // Adaptern) — bewusst lose typisiert (unbekannte Gerätefelder), damit

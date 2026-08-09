@@ -229,6 +229,12 @@ model ManagedServiceSubscription {
   // und nach Ressource — vom letzten Ingest überschrieben, keine Historie.
   topJobFailures Json?
 
+  // JEDE geprüfte Hardware-/Verbindungskomponente (normal UND fehlerhaft) —
+  // vom letzten Ingest überschrieben, keine Historie (im Gegensatz zu
+  // componentFaults/DeviceFinding kein aktiv/gelöst-Konzept). Grundlage für
+  // den abschließenden "erfolgreich geprüft"-Referenzabschnitt im Bericht.
+  componentChecks Json?
+
   // Freitext, den ein Admin manuell pflegt, um eine Beziehung zu einem
   // anderen System zu dokumentieren (z. B. "Snapshots werden von
   // OceanProtect X8000 repliziert") — im Bericht als Hinweiszeile gezeigt.

@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
   if (meta?.dataBackupVersion) deviceUpdate.dataBackupVersion = meta.dataBackupVersion;
   if (meta?.resourceBreakdown) deviceUpdate.resourceBreakdown = meta.resourceBreakdown;
   if (meta?.topJobFailures) deviceUpdate.topJobFailures = meta.topJobFailures;
+  if (meta?.componentChecks) deviceUpdate.componentChecks = meta.componentChecks;
 
   const [, ingestion] = await prisma.$transaction([
     prisma.collectorApiKey.update({
