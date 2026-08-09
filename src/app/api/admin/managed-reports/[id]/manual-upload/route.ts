@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         continue;
       }
 
-      const { collectedAt, metrics, meta } = parsed.data;
+      const { collectedAt, metrics, meta, collectorVersion } = parsed.data;
       const recordedAt = new Date(collectedAt);
 
       await prisma.collectorIngestion.create({
@@ -59,6 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       });
 
       const deviceUpdate: Record<string, unknown> = {};
+      if (collectorVersion) deviceUpdate.collectorVersion = collectorVersion;
       if (meta?.deviceSerialNumber) deviceUpdate.deviceSerialNumber = meta.deviceSerialNumber;
       if (meta?.deviceModel) deviceUpdate.deviceModel = meta.deviceModel;
       if (meta?.deviceSoftwareVersion) deviceUpdate.deviceSoftwareVersion = meta.deviceSoftwareVersion;

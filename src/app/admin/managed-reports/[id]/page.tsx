@@ -5,6 +5,8 @@ import { formatDate } from "@/lib/utils";
 import { PRODUCTS } from "@/app/produkte/products-data";
 import { periodLabel } from "@/lib/managed-reports/quarter";
 import { formatDateTime } from "@/lib/managed-reports/reportFormat";
+import { isCollectorOutdated } from "@/lib/managed-reports/collectorVersion";
+import { getCollectorBaseline } from "@/lib/settings";
 import { Badge } from "@/components/ui/Badge";
 import ReportDownloadButton from "@/components/managed-reports/ReportDownloadButton";
 import ApiKeyManager from "./ApiKeyManager";
@@ -29,7 +31,7 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
   });
   if (!subscription) notFound();
 
-  const [ingestions, openFindingsCount] = await Promise.all([
+  const [ingestions, openFindingsCount, collectorBaseline] = await Promise.all([
     prisma.collectorIngestion.findMany({
       where: { subscriptionId: params.id },
       orderBy: { receivedAt: "desc" },
@@ -37,7 +39,9 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
       include: { _count: { select: { metrics: true } } },
     }),
     prisma.deviceFinding.count({ where: { subscriptionId: params.id, resolvedAt: null } }),
+    getCollectorBaseline(),
   ]);
+  const collectorOutdated = isCollectorOutdated(subscription.collectorVersion, collectorBaseline);
 
   const product = PRODUCTS.find((p) => p.slug === subscription.productSlug);
 
@@ -77,6 +81,17 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
             {subscription.deviceModel && <>Modell: {subscription.deviceModel} · </>}
             {subscription.deviceSoftwareVersion && <>Version: {subscription.deviceSoftwareVersion} · </>}
             {subscription.deviceSerialNumber && <>SN: {subscription.deviceSerialNumber}</>}
+          </p>
+        )}
+        {subscription.collectorVersion && (
+          <p className="text-sm text-gray-500 mt-1">
+            Collector: {subscription.collectorVersion}
+            {collectorOutdated && (
+              <>
+                {" "}
+                <Badge variant="yellow">Veraltet — Baseline {collectorBaseline}</Badge>
+              </>
+            )}
           </p>
         )}
       </div>

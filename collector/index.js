@@ -27,6 +27,7 @@ const fs = require("fs");
 const path = require("path");
 const { pushMetrics } = require("./push");
 const { createLogger } = require("./logger");
+const { FULL: COLLECTOR_VERSION } = require("./version");
 
 const ADAPTERS = {
   oceanprotect: require("./adapters/oceanprotect"),
@@ -96,7 +97,7 @@ async function collectDevice(sharedConfig, device, log, exportDir) {
   const collected = await adapter.collect(deviceConfig);
   const metrics = Array.isArray(collected) ? collected : collected.metrics;
   const meta = Array.isArray(collected) ? undefined : collected.meta;
-  const payload = { collectedAt: new Date().toISOString(), metrics, ...(meta ? { meta } : {}) };
+  const payload = { collectedAt: new Date().toISOString(), collectorVersion: COLLECTOR_VERSION, metrics, ...(meta ? { meta } : {}) };
 
   if (exportDir) {
     const filePath = writeExportFile(exportDir, deviceConfig.productSlug, payload);
@@ -119,6 +120,7 @@ async function main() {
   config.logger = log;
 
   log.info(`Log-Datei: ${log.logFile}`);
+  log.info(`Collector-Version: ${COLLECTOR_VERSION}`);
 
   const devices = normalizeDevices(config);
   if (exportDir) {

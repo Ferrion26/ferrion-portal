@@ -27,9 +27,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payload", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { collectedAt, metrics, meta } = parsed.data;
+  const { collectedAt, metrics, meta, collectorVersion } = parsed.data;
   const recordedAt = new Date(collectedAt);
   const deviceUpdate: Record<string, unknown> = {};
+  if (collectorVersion) deviceUpdate.collectorVersion = collectorVersion;
   if (meta?.deviceSerialNumber) deviceUpdate.deviceSerialNumber = meta.deviceSerialNumber;
   if (meta?.deviceModel) deviceUpdate.deviceModel = meta.deviceModel;
   if (meta?.deviceSoftwareVersion) deviceUpdate.deviceSoftwareVersion = meta.deviceSoftwareVersion;

@@ -88,6 +88,15 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     source: "databackup",
   },
   {
+    key: "total_capacity_tb",
+    label: { de: "Gesamtkapazität", en: "Total Capacity" },
+    unit: "TB",
+    format: "tb",
+    aggregation: "last",
+    section: "capacity",
+    headline: true,
+  },
+  {
     key: "protected_capacity_tb",
     label: { de: "Geschützte Kapazität", en: "Protected Capacity" },
     shortLabel: { de: "Kapazität", en: "Capacity" },
@@ -337,6 +346,18 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     // sind — sonst wird die Kennzahl vom Collector gar nicht erst gemeldet.
     key: "replication_pairs_unhealthy",
     label: { de: "Replikationspaare mit Fehlstatus", en: "Unhealthy Replication Pairs" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+  },
+  {
+    // Nur vorhanden, wenn überhaupt Remote-Devices konfiguriert sind — eigener
+    // Verbindungsstatus zum Replikationsziel, unabhängig vom Status der
+    // Replikationspaare selbst (die Geräteverbindung kann ausfallen, ohne
+    // dass sich das sofort in den Paaren zeigt).
+    key: "remote_devices_unhealthy",
+    label: { de: "Remote-Devices mit Fehlstatus", en: "Unhealthy Remote Devices" },
     format: "count",
     aggregation: "last",
     section: "hardware",

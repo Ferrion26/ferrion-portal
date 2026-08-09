@@ -20,6 +20,7 @@ collector/logs/
 
 # vendor REST API reference docs (confidential Huawei partner docs — keep local only)
 docs/Rest/
+docs/Quality/
 
 # debug
 npm-debug.log*

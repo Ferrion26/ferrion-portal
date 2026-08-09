@@ -36,3 +36,25 @@ export async function saveHeroLight(input: Partial<HeroLightSettings>): Promise<
   });
   return normalized;
 }
+
+const COLLECTOR_BASELINE_KEY = "collectorBaseline";
+
+/** Global minimum collector version (see collector/version.js) — null = keine Baseline gesetzt, keine Warnungen. */
+export async function getCollectorBaseline(): Promise<string | null> {
+  try {
+    const row = await prisma.siteSetting.findUnique({ where: { key: COLLECTOR_BASELINE_KEY } });
+    const value = row?.value as { minVersion?: string } | undefined;
+    return value?.minVersion || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Persist die globale Collector-Baseline (admin only — caller must authorise). null löscht sie wieder. */
+export async function saveCollectorBaseline(minVersion: string | null): Promise<void> {
+  await prisma.siteSetting.upsert({
+    where: { key: COLLECTOR_BASELINE_KEY },
+    create: { key: COLLECTOR_BASELINE_KEY, value: { minVersion } },
+    update: { value: { minVersion } },
+  });
+}

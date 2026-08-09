@@ -135,12 +135,18 @@ async function collectStorageMetrics(config, session) {
     config.logger?.warn(`data_reduction_ratio konnte nicht ausgewertet werden (übersprungen): ${err.message}`);
   }
 
-  // USERCONSUMEDCAPACITY ist in Sektoren (512 Byte) angegeben.
+  // USERCONSUMEDCAPACITY/USERTOTALCAPACITY sind in Sektoren (512 Byte)
+  // angegeben — beide stammen aus derselben poolInfo-Antwort, die ohnehin
+  // schon für die Kapazitätsauswertung abgerufen wird.
   const usedSectors = Number(poolInfo.body.data.USERCONSUMEDCAPACITY);
   let usedTB = null;
   if (Number.isFinite(usedSectors)) {
     usedTB = (usedSectors * 512) / 1024 ** 4;
     metrics.push({ key: "protected_capacity_tb", value: usedTB, unit: "TB" });
+  }
+  const totalSectors = Number(poolInfo.body.data.USERTOTALCAPACITY);
+  if (Number.isFinite(totalSectors)) {
+    metrics.push({ key: "total_capacity_tb", value: (totalSectors * 512) / 1024 ** 4, unit: "TB" });
   }
 
   // "Kapazität vor Reduktion" (Pre-Savings) = genutzte Kapazität ×
@@ -174,7 +180,7 @@ async function collectHardwareMetrics(config, session) {
   const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
   const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
 
-  const [system, controllers, disks, fans, power, ethPorts, replicationPairs, bbus, sfpModules, email, syslog, license, certificates] = await Promise.all([
+  const [system, controllers, disks, fans, power, ethPorts, replicationPairs, remoteDevices, bbus, sfpModules, email, syslog, license, certificates] = await Promise.all([
     requestJson(config, joinUrl(base, "/system/"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/controller"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/disk"), { headers: authHeaders }),
@@ -185,6 +191,10 @@ async function collectHardwareMetrics(config, session) {
     // des obigen Promise.all — ein Fehlschlag hier soll die längst bewährten
     // Kennzahlen darüber nicht mitreißen.
     fetchOptional(config, "Replikationspaare", requestJson(config, joinUrl(base, "/REPLICATIONPAIR"), { headers: authHeaders })),
+    // Remote-Speichersysteme (z. B. Replikationsziel), mit denen dieses Gerät
+    // verbunden ist — eigener Status unabhängig von den Replikationspaaren
+    // selbst (die Verbindung kann down sein, ohne dass ein Paar existiert).
+    fetchOptional(config, "Remote-Devices", requestJson(config, joinUrl(base, "/remote_device"), { headers: authHeaders })),
     fetchOptional(config, "BBU-Status", requestJson(config, joinUrl(base, "/backup_power"), { headers: authHeaders })),
     // Aus dem Huawei-Inspector-Healthcheck abgeleitet: Optical-Module-Status
     // ("Optical module status") sowie ob Email-/Syslog-Benachrichtigungen
@@ -208,8 +218,13 @@ async function collectHardwareMetrics(config, session) {
   metrics.push({ key: "system_availability", value: systemHealthy, unit: "%" });
 
   // Modell/Version sind Geräteattribute (kein Zeitreihen-Wert) — werden
-  // getrennt als deviceInfo zurückgegeben, nicht als Metrik.
-  const deviceInfo = { model: sys.productModeString || null, softwareVersion: sys.PRODUCTVERSION || null };
+  // getrennt als deviceInfo zurückgegeben, nicht als Metrik. patchVersion
+  // (z. B. "SPH118") wird von /system/ nur zurückgegeben, wenn ein Patch
+  // installiert ist — Anschluss direkt an PRODUCTVERSION ohne Trenner, exakt
+  // wie Huawei den kombinierten Versionsstring selbst im DeviceManager zeigt
+  // (z. B. "V200R001C10SPH118").
+  const softwareVersion = sys.PRODUCTVERSION ? `${sys.PRODUCTVERSION}${sys.patchVersion || ""}` : null;
+  const deviceInfo = { model: sys.productModeString || null, softwareVersion };
 
   const controllerList = Array.isArray(controllers.body.data) ? controllers.body.data : [];
   const cpuValues = controllerList.map((c) => Number(c.CPUUSAGE)).filter(Number.isFinite);
@@ -261,11 +276,11 @@ async function collectHardwareMetrics(config, session) {
   // Wartungsport sind (z. B. "CTE0.A.MAINTENANCE") — die sind laut Kunde
   // regulär nicht angeschlossen und würden sonst dauerhaft als "down" zählen.
   const ethList = Array.isArray(ethPorts.body.data) ? ethPorts.body.data : [];
-  const activePorts = ethList.filter((p) => Number(p.HEALTHSTATUS) !== 0 && !/maintenance/i.test(String(p.ID ?? "")));
+  const activePorts = ethList.filter((p) => Number(p.HEALTHSTATUS) !== 0 && !/maintenance/i.test(String(p.NAME ?? p.ID ?? "")));
   const downPorts = activePorts.filter((p) => Number(p.RUNNINGSTATUS) === 11);
   metrics.push({ key: "eth_ports_down", value: downPorts.length, unit: "count" });
   for (const p of downPorts) {
-    componentFaults.push({ category: "Netzwerk-Port", id: String(p.ID ?? "—"), description: "Offline" });
+    componentFaults.push({ category: "Netzwerk-Port", id: componentDisplayName(p), description: "Offline" });
   }
 
   // Optical-Module-HEALTHSTATUS: 0 = nicht erkannt (laut Inspector-Kriterium
@@ -347,6 +362,20 @@ async function collectHardwareMetrics(config, session) {
       unit: "count",
     });
     collectFaultDetails(componentFaults, "Replikationspaar", replicationPairList, (s) => s === 1);
+  }
+
+  // Remote-Devices: eigenständiger Verbindungsstatus zu Replikationszielen
+  // (HEALTHSTATUS 1 = Normal, 2 = Faulty, 14 = Invalid) — unabhängig von den
+  // Replikationspaaren selbst gemeldet, da die Geräteverbindung ausfallen
+  // kann, ohne dass die Paare das sofort widerspiegeln.
+  const remoteDeviceList = Array.isArray(remoteDevices?.body?.data) ? remoteDevices.body.data : [];
+  if (remoteDeviceList.length > 0) {
+    metrics.push({
+      key: "remote_devices_unhealthy",
+      value: remoteDeviceList.filter((d) => Number(d.HEALTHSTATUS) !== 1).length,
+      unit: "count",
+    });
+    collectFaultDetails(componentFaults, "Remote-Device", remoteDeviceList, (s) => s === 1);
   }
 
   // Nur melden, wenn der Endpunkt überhaupt Daten liefert — nicht jede
@@ -453,6 +482,16 @@ function describeHealthStatus(code) {
   return HEALTH_STATUS_LABELS[code] ?? `Status-Code ${code}`;
 }
 
+// Menschenlesbarer Name einer Komponente für die Detail-Referenz — die reine
+// numerische ID (z. B. "281480086560769" bei einem Ethernet-Port) ist für
+// niemanden nachvollziehbar. Reihenfolge nach Feldname, der beim jeweiligen
+// Endpunkt laut REST-Doku den Klartext trägt: NAME (eth_port, remote_device),
+// LOCALRESNAME (REPLICATIONPAIR), location (sfp, klein geschrieben). Fällt
+// mangels Klartextfeld auf die rohe ID zurück.
+function componentDisplayName(item) {
+  return String(item.NAME ?? item.LOCALRESNAME ?? item.location ?? item.LOCATION ?? item.ID ?? item.id ?? "—");
+}
+
 // Sammelt für eine Komponentenliste (Controller, Disk, Lüfter, …) Details zu
 // den NICHT normalen Einträgen — Grundlage für den Detail-Referenzabschnitt
 // am Ende des Berichts, damit z. B. "Fehlerhafte Controller: 1" nicht ohne
@@ -463,7 +502,7 @@ function collectFaultDetails(componentFaults, category, list, isOk) {
     if (isOk(status)) continue;
     componentFaults.push({
       category,
-      id: String(item.ID ?? item.id ?? "—"),
+      id: componentDisplayName(item),
       description: describeHealthStatus(status),
     });
   }

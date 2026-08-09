@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
+import { getCollectorBaseline } from "@/lib/settings";
+import CollectorBaselineForm from "./CollectorBaselineForm";
 
 export const metadata = { title: "Managed Reports — Admin" };
 
@@ -12,6 +14,7 @@ export const metadata = { title: "Managed Reports — Admin" };
 // schnell unübersichtlich wurde. Auch Kunden ohne bisherigen Vertrag werden
 // gezeigt, damit sich von hier aus der erste Vertrag anlegen lässt.
 export default async function ManagedReportsPage() {
+  const collectorBaseline = await getCollectorBaseline();
   const customers = await prisma.user.findMany({
     where: { role: "CUSTOMER" },
     select: {
@@ -34,6 +37,15 @@ export default async function ManagedReportsPage() {
       <div>
         <h1 className="text-2xl font-bold text-white mb-1">Managed-Service-Berichte</h1>
         <p className="text-sm text-gray-500">Kunden mit aktiven Managed-Service-Verträgen. Neue Verträge werden auf der jeweiligen Kundenseite angelegt.</p>
+      </div>
+
+      <div className="bg-[#111827] border border-white/10 p-6">
+        <h2 className="font-semibold text-white mb-2">Collector-Baseline</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Globale Mindestversion für den Collector (siehe collector/version.js). Kunden mit einem älteren Collector-Stand
+          werden auf ihrer Subscription-Seite mit einem Hinweis markiert. Leer = keine Baseline, keine Warnungen.
+        </p>
+        <CollectorBaselineForm initialMinVersion={collectorBaseline} />
       </div>
 
       <div className="bg-[#111827] border border-white/10 overflow-hidden">

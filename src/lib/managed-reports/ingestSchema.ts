@@ -9,6 +9,11 @@ import { z } from "zod";
 // any transformation.
 export const ingestPayloadSchema = z.object({
   collectedAt: z.string().datetime(),
+  // Version+Build des Collector-Skripts selbst (siehe collector/version.js),
+  // z. B. "1.2.0+a1b2c3d" — Geräteattribut des Collectors, nicht des
+  // überwachten Geräts, daher auf oberster Ebene statt in meta. Ältere
+  // Collector-Pakete ohne dieses Feld bleiben gültig (optional).
+  collectorVersion: z.string().min(1).max(50).optional(),
   metrics: z
     .array(
       z.object({

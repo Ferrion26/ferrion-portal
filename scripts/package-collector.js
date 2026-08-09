@@ -27,6 +27,20 @@ for (const entry of fs.readdirSync(collectorDir, { withFileTypes: true })) {
   fs.cpSync(src, dest, { recursive: true });
 }
 
+// build.json existiert nur im gepackten Paket (siehe collector/version.js) —
+// verankert die ausgelieferte .zip eindeutig an einem Codestand, damit sich
+// eine im Portal gemeldete collectorVersion auf einen Commit zurückführen lässt.
+let commitHash = "unknown";
+try {
+  commitHash = execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: root }).toString().trim();
+} catch {
+  console.warn("Git-Commit-Hash konnte nicht ermittelt werden — build.json erhält \"unknown\".");
+}
+fs.writeFileSync(
+  path.join(stageDir, "build.json"),
+  JSON.stringify({ build: commitHash, packagedAt: new Date().toISOString() }, null, 2)
+);
+
 execFileSync(
   "powershell",
   ["-NoProfile", "-Command", `Compress-Archive -Path "${stageDir}\\*" -DestinationPath "${zipPath}" -Force`],

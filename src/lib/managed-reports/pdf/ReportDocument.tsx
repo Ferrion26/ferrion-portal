@@ -817,7 +817,9 @@ export function ReportDocument({ locale, customerCompany, periodLabel, products,
         </View>
 
         {products.map((product, i) => (
-          <ProductBlock key={product.productName + i} product={product} locale={locale} isCombined={isCombined} />
+          <View key={product.productName + i} break={i > 0}>
+            <ProductBlock product={product} locale={locale} isCombined={isCombined} />
+          </View>
         ))}
 
         {adminNotes && (

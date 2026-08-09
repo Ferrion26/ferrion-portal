@@ -205,13 +205,18 @@ model ManagedServiceSubscription {
 
   // Vom Collector gemeldet (meta im Ingest-Payload) — Geräteattribute, keine
   // Zeitreihen-Kennzahlen, daher hier statt in ManagedServiceMetric.
-  deviceSerialNumber     String?
-  deviceModel            String?
-  deviceSoftwareVersion  String?
+  deviceSerialNumber    String?
+  deviceModel           String?
+  deviceSoftwareVersion String?
   // Bei OceanProtect eine zweite, unabhängige Versionsnummer: die
   // Backup-Software (DataBackup) läuft als eigener Dienst mit eigenem
   // Versionsstand, getrennt von der Storage-Firmware in deviceSoftwareVersion.
-  dataBackupVersion      String?
+  dataBackupVersion     String?
+  // Version+Build des Collector-Skripts selbst, das zuletzt Daten für diese
+  // Subscription gemeldet hat (siehe collector/version.js) — für den
+  // Admin-Bereich, um veraltete Collector-Stände zu erkennen (siehe
+  // getCollectorBaseline in src/lib/settings.ts).
+  collectorVersion      String?
 
   // Aufschlüsselung der bei DataBackup bekannten Ressourcen nach Typ
   // (Dateisystem, Datenbank, VM, …) inkl. geschützt/ungeschützt — vom

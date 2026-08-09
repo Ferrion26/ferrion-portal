@@ -8,6 +8,15 @@ import { MetricDefinition } from "./types";
 // Hardware-Seite der OceanProtect-Metriken, ohne Backup-/SLA-/Air-Gap-Werte.
 export const OCEANSTOR_METRICS: MetricDefinition[] = [
   {
+    key: "total_capacity_tb",
+    label: { de: "Gesamtkapazität", en: "Total Capacity" },
+    unit: "TB",
+    format: "tb",
+    aggregation: "last",
+    section: "capacity",
+    headline: true,
+  },
+  {
     key: "used_capacity_tb",
     label: { de: "Genutzte Kapazität", en: "Used Capacity" },
     shortLabel: { de: "Kapazität", en: "Capacity" },
@@ -210,6 +219,27 @@ export const OCEANSTOR_METRICS: MetricDefinition[] = [
   {
     key: "eth_ports_down",
     label: { de: "Netzwerk-Ports offline", en: "Network Ports Down" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+  },
+  {
+    // Nur vorhanden, wenn überhaupt Remote-Replication-Pairs konfiguriert
+    // sind — sonst wird die Kennzahl vom Collector gar nicht erst gemeldet.
+    key: "replication_pairs_unhealthy",
+    label: { de: "Replikationspaare mit Fehlstatus", en: "Unhealthy Replication Pairs" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+  },
+  {
+    // Nur vorhanden, wenn überhaupt Remote-Devices konfiguriert sind — eigener
+    // Verbindungsstatus zum Replikationsziel, unabhängig vom Status der
+    // Replikationspaare selbst.
+    key: "remote_devices_unhealthy",
+    label: { de: "Remote-Devices mit Fehlstatus", en: "Unhealthy Remote Devices" },
     format: "count",
     aggregation: "last",
     section: "hardware",
