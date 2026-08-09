@@ -28,10 +28,11 @@ export async function POST(req: NextRequest) {
 
   const { collectedAt, metrics, meta } = parsed.data;
   const recordedAt = new Date(collectedAt);
-  const deviceUpdate: Record<string, string> = {};
+  const deviceUpdate: Record<string, unknown> = {};
   if (meta?.deviceSerialNumber) deviceUpdate.deviceSerialNumber = meta.deviceSerialNumber;
   if (meta?.deviceModel) deviceUpdate.deviceModel = meta.deviceModel;
   if (meta?.deviceSoftwareVersion) deviceUpdate.deviceSoftwareVersion = meta.deviceSoftwareVersion;
+  if (meta?.alarmSamples) deviceUpdate.recentAlarms = meta.alarmSamples;
 
   const [, ingestion] = await prisma.$transaction([
     prisma.collectorApiKey.update({

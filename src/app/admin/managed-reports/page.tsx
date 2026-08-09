@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { PRODUCTS } from "@/app/produkte/products-data";
 import { Badge } from "@/components/ui/Badge";
+import { getReportableProductSlugs } from "@/lib/managed-reports/metrics";
 import NewSubscriptionForm from "./NewSubscriptionForm";
 
 export const metadata = { title: "Managed Reports — Admin" };
@@ -24,7 +25,8 @@ export default async function ManagedReportsPage() {
     }),
   ]);
 
-  const managedProducts = PRODUCTS.filter((p) => p.managedServices);
+  const reportableSlugs = getReportableProductSlugs();
+  const managedProducts = PRODUCTS.filter((p) => reportableSlugs.includes(p.slug));
 
   return (
     <div className="space-y-8">

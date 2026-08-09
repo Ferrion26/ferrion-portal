@@ -26,6 +26,20 @@ export const ingestPayloadSchema = z.object({
       deviceSerialNumber: z.string().min(1).max(100).optional(),
       deviceModel: z.string().min(1).max(100).optional(),
       deviceSoftwareVersion: z.string().min(1).max(100).optional(),
+      // Stichprobe der jüngsten Alarme mit Klartext, je Schweregrad —
+      // ersetzt jeweils die vorherige Stichprobe (keine Historie).
+      alarmSamples: z
+        .array(
+          z.object({
+            severity: z.enum(["critical", "major", "warning"]),
+            name: z.string().min(1).max(200),
+            description: z.string().min(1).max(500),
+            suggestion: z.string().max(500).optional(),
+            time: z.string().max(50).optional(),
+          })
+        )
+        .max(30)
+        .optional(),
     })
     .optional(),
 });

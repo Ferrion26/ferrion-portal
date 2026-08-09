@@ -19,3 +19,17 @@ export function formatValue(entry: Pick<QuarterSummaryEntry, "format" | "value" 
       return n(0);
   }
 }
+
+// Erstellungszeitpunkt inkl. Uhrzeit — formatDate() in src/lib/utils.ts
+// zeigt bewusst nur das Datum (wird an vielen Stellen für reine
+// Kalenderdaten verwendet); der Berichts-Erstellzeitpunkt soll dagegen auf
+// die Minute genau nachvollziehbar sein.
+export function formatDateTime(date: Date | string, locale: "de" | "en" = "de") {
+  return new Intl.DateTimeFormat(locale === "de" ? "de-AT" : "en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(date));
+}

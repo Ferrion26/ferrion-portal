@@ -12,5 +12,12 @@
     "dataBackupUrl": "https://<oceanprotect-x8000-host>:25081",
     "dataBackupUsername": "collector-readonly",
     "dataBackupPassword": "…"
+  },
+  "_comment_oceanstor": "Für OceanStor productSlug auf 'oceanstor-hybrid-flash' setzen und stattdessen den unten stehenden 'oceanstor'-Block befüllen (eigene config.json je Produkt).",
+  "oceanstor": {
+    "storagePoolId": "0",
+    "deviceManagerUrl": "https://<oceanstor-5310-host>:8088",
+    "username": "collector-readonly",
+    "password": "…"
   }
 }

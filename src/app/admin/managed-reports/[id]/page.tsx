@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { PRODUCTS } from "@/app/produkte/products-data";
 import { periodLabel } from "@/lib/managed-reports/quarter";
+import { formatDateTime } from "@/lib/managed-reports/reportFormat";
 import { Badge } from "@/components/ui/Badge";
 import ReportDownloadButton from "@/components/managed-reports/ReportDownloadButton";
 import ApiKeyManager from "./ApiKeyManager";
@@ -10,6 +11,7 @@ import ManualUploadForm from "./ManualUploadForm";
 import GenerateReportButton from "./GenerateReportButton";
 import PublishButton from "./PublishButton";
 import DeleteReportButton from "./DeleteReportButton";
+import ReplicationNoteForm from "./ReplicationNoteForm";
 
 export const metadata = { title: "Subscription — Managed Reports — Admin" };
 
@@ -78,6 +80,14 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
       </div>
 
       <div className="bg-[#111827] border border-white/10 p-6">
+        <h2 className="font-semibold text-white mb-2">Hinweis für den Bericht</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Freitext, z. B. um eine Beziehung zu einem anderen System zu dokumentieren — erscheint als Hinweiszeile im Bericht.
+        </p>
+        <ReplicationNoteForm subscriptionId={subscription.id} initialValue={subscription.replicationNote} />
+      </div>
+
+      <div className="bg-[#111827] border border-white/10 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-white">Berichte</h2>
           <GenerateReportButton
@@ -107,7 +117,7 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
                     </span>
                   )}
                 </td>
-                <td className="py-2 text-gray-400">{formatDate(report.generatedAt)}</td>
+                <td className="py-2 text-gray-400">{formatDateTime(report.generatedAt)}</td>
                 <td className="py-2">
                   <Badge variant={report.status === "PUBLISHED" ? "green" : "yellow"}>
                     {report.status === "PUBLISHED" ? "Veröffentlicht" : "Entwurf"}

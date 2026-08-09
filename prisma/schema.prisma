@@ -204,6 +204,17 @@ model ManagedServiceSubscription {
   deviceModel            String?
   deviceSoftwareVersion  String?
 
+  // Stichprobe der jüngsten Alarme/Ereignisse mit Klartext (Name,
+  // Beschreibung, Empfehlung), vom Collector je Schweregrad mitgeliefert —
+  // vom letzten Ingest überschrieben, keine Historie. Frei formatiertes
+  // JSON statt eigener Tabelle, da nur zur Anzeige im Bericht gedacht.
+  recentAlarms Json?
+
+  // Freitext, den ein Admin manuell pflegt, um eine Beziehung zu einem
+  // anderen System zu dokumentieren (z. B. "Snapshots werden von
+  // OceanProtect X8000 repliziert") — im Bericht als Hinweiszeile gezeigt.
+  replicationNote String?
+
   // Voreingestellter Berichtszyklus für diese Subscription (z. B. Quartal
   // bei OceanProtect, Monat bei OceanStor desselben Kunden) — steuert nur
   // die Vorauswahl im Admin-Bereich, keine automatische Erstellung.

@@ -56,10 +56,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         },
       });
 
-      const deviceUpdate: Record<string, string> = {};
+      const deviceUpdate: Record<string, unknown> = {};
       if (meta?.deviceSerialNumber) deviceUpdate.deviceSerialNumber = meta.deviceSerialNumber;
       if (meta?.deviceModel) deviceUpdate.deviceModel = meta.deviceModel;
       if (meta?.deviceSoftwareVersion) deviceUpdate.deviceSoftwareVersion = meta.deviceSoftwareVersion;
+      if (meta?.alarmSamples) deviceUpdate.recentAlarms = meta.alarmSamples;
       if (Object.keys(deviceUpdate).length > 0) {
         await prisma.managedServiceSubscription.update({ where: { id: params.id }, data: deviceUpdate });
       }

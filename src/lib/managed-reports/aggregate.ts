@@ -12,6 +12,7 @@ export interface QuarterSummaryEntry {
   shortLabel?: MetricDefinition["shortLabel"];
   methodology?: MetricDefinition["methodology"];
   statusThresholds?: MetricDefinition["statusThresholds"];
+  derived?: MetricDefinition["derived"];
   value: number;
   previousValue?: number;
 }
@@ -87,6 +88,7 @@ export async function computeQuarterSummary(
       shortLabel: def.shortLabel,
       methodology: def.methodology,
       statusThresholds: def.statusThresholds,
+      derived: def.derived,
       value: current.get(def.key)!,
       previousValue: previous.get(def.key),
     }));

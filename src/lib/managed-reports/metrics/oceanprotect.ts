@@ -13,9 +13,10 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     section: "availability",
     trendGood: "up",
     headline: true,
+    derived: true,
     methodology: {
-      de: "Anteil erfolgreich abgeschlossener Backup-Jobs an allen Backup-Jobs im Berichtszeitraum, je Ressource ausgewertet (Quelle: OceanProtect DataBackup Job-Statistik).",
-      en: "Share of backup jobs completed successfully out of all backup jobs in the reporting period, evaluated per resource (source: OceanProtect DataBackup job statistics).",
+      de: "Berechnet als erfolgreiche Backup-Jobs ÷ alle Backup-Jobs im Berichtszeitraum, je Ressource ausgewertet (Quelle: OceanProtect DataBackup Job-Statistik). Kein vom Gerät direkt gemeldeter Einzelwert, sondern aus den Job-Rohdaten aggregiert.",
+      en: "Calculated as successful backup jobs ÷ all backup jobs in the reporting period, evaluated per resource (source: OceanProtect DataBackup job statistics). Not a single value reported directly by the device — aggregated from raw job data.",
     },
   },
   {
@@ -25,6 +26,32 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     aggregation: "avg",
     section: "availability",
     trendGood: "up",
+    derived: true,
+    methodology: {
+      de: "Anteil geschützter Ressourcen, deren letzte Sicherung innerhalb des vereinbarten Recovery Point Objective liegt (Quelle: OceanProtect DataBackup SLA-Compliance-Statistik).",
+      en: "Share of protected resources whose most recent backup falls within the agreed Recovery Point Objective (source: OceanProtect DataBackup SLA compliance statistics).",
+    },
+  },
+  {
+    key: "resource_protection_rate",
+    label: { de: "Ressourcen-Schutzquote", en: "Resource Protection Rate" },
+    format: "percent",
+    aggregation: "avg",
+    section: "availability",
+    trendGood: "up",
+    derived: true,
+    methodology: {
+      de: "Anteil der bei DataBackup bekannten Ressourcen (Dateisysteme, Datenbanken, VMs, …), für die aktuell eine Schutzrichtlinie aktiv ist (Quelle: OceanProtect DataBackup Ressourcenschutz-Übersicht).",
+      en: "Share of resources known to DataBackup (file systems, databases, VMs, …) that currently have an active protection policy (source: OceanProtect DataBackup resource protection summary).",
+    },
+  },
+  {
+    key: "resources_unprotected_count",
+    label: { de: "Ungeschützte Ressourcen", en: "Unprotected Resources" },
+    format: "count",
+    aggregation: "last",
+    section: "availability",
+    trendGood: "down",
   },
   {
     // Quelle: /v1/report-data/jobs (derselbe Aufruf wie backup_success_rate).
@@ -85,6 +112,11 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     format: "tb",
     aggregation: "last",
     section: "capacity",
+    derived: true,
+    methodology: {
+      de: "Berechnet als genutzte Kapazität × Gesamtreduktionsrate — kein eigener Rohwert des Geräts, sondern die logische Kapazität, die ohne Deduplizierung/Kompression belegt wäre (\"Pre-Savings\").",
+      en: "Calculated as used capacity × overall reduction ratio — not a raw device value, but the logical capacity that would be used without deduplication/compression (\"pre-savings\").",
+    },
   },
   {
     key: "system_availability",
@@ -95,24 +127,41 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     section: "hardware",
     trendGood: "up",
     headline: true,
+    derived: true,
+    methodology: {
+      de: "100 %, wenn Systemzustand und Betriebszustand des Geräts (HEALTHSTATUS/RUNNINGSTATUS) beim jeweiligen Collector-Lauf \"Normal\" waren, sonst 0 % — über den Zeitraum gemittelt.",
+      en: "100% when the device's health and running status (HEALTHSTATUS/RUNNINGSTATUS) were \"Normal\" at the time of each collector run, otherwise 0% — averaged over the period.",
+    },
   },
   {
     // Schwellwerte entsprechen Huaweis eigener Inspector-Regel für
     // Controller-CPU/Cache-Watermark: <=60% normal, <=80% "Optimierung
     // empfohlen", darüber kritisch.
     key: "controller_cpu_usage_avg",
-    label: { de: "Controller-CPU-Auslastung", en: "Controller CPU Usage" },
+    label: { de: "Controller-CPU-Auslastung (Ø aller Controller)", en: "Controller CPU Usage (avg. across all controllers)" },
+    shortLabel: { de: "Controller-CPU (Ø)", en: "Controller CPU (avg.)" },
     format: "percent",
     aggregation: "avg",
     section: "hardware",
     trendGood: "down",
+    derived: true,
+    methodology: {
+      de: "Durchschnitt der CPU-Auslastung über alle Storage-Controller des Systems (bei Dual-/Multi-Controller-Systemen ein Cluster-weiter Mittelwert, keine Aussage über einzelne Controller).",
+      en: "Average CPU usage across all storage controllers in the system (on dual-/multi-controller systems a cluster-wide mean, not a statement about any individual controller).",
+    },
   },
   {
     key: "controller_memory_usage_avg",
-    label: { de: "Controller-Speicherauslastung", en: "Controller Memory Usage" },
+    label: { de: "Controller-Speicherauslastung (Ø aller Controller)", en: "Controller Memory Usage (avg. across all controllers)" },
+    shortLabel: { de: "Controller-RAM (Ø)", en: "Controller RAM (avg.)" },
     format: "percent",
     aggregation: "avg",
     section: "hardware",
+    derived: true,
+    methodology: {
+      de: "Durchschnittliche Auslastung des Arbeitsspeichers (Cache/Metadaten-Puffer) über alle Storage-Controller des Systems. Ein hoher Wert ist bei Storage-Controllern normal (Caching-Architektur) und für sich genommen kein Fehlerzeichen.",
+      en: "Average memory usage (cache/metadata buffer) across all storage controllers in the system. A high value is normal for storage controllers (caching architecture) and not by itself a fault indicator.",
+    },
   },
   {
     key: "controllers_faulty",
@@ -197,6 +246,11 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     aggregation: "avg",
     section: "security",
     trendGood: "up",
+    derived: true,
+    methodology: {
+      de: "Berechnet als erfolgreiche Recovery-Drills ÷ alle durchgeführten Recovery-Drills im Berichtszeitraum (Quelle: OceanProtect DataBackup Recovery-Drill-Statistik).",
+      en: "Calculated as successful recovery drills ÷ all recovery drills executed in the reporting period (source: OceanProtect DataBackup recovery drill statistics).",
+    },
   },
   {
     // Quelle: /v1/copies/detect-statistics (Anti-Ransomware-Erkennung auf

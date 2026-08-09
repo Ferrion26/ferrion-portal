@@ -32,6 +32,8 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
     deviceModel: subscription.deviceModel ?? undefined,
     deviceSoftwareVersion: subscription.deviceSoftwareVersion ?? undefined,
     entries,
+    recentAlarms: (subscription.recentAlarms as unknown as ProductReportData["recentAlarms"]) ?? undefined,
+    replicationNote: subscription.replicationNote ?? undefined,
   };
 }
 
@@ -52,6 +54,7 @@ async function renderAndStoreReport(
   const label = periodLabel(periodType, periodStart, locale);
   const customerCompany =
     primarySubscription.customer.company || primarySubscription.customer.name || primarySubscription.customer.email;
+  const generatedAt = new Date();
 
   // react-pdf's renderToBuffer types only accept a literal <Document> element,
   // not a wrapper component that returns one — cast around that typing gap.
@@ -60,6 +63,7 @@ async function renderAndStoreReport(
     customerCompany,
     periodLabel: label,
     products,
+    generatedAt,
   }) as Parameters<typeof renderToBuffer>[0];
 
   const pdfBuffer = await renderToBuffer(pdfElement);
@@ -85,6 +89,7 @@ async function renderAndStoreReport(
       periodStart,
       periodEnd,
       periodType,
+      generatedAt,
       summary: products as unknown as object,
       document: {
         create: {

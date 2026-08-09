@@ -34,4 +34,9 @@ export interface MetricDefinition {
   // (lower is better, e.g. CPU usage): value <= good → good, <= warning →
   // warning, else critical. Omit to use the default band for that direction.
   statusThresholds?: { good: number; warning: number };
+  // True for figures we calculate ourselves from several raw device
+  // readings (an average across controllers, a rate derived from job
+  // counts) rather than a single value the device reports directly — shown
+  // with a "berechnet" marker so it's not mistaken for a raw sensor value.
+  derived?: boolean;
 }

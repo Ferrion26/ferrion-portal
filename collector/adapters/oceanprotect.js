@@ -56,18 +56,59 @@ function parseRatio(raw) {
   return Number.isFinite(ratio) ? ratio : null;
 }
 
+// Alarm-Level laut Doku: 3 = warning, 5 = major, 6 = critical.
+const ALARM_LEVELS = [
+  { level: 6, severity: "critical" },
+  { level: 5, severity: "major" },
+  { level: 3, severity: "warning" },
+];
+// Klartext-Stichprobe pro Schweregrad, damit der Bericht nicht nur die
+// Anzahl, sondern auch den Ereignistext zeigen kann — bewusst klein
+// gehalten (kein Anspruch auf Vollständigkeit, nur "was ist gerade los").
+const ALARM_SAMPLE_SIZE = 5;
+
+// Holt zu jedem Schweregrad die jüngsten Alarme inklusive Klartext
+// (description/name/suggestion) — separat von den reinen Zählungen, da die
+// Liste (anders als /count) bei einem leeren Ergebnis keinen Fehler werfen
+// soll, der die restliche Kennzahlerhebung mitreißt.
+async function fetchAlarmSamples(config, base, authHeaders) {
+  const samples = [];
+  for (const { level, severity } of ALARM_LEVELS) {
+    try {
+      const { body } = await requestJson(
+        config,
+        joinUrl(base, `/alarm/currentalarm?filter=level::${level}&sortby=startTime,d&range=[0-${ALARM_SAMPLE_SIZE - 1}]`),
+        { headers: authHeaders }
+      );
+      for (const alarm of body.data ?? []) {
+        samples.push({
+          severity,
+          name: String(alarm.name ?? "").slice(0, 200) || "Alarm",
+          description: String(alarm.description ?? "").slice(0, 500) || "—",
+          suggestion: alarm.suggestion ? String(alarm.suggestion).slice(0, 500) : undefined,
+          time: Number.isFinite(Number(alarm.startTime)) ? new Date(Number(alarm.startTime) * 1000).toISOString() : undefined,
+        });
+      }
+    } catch (err) {
+      config.logger?.warn(`Alarmtexte (${severity}) konnten nicht abgerufen werden (übersprungen): ${err.message}`);
+    }
+  }
+  return samples;
+}
+
 async function collectStorageMetrics(config, session) {
   const { deviceManagerUrl } = config.oceanprotect;
   const poolId = config.oceanprotect.storagePoolId ?? "0";
   const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
   const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
 
-  const [dataInfo, poolInfo, critical, major, warning] = await Promise.all([
+  const [dataInfo, poolInfo, critical, major, warning, alarmSamples] = await Promise.all([
     requestJson(config, joinUrl(base, `/storagepool_data_info/${poolId}`), { headers: authHeaders }),
     requestJson(config, joinUrl(base, `/storagepool/${poolId}`), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/alarm/currentalarm/count?filter=level::6"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/alarm/currentalarm/count?filter=level::5"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/alarm/currentalarm/count?filter=level::3"), { headers: authHeaders }),
+    fetchAlarmSamples(config, base, authHeaders),
   ]);
 
   const metrics = [];
@@ -117,7 +158,7 @@ async function collectStorageMetrics(config, session) {
   metrics.push({ key: "alerts_major", value: Number(major.body.data.COUNT) || 0, unit: "count" });
   metrics.push({ key: "alerts_warning", value: Number(warning.body.data.COUNT) || 0, unit: "count" });
 
-  return metrics;
+  return { metrics, alarmSamples };
 }
 
 // Geräte-/Komponentenstatus: Systemzustand, Controller (CPU/Speicher),
@@ -262,7 +303,7 @@ async function collectDataBackupMetrics(config, token) {
   const { dataBackupUrl } = config.oceanprotect;
   const authHeaders = { "X-Auth-Token": token };
 
-  const [sla, jobStats, airgap, drills, ransomware] = await Promise.all([
+  const [sla, jobStats, airgap, drills, ransomware, protection] = await Promise.all([
     fetchOptional(config, "SLA-Compliance", requestJson(config, joinUrl(dataBackupUrl, "/v1/protected-objects/sla-compliance"), { headers: authHeaders })),
     fetchOptional(
       config,
@@ -290,6 +331,7 @@ async function collectDataBackupMetrics(config, token) {
       requestJson(config, joinUrl(dataBackupUrl, "/v1/anti-ransomware/recovery-drill/plans/statistics"), { headers: authHeaders })
     ),
     fetchRansomwareDetectStats(config, dataBackupUrl, authHeaders),
+    fetchOptional(config, "Ressourcenschutz-Übersicht", requestJson(config, joinUrl(dataBackupUrl, "/v1/resource/protection/summary?sub_type=null"), { headers: authHeaders })),
   ]);
 
   const metrics = [];
@@ -342,6 +384,20 @@ async function collectDataBackupMetrics(config, token) {
     metrics.push({ key: "ransomware_abnormal_copies", value: ransomware.abnormal, unit: "count" });
   }
 
+  if (protection) {
+    const summary = protection.body.summary ?? [];
+    let protectedCount = 0;
+    let unprotectedCount = 0;
+    for (const entry of summary) {
+      protectedCount += Number(entry.protected_count) || 0;
+      unprotectedCount += Number(entry.unprotected_count) || 0;
+    }
+    if (protectedCount + unprotectedCount > 0) {
+      metrics.push({ key: "resource_protection_rate", value: (protectedCount / (protectedCount + unprotectedCount)) * 100, unit: "%" });
+      metrics.push({ key: "resources_unprotected_count", value: unprotectedCount, unit: "count" });
+    }
+  }
+
   return metrics;
 }
 
@@ -356,7 +412,7 @@ async function tryCollectStorage(config) {
     session = await loginStorage(config);
   } catch (err) {
     config.logger?.warn(`Storage-Login fehlgeschlagen — Storage-Kennzahlen werden übersprungen: ${err.message}`);
-    return { metrics: [], deviceSerialNumber: null, deviceInfo: null };
+    return { metrics: [], deviceSerialNumber: null, deviceInfo: null, alarmSamples: [] };
   }
   try {
     const [capacityResult, hardwareResult] = await Promise.allSettled([
@@ -365,8 +421,10 @@ async function tryCollectStorage(config) {
     ]);
     const metrics = [];
     let deviceInfo = null;
+    let alarmSamples = [];
     if (capacityResult.status === "fulfilled") {
-      metrics.push(...capacityResult.value);
+      metrics.push(...capacityResult.value.metrics);
+      alarmSamples = capacityResult.value.alarmSamples;
     } else {
       config.logger?.warn(`Kapazitäts-/Alarm-Kennzahlen konnten nicht erhoben werden: ${capacityResult.reason.message}`);
     }
@@ -378,7 +436,7 @@ async function tryCollectStorage(config) {
     }
     // deviceId aus der Login-Antwort ist bei Huawei die Geräte-ESN
     // (Seriennummer) — dieselbe Kennung, die schon in jeder Request-URL steckt.
-    return { metrics, deviceSerialNumber: session.deviceId, deviceInfo };
+    return { metrics, deviceSerialNumber: session.deviceId, deviceInfo, alarmSamples };
   } finally {
     await logoutStorage(config, session);
   }
@@ -422,6 +480,7 @@ async function collect(config) {
   if (storageResult.deviceSerialNumber) meta.deviceSerialNumber = storageResult.deviceSerialNumber;
   if (storageResult.deviceInfo?.model) meta.deviceModel = storageResult.deviceInfo.model;
   if (storageResult.deviceInfo?.softwareVersion) meta.deviceSoftwareVersion = storageResult.deviceInfo.softwareVersion;
+  if (storageResult.alarmSamples?.length > 0) meta.alarmSamples = storageResult.alarmSamples;
 
   return { metrics, meta: Object.keys(meta).length > 0 ? meta : undefined };
 }

@@ -3,7 +3,7 @@ import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, Svg, Path as SvgPath, Font } from "@react-pdf/renderer";
 import { QuarterSummaryEntry } from "../aggregate";
 import { ReportSection } from "../metrics";
-import { formatValue } from "../reportFormat";
+import { formatValue, formatDateTime } from "../reportFormat";
 import { deriveStatus, buildExecutiveSummary, buildRecommendations, buildBannerHighlights, MetricStatus } from "../reportNarrative";
 
 // Ohne das hier splittet react-pdf lange Wörter (Seriennummern, lange
@@ -125,6 +125,19 @@ const styles = StyleSheet.create({
 
   pill: { borderRadius: 8, paddingVertical: 3, paddingHorizontal: 7 },
   pillText: { fontSize: 6.5, fontFamily: "Helvetica-Bold" },
+  derivedTag: { fontSize: 6, color: MUTED, fontFamily: "Helvetica-Oblique" },
+
+  alarmCard: { backgroundColor: WHITE, borderRadius: 8, padding: 13 },
+  alarmRow: { paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: ROW_DIVIDER },
+  alarmTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 },
+  alarmTitleGroup: { flexDirection: "row", alignItems: "center", gap: 5 },
+  alarmName: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: INK },
+  alarmTime: { fontSize: 6.5, color: MUTED },
+  alarmDesc: { fontSize: 7.5, color: "#374151", lineHeight: 1.35 },
+  alarmSuggestion: { fontSize: 7, color: MUTED, marginTop: 2, lineHeight: 1.3 },
+
+  recLineRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginBottom: 6 },
+  recDot: { width: 6, height: 6, borderRadius: 3, marginTop: 3 },
 
   barCard: { backgroundColor: WHITE, borderRadius: 8, padding: 13, flex: 1 },
   barCardTitle: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 8 },
@@ -178,6 +191,8 @@ function TrendArrow({ direction, color }: { direction: "up" | "down"; color: str
   );
 }
 
+const DERIVED_LABEL = { de: "berechnet", en: "calc." };
+
 function HeadlineCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "de" | "en" }) {
   const status = deriveStatus(entry);
   const label = entry.shortLabel?.[locale] ?? entry.label[locale];
@@ -188,7 +203,10 @@ function HeadlineCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "
         <Text style={styles.headlineLabel}>{label}</Text>
       </View>
       <Text style={styles.headlineValue}>{formatValue(entry, locale)}</Text>
-      <StatusPill status={status} text={headlinePillText(entry, status, locale)} />
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+        <StatusPill status={status} text={headlinePillText(entry, status, locale)} />
+        {entry.derived && <Text style={styles.derivedTag}>{DERIVED_LABEL[locale]}</Text>}
+      </View>
     </View>
   );
 }
@@ -201,7 +219,10 @@ function CompactListRow({ entry, locale }: { entry: QuarterSummaryEntry; locale:
     <View style={styles.listRow}>
       <View style={styles.listRowLeft}>
         <Dot status={status} />
-        <Text style={styles.listRowLabel}>{entry.label[locale]}</Text>
+        <Text style={styles.listRowLabel}>
+          {entry.label[locale]}
+          {entry.derived && <Text style={styles.derivedTag}> · {DERIVED_LABEL[locale]}</Text>}
+        </Text>
       </View>
       <View style={styles.listRowRight}>
         {trend && (
@@ -243,6 +264,49 @@ function UsageBarCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "
       <View style={styles.barTrack}>
         <View style={{ ...styles.barFill, width: `${pct}%`, backgroundColor: fillColor }} />
       </View>
+    </View>
+  );
+}
+
+const ALARM_SEVERITY_TO_STATUS: Record<AlarmSample["severity"], MetricStatus> = {
+  critical: "critical",
+  major: "warning",
+  warning: "warning",
+};
+
+const ALARM_SEVERITY_LABEL: Record<"de" | "en", Record<AlarmSample["severity"], string>> = {
+  de: { critical: "Kritisch", major: "Schwerwiegend", warning: "Warnung" },
+  en: { critical: "Critical", major: "Major", warning: "Warning" },
+};
+
+const ALARM_CARD_COPY = {
+  de: { title: "Alarme im Detail", sub: "Jüngste Ereignisse aus dem Ereignisprotokoll des Geräts, je Schweregrad." },
+  en: { title: "Alarms in Detail", sub: "Most recent events from the device's event log, by severity." },
+};
+
+const MAX_ALARM_SAMPLES_SHOWN = 8;
+
+function AlarmCard({ alarms, locale }: { alarms: AlarmSample[]; locale: "de" | "en" }) {
+  const t = ALARM_CARD_COPY[locale];
+  const shown = alarms.slice(0, MAX_ALARM_SAMPLES_SHOWN);
+  return (
+    <View style={styles.alarmCard} wrap={false}>
+      <Text style={styles.listCardTitle}>{t.title}</Text>
+      <Text style={styles.listCardSub}>{t.sub}</Text>
+      {shown.map((alarm, i) => (
+        <View key={i} style={styles.alarmRow}>
+          <View style={styles.alarmTopRow}>
+            <View style={styles.alarmTitleGroup}>
+              <Dot status={ALARM_SEVERITY_TO_STATUS[alarm.severity]} />
+              <Text style={styles.alarmName}>{alarm.name}</Text>
+              <StatusPill status={ALARM_SEVERITY_TO_STATUS[alarm.severity]} text={ALARM_SEVERITY_LABEL[locale][alarm.severity]} />
+            </View>
+            {alarm.time && <Text style={styles.alarmTime}>{formatDateTime(alarm.time, locale)}</Text>}
+          </View>
+          <Text style={styles.alarmDesc}>{alarm.description}</Text>
+          {alarm.suggestion && <Text style={styles.alarmSuggestion}>{(locale === "de" ? "Empfehlung: " : "Suggestion: ") + alarm.suggestion}</Text>}
+        </View>
+      ))}
     </View>
   );
 }
@@ -296,6 +360,14 @@ const COPY = {
   },
 };
 
+export interface AlarmSample {
+  severity: "critical" | "major" | "warning";
+  name: string;
+  description: string;
+  suggestion?: string;
+  time?: string;
+}
+
 export interface ProductReportData {
   productName: string;
   vendor: string;
@@ -304,6 +376,8 @@ export interface ProductReportData {
   deviceModel?: string;
   deviceSoftwareVersion?: string;
   entries: QuarterSummaryEntry[];
+  recentAlarms?: AlarmSample[];
+  replicationNote?: string;
 }
 
 export interface ReportDocumentProps {
@@ -312,6 +386,7 @@ export interface ReportDocumentProps {
   periodLabel: string;
   products: ProductReportData[];
   adminNotes?: string;
+  generatedAt: Date;
 }
 
 // Ein Produktblock enthält alles, was bei einem Einzelprodukt-Bericht auf
@@ -402,10 +477,26 @@ function ProductBlock({ product, locale, isCombined }: { product: ProductReportD
 
       <View style={styles.recCard} wrap={false}>
         <Text style={styles.recTitle}>{t.recTitle}</Text>
-        {recommendations.map((line, i) => (
-          <Text key={i} style={styles.recLine}>• {line}</Text>
+        {recommendations.map((rec, i) => (
+          <View key={i} style={styles.recLineRow}>
+            <View style={{ ...styles.recDot, backgroundColor: STATUS_COLORS[rec.status].dot }} />
+            <Text style={{ ...styles.recLine, marginBottom: 0, flex: 1 }}>{rec.text}</Text>
+          </View>
         ))}
       </View>
+
+      {(product.recentAlarms?.length ?? 0) > 0 && (
+        <View style={{ marginBottom: 14 }}>
+          <AlarmCard alarms={product.recentAlarms!} locale={locale} />
+        </View>
+      )}
+
+      {product.replicationNote && (
+        <View style={styles.notesBlock} wrap={false}>
+          <Text style={styles.notesLabel}>{(locale === "de" ? "Hinweis" : "Note").toUpperCase()}</Text>
+          <Text style={styles.notesText}>{product.replicationNote}</Text>
+        </View>
+      )}
 
       <ListCard title={SECTION_LABELS.availability[locale]} entries={availabilityDetailEntries} locale={locale} />
       {availabilityDetailEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
@@ -416,9 +507,16 @@ function ProductBlock({ product, locale, isCombined }: { product: ProductReportD
       <ListCard title={SECTION_LABELS.operations[locale]} entries={operationsEntries} locale={locale} />
       {operationsEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
 
-      {methodologyEntries.length > 0 && (
+      {(methodologyEntries.length > 0 || entries.some((e) => e.derived)) && (
         <View style={styles.methodologyBlock} wrap={false}>
           <Text style={styles.methodologyTitle}>{t.methodologyTitle.toUpperCase()}</Text>
+          {entries.some((e) => e.derived) && (
+            <Text style={styles.methodologyLine}>
+              {locale === "de"
+                ? `Mit "${DERIVED_LABEL.de}" markierte Kennzahlen werden von uns aus mehreren Rohwerten des Geräts berechnet (z. B. gemittelt oder als Quote) — sie sind kein einzelner, vom Gerät direkt gemeldeter Messwert.`
+                : `Metrics marked "${DERIVED_LABEL.en}" are calculated by us from several raw device readings (e.g. averaged or as a rate) — not a single value reported directly by the device.`}
+            </Text>
+          )}
           {methodologyEntries.map((e) => (
             <Text key={e.key} style={styles.methodologyLine}>
               {e.label[locale]}: {e.methodology![locale]}
@@ -430,7 +528,7 @@ function ProductBlock({ product, locale, isCombined }: { product: ProductReportD
   );
 }
 
-export function ReportDocument({ locale, customerCompany, periodLabel, products, adminNotes }: ReportDocumentProps) {
+export function ReportDocument({ locale, customerCompany, periodLabel, products, adminNotes, generatedAt }: ReportDocumentProps) {
   const t = COPY[locale];
   const isCombined = products.length > 1;
   const singleProduct = !isCombined ? products[0] : null;
@@ -499,7 +597,9 @@ export function ReportDocument({ locale, customerCompany, periodLabel, products,
         )}
 
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>{t.generatedBy} · info@ferrion.at · ferrion.at</Text>
+          <Text style={styles.footerText}>
+            {t.generatedBy} · info@ferrion.at · ferrion.at · {(locale === "de" ? "Erstellt am " : "Generated on ") + formatDateTime(generatedAt, locale)}
+          </Text>
           <Text style={styles.footerTagline}>build to endure</Text>
         </View>
       </Page>

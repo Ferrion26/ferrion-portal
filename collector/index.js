@@ -21,6 +21,7 @@ const { createLogger } = require("./logger");
 
 const ADAPTERS = {
   oceanprotect: require("./adapters/oceanprotect"),
+  "oceanstor-hybrid-flash": require("./adapters/oceanstor"),
 };
 
 function parseArgs(argv) {

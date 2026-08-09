@@ -107,12 +107,18 @@ export function buildExecutiveSummary(entries: QuarterSummaryEntry[], locale: "d
 
 const MAX_RECOMMENDATIONS = 5;
 
+export interface Recommendation {
+  text: string;
+  status: MetricStatus;
+}
+
 // One line per metric currently in "warning"/"critical" status, most severe
 // first, capped so a noisy quarter doesn't produce a wall of bullets — the
 // full picture is always in the detail sections below. Generic by design
 // (works for any product's metric set) rather than hand-authored prose per
-// metric.
-export function buildRecommendations(entries: QuarterSummaryEntry[], locale: "de" | "en"): string[] {
+// metric. Each line carries its status so the report can show a traffic-light
+// marker (Ampel) instead of a plain bullet.
+export function buildRecommendations(entries: QuarterSummaryEntry[], locale: "de" | "en"): Recommendation[] {
   const t = COPY[locale];
   const flagged = entries
     .filter((e) => {
@@ -121,11 +127,13 @@ export function buildRecommendations(entries: QuarterSummaryEntry[], locale: "de
     })
     .sort((a, b) => STATUS_SEVERITY[deriveStatus(a)] - STATUS_SEVERITY[deriveStatus(b)]);
 
-  if (flagged.length === 0) return [t.noRecommendations];
+  if (flagged.length === 0) return [{ text: t.noRecommendations, status: "good" }];
 
-  const shown = flagged.slice(0, MAX_RECOMMENDATIONS).map((e) => t.recommendationPrefix(e.label[locale], formatValue(e, locale)));
+  const shown: Recommendation[] = flagged
+    .slice(0, MAX_RECOMMENDATIONS)
+    .map((e) => ({ text: t.recommendationPrefix(e.label[locale], formatValue(e, locale)), status: deriveStatus(e) }));
   const remaining = flagged.length - MAX_RECOMMENDATIONS;
-  if (remaining > 0) shown.push(t.moreItems(remaining));
+  if (remaining > 0) shown.push({ text: t.moreItems(remaining), status: "neutral" });
   return shown;
 }
 

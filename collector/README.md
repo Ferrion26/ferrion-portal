@@ -29,6 +29,14 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    für die Collector-Requests an diese eine Appliance — bewusster
    Sicherheits-Trade-off, besser wäre das interne CA-Zertifikat zu
    vertrauen).
+3b. Für OceanStor (z. B. 5310) braucht `adapters/oceanstor.js` nur **eine**
+   REST-API — dieselbe DeviceManager-API wie bei OceanProtect Backup Storage
+   (Login, Alarme, Controller/Disk/Fan/Power, Kapazität), Standardport 8088,
+   siehe `config.oceanstor` in `config.example.json`. Kein DataBackup-Teil,
+   da OceanStor reiner Primärspeicher ist. Quelle: `docs/Rest/OceanStor
+   V700R001C30 REST Interface Reference` (im Repo, nicht öffentlich). Hat ein
+   Kunde beide Produkte, laufen zwei separate `config.json`-Dateien (je ein
+   `productSlug`) mit je eigenem Subscription/API-Key nebeneinander.
 4. Node.js 18+ auf dem Collector-Host voraussetzen (nutzt das eingebaute
    `fetch`), keine weiteren Abhängigkeiten nötig.
 5. Testlauf: `node index.js config.json`
