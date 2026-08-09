@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
@@ -38,7 +39,10 @@ export default async function ReportsPage() {
                   </td>
                   <td className="px-6 py-4 text-gray-400">{periodLabel(report.periodType, report.periodStart)}</td>
                   <td className="px-6 py-4 text-gray-400">{report.publishedAt ? formatDate(report.publishedAt) : "—"}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 space-x-4">
+                    <Link href={`/dashboard/reports/${report.id}`} className="text-sm text-[#c9a84c] hover:text-[#e0bc5a] font-medium">
+                      Anzeigen →
+                    </Link>
                     {report.document && (
                       <ReportDownloadButton documentId={report.document.id} fileName={report.document.name} />
                     )}

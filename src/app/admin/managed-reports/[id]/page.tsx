@@ -206,6 +206,9 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
                   </Badge>
                 </td>
                 <td className="py-2 text-right space-x-4">
+                  <Link href={`/dashboard/reports/${report.id}`} className="text-sm text-[#c9a84c] hover:text-[#e0bc5a] font-medium">
+                    Anzeigen →
+                  </Link>
                   {report.document && (
                     <ReportDownloadButton documentId={report.document.id} fileName={report.document.name} />
                   )}
