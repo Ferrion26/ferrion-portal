@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
   if (collectorVersion) deviceUpdate.collectorVersion = collectorVersion;
   if (meta?.deviceSerialNumber) deviceUpdate.deviceSerialNumber = meta.deviceSerialNumber;
   if (meta?.deviceModel) deviceUpdate.deviceModel = meta.deviceModel;
+  if (meta?.deviceName) deviceUpdate.deviceName = meta.deviceName;
   if (meta?.deviceSoftwareVersion) deviceUpdate.deviceSoftwareVersion = meta.deviceSoftwareVersion;
   if (meta?.dataBackupVersion) deviceUpdate.dataBackupVersion = meta.dataBackupVersion;
   if (meta?.resourceBreakdown) deviceUpdate.resourceBreakdown = meta.resourceBreakdown;

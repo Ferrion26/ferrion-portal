@@ -76,8 +76,9 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
             </>
           )}
         </p>
-        {(subscription.deviceModel || subscription.deviceSoftwareVersion || subscription.deviceSerialNumber) && (
+        {(subscription.deviceName || subscription.deviceModel || subscription.deviceSoftwareVersion || subscription.deviceSerialNumber) && (
           <p className="text-sm text-gray-500 mt-1">
+            {subscription.deviceName && <>Gerätename: {subscription.deviceName} · </>}
             {subscription.deviceModel && <>Modell: {subscription.deviceModel} · </>}
             {subscription.deviceSoftwareVersion && <>Version: {subscription.deviceSoftwareVersion} · </>}
             {subscription.deviceSerialNumber && <>SN: {subscription.deviceSerialNumber}</>}

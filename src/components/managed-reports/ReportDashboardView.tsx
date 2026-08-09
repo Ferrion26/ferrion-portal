@@ -163,6 +163,12 @@ export function ReportDashboardView({
                 {product.vendor} {product.productName}
               </p>
             </div>
+            {product.deviceName && (
+              <div>
+                <p className="text-[10px] text-gray-500 uppercase tracking-widest">{locale === "de" ? "Gerätename" : "Device Name"}</p>
+                <p className="text-sm text-white font-medium">{product.deviceName}</p>
+              </div>
+            )}
             {product.packageLabel && (
               <div>
                 <p className="text-[10px] text-gray-500 uppercase tracking-widest">{locale === "de" ? "Servicestufe" : "Service Tier"}</p>

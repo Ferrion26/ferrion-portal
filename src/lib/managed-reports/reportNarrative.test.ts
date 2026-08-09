@@ -53,6 +53,15 @@ describe("deriveStatus", () => {
       "critical"
     );
   });
+
+  it("escalates to critical when severeIfNonZero is set, even without a matching key hint", () => {
+    expect(
+      deriveStatus(entry({ key: "dme_iq_disabled", format: "count", trendGood: "down", value: 1, severeIfNonZero: true }))
+    ).toBe("critical");
+    expect(
+      deriveStatus(entry({ key: "dme_iq_disabled", format: "count", trendGood: "down", value: 0, severeIfNonZero: true }))
+    ).toBe("good");
+  });
 });
 
 describe("buildExecutiveSummary", () => {

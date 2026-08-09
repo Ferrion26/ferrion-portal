@@ -207,6 +207,9 @@ model ManagedServiceSubscription {
   // Zeitreihen-Kennzahlen, daher hier statt in ManagedServiceMetric.
   deviceSerialNumber    String?
   deviceModel           String?
+  // Vom Kunden vergebener Systemname (z. B. "hwe-clu1"), der im
+  // DeviceManager als Cluster-Bezeichnung erscheint.
+  deviceName            String?
   deviceSoftwareVersion String?
   // Bei OceanProtect eine zweite, unabhängige Versionsnummer: die
   // Backup-Software (DataBackup) läuft als eigener Dienst mit eigenem

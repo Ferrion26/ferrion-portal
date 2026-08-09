@@ -217,7 +217,27 @@ async function collectHardwareMetrics(config, session) {
   const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
   const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
 
-  const [system, controllers, disks, fans, power, ethPorts, fsSnapshots, replicationPairs, remoteDevices, sfpModules, email, syslog, license, certificates] = await Promise.all([
+  const [
+    system,
+    controllers,
+    disks,
+    fans,
+    power,
+    ethPorts,
+    fsSnapshots,
+    replicationPairs,
+    remoteDevices,
+    sfpModules,
+    email,
+    syslog,
+    license,
+    certificates,
+    enclosures,
+    filesystems,
+    storagePools,
+    dmeIq,
+    mfaEmail,
+  ] = await Promise.all([
     requestJson(config, joinUrl(base, "/system/"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/controller"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/disk"), { headers: authHeaders }),
@@ -236,6 +256,18 @@ async function collectHardwareMetrics(config, session) {
     fetchOptional(config, "Syslog-Benachrichtigung", requestJson(config, joinUrl(base, "/syslog"), { headers: authHeaders })),
     fetchOptional(config, "Lizenzstatus", requestJson(config, joinUrl(base, "/license/activelicense"), { headers: authHeaders })),
     fetchOptional(config, "Zertifikatsstatus", requestJson(config, joinUrl(base, "/certificate"), { headers: authHeaders })),
+    // Gehäuse-Inventar (Controller-/Disk-Enclosures) — Teil von "Hardware >
+    // Inventory" im DeviceManager (siehe oceanprotect.js).
+    fetchOptional(config, "Gehäuse-Status", requestJson(config, joinUrl(base, "/enclosure"), { headers: authHeaders })),
+    // Alle Dateisysteme (nicht nur eine bestimmte Freigabe).
+    fetchOptional(config, "Dateisystem-Status", requestJson(config, joinUrl(base, "/filesystem"), { headers: authHeaders })),
+    // Alle Storage Pools — unabhängig vom für Kapazitätskennzahlen
+    // konfigurierten storagePoolId.
+    fetchOptional(config, "Storage-Pool-Status (alle)", requestJson(config, joinUrl(base, "/storagepool"), { headers: authHeaders })),
+    // DME IQ: Huaweis Remote-O&M-/Call-Home-Kanal.
+    fetchOptional(config, "DME-IQ-Status", requestJson(config, joinUrl(base, "/chs_remote_assistance_strategy"), { headers: authHeaders })),
+    // Multi-Faktor-Authentifizierung (E-Mail-Einmalpasswort).
+    fetchOptional(config, "MFA-Status", requestJson(config, joinUrl(base, "/USER_AUTH_EMAIL"), { headers: authHeaders })),
   ]);
 
   const rawEndpoints = {};
@@ -253,6 +285,11 @@ async function collectHardwareMetrics(config, session) {
   captureRaw(rawEndpoints, "/syslog", syslog);
   captureRaw(rawEndpoints, "/license/activelicense", license);
   captureRaw(rawEndpoints, "/certificate", certificates);
+  captureRaw(rawEndpoints, "/enclosure", enclosures);
+  captureRaw(rawEndpoints, "/filesystem", filesystems);
+  captureRaw(rawEndpoints, "/storagepool", storagePools);
+  captureRaw(rawEndpoints, "/chs_remote_assistance_strategy", dmeIq);
+  captureRaw(rawEndpoints, "/USER_AUTH_EMAIL", mfaEmail);
 
   const metrics = [];
   const componentFaults = [];
@@ -268,7 +305,9 @@ async function collectHardwareMetrics(config, session) {
   // ein Patch installiert ist — Anschluss direkt an PRODUCTVERSION ohne
   // Trenner, exakt wie Huawei den kombinierten Versionsstring selbst zeigt.
   const softwareVersion = sys.PRODUCTVERSION ? `${sys.PRODUCTVERSION}${sys.patchVersion || ""}` : null;
-  const deviceInfo = { model: sys.productModeString || null, softwareVersion };
+  // NAME ist der vom Kunden vergebene Systemname (z. B. "hwe-clu1"), der
+  // oben links im DeviceManager als Cluster-Bezeichnung erscheint.
+  const deviceInfo = { model: sys.productModeString || null, softwareVersion, name: sys.NAME || null };
 
   const controllerList = Array.isArray(controllers.body.data) ? controllers.body.data : [];
   const cpuValues = controllerList.map((c) => Number(c.CPUUSAGE)).filter(Number.isFinite);
@@ -349,6 +388,32 @@ async function collectHardwareMetrics(config, session) {
     collectFaultDetails(componentFaults, componentChecks, "Remote-Device", remoteDeviceList, (s) => s === 1);
   }
 
+  // Gehäuse-Inventar (Controller-/Disk-Enclosures) — "Hardware > Inventory".
+  const enclosureList = Array.isArray(enclosures?.body?.data) ? enclosures.body.data : [];
+  if (enclosureList.length > 0) {
+    metrics.push({ key: "enclosures_faulty", value: enclosureList.filter((e) => Number(e.HEALTHSTATUS) !== 1).length, unit: "count" });
+    collectFaultDetails(componentFaults, componentChecks, "Gehäuse", enclosureList, (s) => s === 1);
+  }
+
+  // Alle Dateisysteme (nicht nur eine bestimmte Freigabe).
+  const filesystemList = Array.isArray(filesystems?.body?.data) ? filesystems.body.data : [];
+  if (filesystemList.length > 0) {
+    metrics.push({ key: "filesystems_faulty", value: filesystemList.filter((f) => Number(f.HEALTHSTATUS) !== 1).length, unit: "count" });
+    collectFaultDetails(componentFaults, componentChecks, "Dateisystem", filesystemList, (s) => s === 1);
+  }
+
+  // Alle Storage Pools (HEALTHSTATUS 1 = Normal, 2 = Faulty, 5 = Degraded) —
+  // unabhängig vom für Kapazitätskennzahlen konfigurierten storagePoolId.
+  const storagePoolList = Array.isArray(storagePools?.body?.data) ? storagePools.body.data : [];
+  if (storagePoolList.length > 0) {
+    metrics.push({
+      key: "storage_pools_unhealthy",
+      value: storagePoolList.filter((p) => Number(p.HEALTHSTATUS) !== 1).length,
+      unit: "count",
+    });
+    collectFaultDetails(componentFaults, componentChecks, "Storage Pool", storagePoolList, (s) => s === 1);
+  }
+
   if (fsSnapshots) {
     metrics.push({ key: "snapshot_count", value: Number(fsSnapshots.body.data.COUNT) || 0, unit: "count" });
   }
@@ -374,6 +439,21 @@ async function collectHardwareMetrics(config, session) {
       value: Number(syslog.body.data.OM_MSG_OP_SET_ALARM_SYSLOG_CFG) === 1 ? 0 : 1,
       unit: "count",
     });
+  }
+
+  // DME IQ (Remote-O&M-/Call-Home-Kanal): remotePolicySwitch 1 = aktiviert.
+  if (dmeIq) {
+    const dmeIqData = Array.isArray(dmeIq.body.data) ? dmeIq.body.data[0] : dmeIq.body.data;
+    if (dmeIqData) {
+      metrics.push({ key: "dme_iq_disabled", value: Number(dmeIqData.remotePolicySwitch) === 1 ? 0 : 1, unit: "count" });
+    }
+  }
+
+  // Multi-Faktor-Authentifizierung (E-Mail-Einmalpasswort): dasselbe Feld
+  // wie bei der Alarm-Email-Benachrichtigung, aber ein anderer Endpunkt
+  // (USER_AUTH_EMAIL statt email).
+  if (mfaEmail) {
+    metrics.push({ key: "mfa_disabled", value: Number(mfaEmail.body.data.CMO_EMAIL_NEED_SEND) === 1 ? 0 : 1, unit: "count" });
   }
 
   // Lizenz-/Zertifikatsablauf aus dem Inspector-Healthcheck. 30 Tage Vorlauf
@@ -466,6 +546,7 @@ async function collect(config) {
     // deviceId aus der Login-Antwort ist bei Huawei die Geräte-ESN (Seriennummer).
     if (session.deviceId) meta.deviceSerialNumber = session.deviceId;
     if (deviceInfo?.model) meta.deviceModel = deviceInfo.model;
+    if (deviceInfo?.name) meta.deviceName = deviceInfo.name;
     if (deviceInfo?.softwareVersion) meta.deviceSoftwareVersion = deviceInfo.softwareVersion;
     // undefined = nicht erhoben, weglassen; leeres Array = echtes Ergebnis
     // ("aktuell keine Alarme/Fehler"), wird mitgeschickt.

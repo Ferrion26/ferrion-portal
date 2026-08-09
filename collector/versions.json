@@ -13,5 +13,10 @@
     "version": "1.4.0",
     "releasedAt": "2026-08-10",
     "notes": "Erfasst jetzt jede geprüfte Komponente (auch die unauffälligen) als componentChecks — Grundlage für den neuen 'erfolgreich geprüft'-Referenzabschnitt im Bericht. Alarm-Sampling dedupliziert jetzt nach Alarmtyp statt nur die zeitlich jüngsten zu nehmen."
+  },
+  {
+    "version": "1.5.0",
+    "releasedAt": "2026-08-10",
+    "notes": "Neue Healthchecks: DME IQ (Remote-Support-Kanal, kritisch wenn deaktiviert), Multi-Faktor-Authentifizierung (Hinweis wenn nicht eingerichtet), Dateisysteme, alle Storage Pools, Gehäuse-Inventar. Erfasst außerdem den vom Kunden vergebenen Gerätenamen (z. B. \"hwe-clu1\")."
   }
 ]

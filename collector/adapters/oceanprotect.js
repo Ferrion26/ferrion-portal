@@ -211,7 +211,27 @@ async function collectHardwareMetrics(config, session) {
   const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
   const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
 
-  const [system, controllers, disks, fans, power, ethPorts, replicationPairs, remoteDevices, bbus, sfpModules, email, syslog, license, certificates] = await Promise.all([
+  const [
+    system,
+    controllers,
+    disks,
+    fans,
+    power,
+    ethPorts,
+    replicationPairs,
+    remoteDevices,
+    bbus,
+    sfpModules,
+    email,
+    syslog,
+    license,
+    certificates,
+    enclosures,
+    filesystems,
+    storagePools,
+    dmeIq,
+    mfaEmail,
+  ] = await Promise.all([
     requestJson(config, joinUrl(base, "/system/"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/controller"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/disk"), { headers: authHeaders }),
@@ -229,15 +249,28 @@ async function collectHardwareMetrics(config, session) {
     fetchOptional(config, "BBU-Status", requestJson(config, joinUrl(base, "/backup_power"), { headers: authHeaders })),
     // Aus dem Huawei-Inspector-Healthcheck abgeleitet: Optical-Module-Status
     // ("Optical module status") sowie ob Email-/Syslog-Benachrichtigungen
-    // eingerichtet sind ("Checking DME IQ Access" — dort war zusätzlich der
-    // reine Call-Home-Kanal Teil des Checks, dafür fehlt in der REST-Doku
-    // aber ein Abfrage-Endpunkt, daher hier nur Email/Syslog).
+    // eingerichtet sind.
     fetchOptional(config, "Optical-Module-Status", requestJson(config, joinUrl(base, "/sfp"), { headers: authHeaders })),
     fetchOptional(config, "Email-Benachrichtigung", requestJson(config, joinUrl(base, "/email"), { headers: authHeaders })),
     fetchOptional(config, "Syslog-Benachrichtigung", requestJson(config, joinUrl(base, "/syslog"), { headers: authHeaders })),
     // Weitere Inspector-Checks: Lizenz- und Zertifikatsablauf.
     fetchOptional(config, "Lizenzstatus", requestJson(config, joinUrl(base, "/license/activelicense"), { headers: authHeaders })),
     fetchOptional(config, "Zertifikatsstatus", requestJson(config, joinUrl(base, "/certificate"), { headers: authHeaders })),
+    // Gehäuse-Inventar (Controller-/Disk-Enclosures) — Teil von "Hardware >
+    // Inventory" im DeviceManager.
+    fetchOptional(config, "Gehäuse-Status", requestJson(config, joinUrl(base, "/enclosure"), { headers: authHeaders })),
+    // Alle Dateisysteme (nicht nur eine bestimmte Freigabe).
+    fetchOptional(config, "Dateisystem-Status", requestJson(config, joinUrl(base, "/filesystem"), { headers: authHeaders })),
+    // Alle Storage Pools — unabhängig vom für Kapazitätskennzahlen
+    // konfigurierten storagePoolId, damit ein zweiter, nicht überwachter
+    // Pool nicht unbemerkt in einen Fehlerzustand geraten kann.
+    fetchOptional(config, "Storage-Pool-Status (alle)", requestJson(config, joinUrl(base, "/storagepool"), { headers: authHeaders })),
+    // DME IQ: Huaweis Remote-O&M-/Call-Home-Kanal ("Settings > DME IQ
+    // Settings" im DeviceManager).
+    fetchOptional(config, "DME-IQ-Status", requestJson(config, joinUrl(base, "/chs_remote_assistance_strategy"), { headers: authHeaders })),
+    // Multi-Faktor-Authentifizierung (E-Mail-Einmalpasswort) — "Settings >
+    // User and Security > Multi-Factor Authentication" im DeviceManager.
+    fetchOptional(config, "MFA-Status", requestJson(config, joinUrl(base, "/USER_AUTH_EMAIL"), { headers: authHeaders })),
   ]);
 
   const rawEndpoints = {};
@@ -255,6 +288,11 @@ async function collectHardwareMetrics(config, session) {
   captureRaw(rawEndpoints, "/syslog", syslog);
   captureRaw(rawEndpoints, "/license/activelicense", license);
   captureRaw(rawEndpoints, "/certificate", certificates);
+  captureRaw(rawEndpoints, "/enclosure", enclosures);
+  captureRaw(rawEndpoints, "/filesystem", filesystems);
+  captureRaw(rawEndpoints, "/storagepool", storagePools);
+  captureRaw(rawEndpoints, "/chs_remote_assistance_strategy", dmeIq);
+  captureRaw(rawEndpoints, "/USER_AUTH_EMAIL", mfaEmail);
 
   const metrics = [];
   const componentFaults = [];
@@ -274,7 +312,10 @@ async function collectHardwareMetrics(config, session) {
   // wie Huawei den kombinierten Versionsstring selbst im DeviceManager zeigt
   // (z. B. "V200R001C10SPH118").
   const softwareVersion = sys.PRODUCTVERSION ? `${sys.PRODUCTVERSION}${sys.patchVersion || ""}` : null;
-  const deviceInfo = { model: sys.productModeString || null, softwareVersion };
+  // NAME ist der vom Kunden vergebene Systemname (z. B. "hwe-clu1"), der
+  // oben links im DeviceManager als Cluster-Bezeichnung erscheint — anders
+  // als productModeString (Modell) oder die Geräte-ESN (Seriennummer).
+  const deviceInfo = { model: sys.productModeString || null, softwareVersion, name: sys.NAME || null };
 
   const controllerList = Array.isArray(controllers.body.data) ? controllers.body.data : [];
   const cpuValues = controllerList.map((c) => Number(c.CPUUSAGE)).filter(Number.isFinite);
@@ -410,6 +451,23 @@ async function collectHardwareMetrics(config, session) {
     });
   }
 
+  // DME IQ (Remote-O&M-/Call-Home-Kanal): remotePolicySwitch 1 = aktiviert.
+  if (dmeIq) {
+    const dmeIqData = Array.isArray(dmeIq.body.data) ? dmeIq.body.data[0] : dmeIq.body.data;
+    if (dmeIqData) {
+      metrics.push({ key: "dme_iq_disabled", value: Number(dmeIqData.remotePolicySwitch) === 1 ? 0 : 1, unit: "count" });
+    }
+  }
+
+  // Multi-Faktor-Authentifizierung (E-Mail-Einmalpasswort):
+  // CMO_EMAIL_NEED_SEND 1 = aktiviert. Dasselbe Feld wie bei der
+  // Alarm-Email-Benachrichtigung, aber ein anderer Endpunkt
+  // (USER_AUTH_EMAIL statt email) — beide steuern unabhängig voneinander,
+  // wofür E-Mails verschickt werden.
+  if (mfaEmail) {
+    metrics.push({ key: "mfa_disabled", value: Number(mfaEmail.body.data.CMO_EMAIL_NEED_SEND) === 1 ? 0 : 1, unit: "count" });
+  }
+
   // Nur melden, wenn überhaupt Replikationspaare konfiguriert sind — sonst
   // würde "0" fälschlich als "alles gesund" statt "keine Replikation
   // eingerichtet" gelesen werden.
@@ -443,6 +501,32 @@ async function collectHardwareMetrics(config, session) {
   if (bbuList.length > 0) {
     metrics.push({ key: "bbu_faulty", value: bbuList.filter((b) => Number(b.HEALTHSTATUS) !== 1).length, unit: "count" });
     collectFaultDetails(componentFaults, componentChecks, "BBU", bbuList, (s) => s === 1);
+  }
+
+  // Gehäuse-Inventar (Controller-/Disk-Enclosures) — "Hardware > Inventory".
+  const enclosureList = Array.isArray(enclosures?.body?.data) ? enclosures.body.data : [];
+  if (enclosureList.length > 0) {
+    metrics.push({ key: "enclosures_faulty", value: enclosureList.filter((e) => Number(e.HEALTHSTATUS) !== 1).length, unit: "count" });
+    collectFaultDetails(componentFaults, componentChecks, "Gehäuse", enclosureList, (s) => s === 1);
+  }
+
+  // Alle Dateisysteme (nicht nur eine bestimmte Freigabe).
+  const filesystemList = Array.isArray(filesystems?.body?.data) ? filesystems.body.data : [];
+  if (filesystemList.length > 0) {
+    metrics.push({ key: "filesystems_faulty", value: filesystemList.filter((f) => Number(f.HEALTHSTATUS) !== 1).length, unit: "count" });
+    collectFaultDetails(componentFaults, componentChecks, "Dateisystem", filesystemList, (s) => s === 1);
+  }
+
+  // Alle Storage Pools (HEALTHSTATUS 1 = Normal, 2 = Faulty, 5 = Degraded) —
+  // unabhängig vom für Kapazitätskennzahlen konfigurierten storagePoolId.
+  const storagePoolList = Array.isArray(storagePools?.body?.data) ? storagePools.body.data : [];
+  if (storagePoolList.length > 0) {
+    metrics.push({
+      key: "storage_pools_unhealthy",
+      value: storagePoolList.filter((p) => Number(p.HEALTHSTATUS) !== 1).length,
+      unit: "count",
+    });
+    collectFaultDetails(componentFaults, componentChecks, "Storage Pool", storagePoolList, (s) => s === 1);
   }
 
   // Die auf der Appliance mitlaufende Backup-Software (DataBackup) läuft
@@ -858,6 +942,7 @@ async function collect(config) {
   const meta = {};
   if (storageResult.deviceSerialNumber) meta.deviceSerialNumber = storageResult.deviceSerialNumber;
   if (storageResult.deviceInfo?.model) meta.deviceModel = storageResult.deviceInfo.model;
+  if (storageResult.deviceInfo?.name) meta.deviceName = storageResult.deviceInfo.name;
   if (storageResult.deviceInfo?.softwareVersion) meta.deviceSoftwareVersion = storageResult.deviceInfo.softwareVersion;
   // undefined = nicht erhoben (Login/Abruf fehlgeschlagen) → weglassen statt
   // fälschlich "aktuell keine Alarme/Fehler" zu melden. Ein leeres Array ist

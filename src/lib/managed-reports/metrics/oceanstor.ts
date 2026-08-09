@@ -114,6 +114,16 @@ export const OCEANSTOR_METRICS: MetricDefinition[] = [
     },
   },
   {
+    // Gehäuse (Controller-Enclosures + Disk-Enclosures) — Teil des
+    // Hardware-Inventars ("Hardware > Inventory" im DeviceManager).
+    key: "enclosures_faulty",
+    label: { de: "Fehlerhafte Gehäuse", en: "Faulty Enclosures" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+  },
+  {
     key: "controllers_faulty",
     label: { de: "Fehlerhafte Controller", en: "Faulty Controllers" },
     format: "count",
@@ -136,6 +146,25 @@ export const OCEANSTOR_METRICS: MetricDefinition[] = [
   {
     key: "disks_faulty",
     label: { de: "Fehlerhafte Festplatten", en: "Faulty Disks" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+  },
+  {
+    key: "filesystems_faulty",
+    label: { de: "Fehlerhafte Dateisysteme", en: "Faulty File Systems" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+  },
+  {
+    // Alle Storage Pools (nicht nur der für Kapazitätskennzahlen
+    // konfigurierte) — ein zweiter, nicht überwachter Pool könnte sonst
+    // unbemerkt in einen Fehlerzustand geraten.
+    key: "storage_pools_unhealthy",
+    label: { de: "Storage Pools mit Fehlstatus", en: "Unhealthy Storage Pools" },
     format: "count",
     aggregation: "last",
     section: "hardware",
@@ -190,6 +219,40 @@ export const OCEANSTOR_METRICS: MetricDefinition[] = [
     methodology: {
       de: "1, wenn im Gerät keine Syslog-Weiterleitung für Alarme aktiviert ist (Quelle: DeviceManager Syslog-Konfiguration), sonst 0.",
       en: "1 if the device has no syslog forwarding enabled for alarms (source: DeviceManager syslog configuration), otherwise 0.",
+    },
+  },
+  {
+    // DME IQ ist Huaweis Remote-O&M-/Call-Home-Kanal — ohne ihn bemerkt
+    // weder Huawei noch Ferrion proaktiv einen Gerätefehler oder eine
+    // anstehende Firmware-Warnung; bewusst als Kritisch statt nur Hinweis
+    // eingestuft (severeIfNonZero), da das ein blinder Fleck im gesamten
+    // Support-Prozess ist, nicht nur ein einzelnes "sollte man einrichten".
+    key: "dme_iq_disabled",
+    label: { de: "DME IQ (Remote-Support-Kanal) nicht verbunden", en: "DME IQ (Remote Support Channel) Not Connected" },
+    format: "count",
+    aggregation: "last",
+    section: "operations",
+    trendGood: "down",
+    severeIfNonZero: true,
+    methodology: {
+      de: "1, wenn die Verbindung zu Huaweis DME-IQ-Remote-Support-Dienst deaktiviert ist (Quelle: DeviceManager Remote-O&M-Richtlinie), sonst 0.",
+      en: "1 if the connection to Huawei's DME IQ remote support service is disabled (source: DeviceManager remote O&M policy), otherwise 0.",
+    },
+  },
+  {
+    // Aus den Settings unter "User and Security" — ob eine Mehrfaktor-
+    // Authentifizierung (hier: E-Mail-basiertes Einmalpasswort) für Logins
+    // eingerichtet ist. Empfehlung statt Kritisch, da fehlende MFA ein
+    // Risiko, aber kein akuter Fehlerzustand ist.
+    key: "mfa_disabled",
+    label: { de: "Multi-Faktor-Authentifizierung nicht eingerichtet", en: "Multi-Factor Authentication Not Configured" },
+    format: "count",
+    aggregation: "last",
+    section: "operations",
+    trendGood: "down",
+    methodology: {
+      de: "1, wenn keine E-Mail-basierte Mehrfaktor-Authentifizierung für Logins eingerichtet ist (Quelle: DeviceManager Benutzerauthentifizierung), sonst 0. Empfehlung, kein akuter Fehlerzustand.",
+      en: "1 if no email-based multi-factor authentication is configured for logins (source: DeviceManager user authentication), otherwise 0. A recommendation, not an active fault.",
     },
   },
   {

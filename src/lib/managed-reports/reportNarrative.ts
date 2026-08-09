@@ -25,9 +25,9 @@ const DEFAULT_THRESHOLDS = {
 // (capacity levels, dedup ratio) never get a good/bad judgment, since
 // there's no universal target for them.
 export function deriveStatus(
-  entry: Pick<QuarterSummaryEntry, "key" | "format" | "trendGood" | "value" | "statusThresholds">
+  entry: Pick<QuarterSummaryEntry, "key" | "format" | "trendGood" | "value" | "statusThresholds" | "severeIfNonZero">
 ): MetricStatus {
-  const { key, format, trendGood, value, statusThresholds } = entry;
+  const { key, format, trendGood, value, statusThresholds, severeIfNonZero } = entry;
   if (!trendGood) return "neutral";
 
   if (format === "percent") {
@@ -45,7 +45,7 @@ export function deriveStatus(
 
   if (format === "count" && trendGood === "down") {
     if (value === 0) return "good";
-    return SEVERE_KEY_HINTS.some((hint) => key.includes(hint)) ? "critical" : "warning";
+    return severeIfNonZero || SEVERE_KEY_HINTS.some((hint) => key.includes(hint)) ? "critical" : "warning";
   }
 
   return "neutral";

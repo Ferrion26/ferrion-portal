@@ -698,6 +698,9 @@ export interface ProductReportData {
   packageLabel?: string;
   deviceSerialNumber?: string;
   deviceModel?: string;
+  // Vom Kunden vergebener Systemname (z. B. "hwe-clu1"), der im
+  // DeviceManager als Cluster-Bezeichnung erscheint.
+  deviceName?: string;
   deviceSoftwareVersion?: string;
   // Bei OceanProtect eine zweite, unabhängige Versionsnummer (Backup-
   // Software, getrennt von der Storage-Firmware in deviceSoftwareVersion).
@@ -781,6 +784,12 @@ function ProductPage({
             {product.vendor} {product.productName}
           </Text>
         </View>
+        {product.deviceName && (
+          <View style={styles.sidebarField}>
+            <Text style={styles.sidebarFieldLabel}>{(locale === "de" ? "Gerätename" : "Device Name").toUpperCase()}</Text>
+            <Text style={styles.sidebarFieldValue}>{product.deviceName}</Text>
+          </View>
+        )}
         {product.packageLabel && (
           <View style={styles.sidebarField}>
             <Text style={styles.sidebarFieldLabel}>{t.package.toUpperCase()}</Text>

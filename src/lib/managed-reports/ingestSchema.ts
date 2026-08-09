@@ -30,6 +30,10 @@ export const ingestPayloadSchema = z.object({
     .object({
       deviceSerialNumber: z.string().min(1).max(100).optional(),
       deviceModel: z.string().min(1).max(100).optional(),
+      // Vom Kunden vergebener Systemname (z. B. "hwe-clu1"), der im
+      // DeviceManager als Cluster-Bezeichnung erscheint — anders als
+      // deviceModel (Produktmodell) oder deviceSerialNumber (Geräte-ESN).
+      deviceName: z.string().min(1).max(100).optional(),
       deviceSoftwareVersion: z.string().min(1).max(100).optional(),
       // Bei OceanProtect eine zweite, unabhängige Versionsnummer (Backup-
       // Software, getrennt von der Storage-Firmware in deviceSoftwareVersion).

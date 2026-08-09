@@ -14,6 +14,7 @@ export interface QuarterSummaryEntry {
   statusThresholds?: MetricDefinition["statusThresholds"];
   derived?: MetricDefinition["derived"];
   source?: MetricDefinition["source"];
+  severeIfNonZero?: MetricDefinition["severeIfNonZero"];
   value: number;
   previousValue?: number;
 }
@@ -91,6 +92,7 @@ export async function computeQuarterSummary(
       statusThresholds: def.statusThresholds,
       derived: def.derived,
       source: def.source,
+      severeIfNonZero: def.severeIfNonZero,
       value: current.get(def.key)!,
       previousValue: previous.get(def.key),
     }));

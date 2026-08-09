@@ -73,6 +73,7 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
     packageLabel,
     deviceSerialNumber: subscription.deviceSerialNumber ?? undefined,
     deviceModel: subscription.deviceModel ?? undefined,
+    deviceName: subscription.deviceName ?? undefined,
     deviceSoftwareVersion: subscription.deviceSoftwareVersion ?? undefined,
     dataBackupVersion: subscription.dataBackupVersion ?? undefined,
     entries,

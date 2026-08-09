@@ -44,4 +44,12 @@ export interface MetricDefinition {
   // DeviceManager vs. the separate DataBackup software), so the reader
   // knows where to go look. Omit for the product's primary/default source.
   source?: "databackup";
+  // Forces a count-format, trendGood "down" metric to "critical" status the
+  // moment it's non-zero, instead of the default "warning" tier — for
+  // checks that are a genuine incident rather than a "worth a look" item
+  // (e.g. the DME IQ remote-support channel being disabled). Previously
+  // this only happened via a "critical"/"infected" substring in the key
+  // (still supported, for organically-named alarm/incident counts); this is
+  // the explicit opt-in for checks whose name doesn't naturally contain one.
+  severeIfNonZero?: boolean;
 }
