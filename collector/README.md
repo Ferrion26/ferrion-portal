@@ -9,9 +9,16 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
 1. Im Ferrion-Admin-Bereich unter **Managed Reports** die Subscription des
    Kunden anlegen (Kunde + Produkt + Servicestufe) und dort einen
    Collector-API-Key erzeugen (Klartext-Key wird nur einmal angezeigt).
-2. `config.example.json` nach `config.json` kopieren und ausfüllen:
-   `ingestUrl`, `apiKey` (aus Schritt 1), `productSlug` sowie die
-   produktspezifischen Zugangsdaten.
+2. `config.example.json` nach `config.json` kopieren und ausfüllen. Hat der
+   Standort **mehrere Geräte** (z. B. OceanProtect + OceanStor), gehört
+   jedes als eigener Eintrag in das `devices`-Array — jedes Gerät hat seine
+   eigene Subscription (eigener API-Key aus Schritt 1) und seinen eigenen
+   `productSlug`/Zugangsdaten-Block, aber alle laufen über **eine** einzige
+   `config.json` und **einen** einzigen geplanten Lauf (Task Scheduler/cron)
+   für den ganzen Standort — nicht mehrere separate Configs/Tasks pro Gerät.
+   Bei nur einem Gerät kann `devices` weggelassen und `productSlug`/`apiKey`/
+   der Zugangsdaten-Block direkt auf oberster Ebene gesetzt werden (Legacy-
+   Form, funktioniert unverändert).
 3. Für OceanProtect (X8000) braucht `adapters/oceanprotect.js` Zugangsdaten zu
    **zwei getrennten REST-APIs derselben Appliance** (siehe
    `config.oceanprotect` in `config.example.json`):
@@ -32,11 +39,10 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
 3b. Für OceanStor (z. B. 5310) braucht `adapters/oceanstor.js` nur **eine**
    REST-API — dieselbe DeviceManager-API wie bei OceanProtect Backup Storage
    (Login, Alarme, Controller/Disk/Fan/Power, Kapazität), Standardport 8088,
-   siehe `config.oceanstor` in `config.example.json`. Kein DataBackup-Teil,
-   da OceanStor reiner Primärspeicher ist. Quelle: `docs/Rest/OceanStor
-   V700R001C30 REST Interface Reference` (im Repo, nicht öffentlich). Hat ein
-   Kunde beide Produkte, laufen zwei separate `config.json`-Dateien (je ein
-   `productSlug`) mit je eigenem Subscription/API-Key nebeneinander.
+   siehe den `oceanstor`-Block im zweiten `devices`-Eintrag in
+   `config.example.json`. Kein DataBackup-Teil, da OceanStor reiner
+   Primärspeicher ist. Quelle: `docs/Rest/OceanStor V700R001C30 REST
+   Interface Reference` (im Repo, nicht öffentlich).
 4. Node.js 18+ auf dem Collector-Host voraussetzen (nutzt das eingebaute
    `fetch`), keine weiteren Abhängigkeiten nötig.
 5. Testlauf: `node index.js config.json`
@@ -58,17 +64,19 @@ Push-Modus:
 node index.js config.json --export-dir ./exports
 ```
 
-Statt live zu pushen, schreibt jeder Lauf eine Datei
-`exports/metrics-<Zeitstempel>.json` im selben Format, das die Ingestion-API
-erwartet (`ingestUrl`/`apiKey` in `config.json` werden für den Export-Modus
+Statt live zu pushen, schreibt jeder Lauf pro konfiguriertem Gerät eine Datei
+`exports/metrics-<productSlug>-<Zeitstempel>.json` im selben Format, das die
+Ingestion-API erwartet (`ingestUrl`/`apiKey` werden für den Export-Modus
 nicht gebraucht). Regelmäßig einplanen wie oben (`install-windows.ps1
 -ExportDir ...` bzw. `install-linux.sh --export-dir ...`).
 
 Die gesammelten `.json`-Dateien werden periodisch (z. B. per USB-Stick) aus
-der isolierten Umgebung herausgetragen und im Ferrion-Admin-Bereich unter der
-jeweiligen Subscription (`/admin/managed-reports/<id>`, Abschnitt
-**"Manueller Upload"**) hochgeladen — mehrere Dateien gleichzeitig möglich,
-kein API-Key nötig (die Admin-Anmeldung übernimmt die Authentifizierung).
+der isolierten Umgebung herausgetragen und im Ferrion-Admin-Bereich **je
+Gerät unter dessen eigener Subscription** (`/admin/managed-reports/<id>`,
+Abschnitt **"Manueller Upload"**) hochgeladen — die Datei gehört anhand ihres
+`productSlug` im Namen zur passenden Subscription. Mehrere Dateien
+gleichzeitig innerhalb derselben Subscription sind möglich, kein API-Key
+nötig (die Admin-Anmeldung übernimmt die Authentifizierung).
 
 ## Logging & Fehlersuche
 

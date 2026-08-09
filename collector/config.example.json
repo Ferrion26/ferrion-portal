@@ -1,23 +1,31 @@
 {
   "ingestUrl": "https://www.ferrion.at/api/collector/ingest",
-  "apiKey": "fcs_… (im Admin-Bereich unter Managed Reports > Subscription > API-Keys erzeugen)",
-  "productSlug": "oceanprotect",
   "allowInsecureTls": false,
   "debug": false,
-  "oceanprotect": {
-    "storagePoolId": "0",
-    "deviceManagerUrl": "https://<oceanprotect-x8000-host>:8088",
-    "deviceManagerUsername": "collector-readonly",
-    "deviceManagerPassword": "…",
-    "dataBackupUrl": "https://<oceanprotect-x8000-host>:25081",
-    "dataBackupUsername": "collector-readonly",
-    "dataBackupPassword": "…"
-  },
-  "_comment_oceanstor": "Für OceanStor productSlug auf 'oceanstor-hybrid-flash' setzen und stattdessen den unten stehenden 'oceanstor'-Block befüllen (eigene config.json je Produkt).",
-  "oceanstor": {
-    "storagePoolId": "0",
-    "deviceManagerUrl": "https://<oceanstor-5310-host>:8088",
-    "username": "collector-readonly",
-    "password": "…"
-  }
+  "devices": [
+    {
+      "productSlug": "oceanprotect",
+      "apiKey": "fcs_… (Subscription 1 — im Admin-Bereich unter Managed Reports > OceanProtect-Subscription > API-Keys erzeugen)",
+      "oceanprotect": {
+        "storagePoolId": "0",
+        "deviceManagerUrl": "https://<oceanprotect-x8000-host>:8088",
+        "deviceManagerUsername": "collector-readonly",
+        "deviceManagerPassword": "…",
+        "dataBackupUrl": "https://<oceanprotect-x8000-host>:25081",
+        "dataBackupUsername": "collector-readonly",
+        "dataBackupPassword": "…"
+      }
+    },
+    {
+      "productSlug": "oceanstor-hybrid-flash",
+      "apiKey": "fcs_… (Subscription 2 — im Admin-Bereich unter Managed Reports > OceanStor-Subscription > API-Keys erzeugen)",
+      "oceanstor": {
+        "storagePoolId": "0",
+        "deviceManagerUrl": "https://<oceanstor-5310-host>:8088",
+        "username": "collector-readonly",
+        "password": "…"
+      }
+    }
+  ],
+  "_comment_single_device": "Nur ein Gerät am Standort? Das 'devices'-Array weglassen und productSlug/apiKey/den passenden Zugangsdaten-Block (z. B. 'oceanprotect') direkt auf oberster Ebene setzen — funktioniert weiterhin genauso."
 }
