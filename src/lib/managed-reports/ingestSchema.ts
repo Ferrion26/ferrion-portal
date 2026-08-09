@@ -63,6 +63,19 @@ export const ingestPayloadSchema = z.object({
           byResource: z.array(z.object({ name: z.string().min(1).max(200), failedCount: z.number().min(0) })).max(10),
         })
         .optional(),
+      // Details zu den konkreten Komponenten hinter einer Fehler-/Warnungs-
+      // Kennzahl > 0 (z. B. welcher Controller, welche Lizenz läuft ab) —
+      // ersetzt jeweils die vorherige Stichprobe (keine Historie).
+      componentFaults: z
+        .array(
+          z.object({
+            category: z.string().min(1).max(100),
+            id: z.string().min(1).max(200),
+            description: z.string().min(1).max(300),
+          })
+        )
+        .max(50)
+        .optional(),
     })
     .optional(),
 });

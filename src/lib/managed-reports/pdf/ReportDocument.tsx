@@ -117,9 +117,9 @@ const styles = StyleSheet.create({
   listCardTitle: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 2 },
   listCardSub: { fontSize: 7.5, color: GRAY, marginBottom: 8 },
   listRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 5.5, borderBottomWidth: 1, borderBottomColor: ROW_DIVIDER },
-  listRowLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
+  listRowLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6, paddingRight: 8 },
   listRowLabel: { fontSize: 8.5, color: INK },
-  listRowRight: { flexDirection: "row", alignItems: "center", gap: 7 },
+  listRowRight: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 0 },
   listRowValue: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: INK },
   listRowTrend: { fontSize: 6.5 },
 
@@ -200,10 +200,26 @@ function TrendArrow({ direction, color }: { direction: "up" | "down"; color: str
 }
 
 const DERIVED_LABEL = { de: "berechnet", en: "calc." };
+const SOURCE_LABEL: Record<"de" | "en", Record<NonNullable<QuarterSummaryEntry["source"]>, string>> = {
+  de: { databackup: "DataBackup" },
+  en: { databackup: "DataBackup" },
+};
+
+// Kombiniert die "berechnet"- und Quellen-Kennzeichnung zu einem Suffix —
+// z. B. "berechnet · DataBackup" — damit klar ist, welcher Wert eine
+// Berechnung ist UND/ODER aus der separaten DataBackup-Software statt vom
+// Storage-Gerät selbst kommt (bei OceanProtect zwei getrennte APIs/GUIs).
+function metricTags(entry: Pick<QuarterSummaryEntry, "derived" | "source">, locale: "de" | "en"): string | null {
+  const tags = [entry.derived && DERIVED_LABEL[locale], entry.source && SOURCE_LABEL[locale][entry.source]].filter(
+    (t): t is string => Boolean(t)
+  );
+  return tags.length > 0 ? tags.join(" · ") : null;
+}
 
 function HeadlineCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "de" | "en" }) {
   const status = deriveStatus(entry);
   const label = entry.shortLabel?.[locale] ?? entry.label[locale];
+  const tags = metricTags(entry, locale);
   return (
     <View style={styles.headlineCard} wrap={false}>
       <View style={styles.headlineTopRow}>
@@ -213,7 +229,7 @@ function HeadlineCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "
       <Text style={styles.headlineValue}>{formatValue(entry, locale)}</Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
         <StatusPill status={status} text={headlinePillText(entry, status, locale)} />
-        {entry.derived && <Text style={styles.derivedTag}>{DERIVED_LABEL[locale]}</Text>}
+        {tags && <Text style={styles.derivedTag}>{tags}</Text>}
       </View>
     </View>
   );
@@ -223,13 +239,14 @@ function CompactListRow({ entry, locale }: { entry: QuarterSummaryEntry; locale:
   const status = deriveStatus(entry);
   const pillLabel = LIST_PILL_LABEL[locale][status];
   const trend = trendInfo(entry);
+  const tags = metricTags(entry, locale);
   return (
     <View style={styles.listRow}>
       <View style={styles.listRowLeft}>
         <Dot status={status} />
         <Text style={styles.listRowLabel}>
           {entry.label[locale]}
-          {entry.derived && <Text style={styles.derivedTag}> · {DERIVED_LABEL[locale]}</Text>}
+          {tags && <Text style={styles.derivedTag}> · {tags}</Text>}
         </Text>
       </View>
       <View style={styles.listRowRight}>
@@ -346,6 +363,32 @@ function AlarmCard({ alarms, locale }: { alarms: AlarmSample[]; locale: "de" | "
   );
 }
 
+const MAX_COMPONENT_FAULTS_SHOWN = 20;
+
+function ComponentFaultsCard({ faults, locale }: { faults: ComponentFault[]; locale: "de" | "en" }) {
+  const t = COPY[locale];
+  const shown = faults.slice(0, MAX_COMPONENT_FAULTS_SHOWN);
+  const overflow = faults.length - shown.length;
+  return (
+    <View style={styles.tableCardBlock} wrap={false}>
+      <Text style={styles.listCardTitle}>{t.detailsTitle}</Text>
+      <Text style={styles.listCardSub}>{t.detailsSub}</Text>
+      {shown.map((fault, i) => (
+        <View key={i} style={{ ...styles.tableRow, alignItems: "flex-start" }}>
+          <Text style={{ width: 90, color: MUTED, fontSize: 7, paddingTop: 1 }}>{fault.category}</Text>
+          <Text style={{ width: 130, fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, paddingRight: 6 }}>{fault.id}</Text>
+          <Text style={{ flex: 1, fontSize: 8, color: "#374151" }}>{fault.description}</Text>
+        </View>
+      ))}
+      {overflow > 0 && (
+        <Text style={{ ...styles.methodologyLine, marginTop: 6 }}>
+          {locale === "de" ? `+ ${overflow} weitere Einträge.` : `+ ${overflow} more entries.`}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 const RESOURCE_BREAKDOWN_COPY = {
   de: { title: "Ressourcen nach Typ", type: "Typ", protectedCol: "Geschützt", unprotectedCol: "Ungeschützt" },
   en: { title: "Resources by Type", type: "Type", protectedCol: "Protected", unprotectedCol: "Unprotected" },
@@ -437,6 +480,8 @@ const COPY = {
     infraSub: "Auffälligkeiten sind farblich markiert.",
     recTitle: "Empfehlung",
     methodologyTitle: "Methodik",
+    detailsTitle: "Details zu Auffälligkeiten",
+    detailsSub: "Konkrete Komponenten hinter den Kennzahlen > 0 im Infrastrukturstatus.",
     notes: "Anmerkungen",
     generatedBy: "Erstellt von Ferrion IT Systemhaus GmbH",
   },
@@ -455,6 +500,8 @@ const COPY = {
     infraSub: "Issues are color-coded.",
     recTitle: "Recommendation",
     methodologyTitle: "Methodology",
+    detailsTitle: "Issue Details",
+    detailsSub: "Specific components behind the metrics > 0 in the infrastructure status.",
     notes: "Notes",
     generatedBy: "Prepared by Ferrion IT Systemhaus GmbH",
   },
@@ -479,6 +526,12 @@ export interface TopJobFailures {
   byResource: { name: string; failedCount: number }[];
 }
 
+export interface ComponentFault {
+  category: string;
+  id: string;
+  description: string;
+}
+
 export interface ProductReportData {
   productName: string;
   vendor: string;
@@ -493,6 +546,10 @@ export interface ProductReportData {
   recentAlarms?: AlarmSample[];
   resourceBreakdown?: ResourceBreakdownEntry[];
   topJobFailures?: TopJobFailures;
+  // Details zu den konkreten Komponenten hinter einer Fehler-Kennzahl > 0 im
+  // Infrastrukturstatus (welcher Controller, welche Lizenz, …) — als
+  // Referenzabschnitt am Ende des Produktblocks gezeigt.
+  componentFaults?: ComponentFault[];
   replicationNote?: string;
 }
 
@@ -636,7 +693,7 @@ function ProductBlock({ product, locale, isCombined }: { product: ProductReportD
       <ListCard title={SECTION_LABELS.operations[locale]} entries={operationsEntries} locale={locale} />
       {operationsEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
 
-      {(methodologyEntries.length > 0 || entries.some((e) => e.derived)) && (
+      {(methodologyEntries.length > 0 || entries.some((e) => e.derived) || entries.some((e) => e.source)) && (
         <View style={styles.methodologyBlock} wrap={false}>
           <Text style={styles.methodologyTitle}>{t.methodologyTitle.toUpperCase()}</Text>
           {entries.some((e) => e.derived) && (
@@ -646,11 +703,24 @@ function ProductBlock({ product, locale, isCombined }: { product: ProductReportD
                 : `Metrics marked "${DERIVED_LABEL.en}" are calculated by us from several raw device readings (e.g. averaged or as a rate) — not a single value reported directly by the device.`}
             </Text>
           )}
+          {entries.some((e) => e.source === "databackup") && (
+            <Text style={styles.methodologyLine}>
+              {locale === "de"
+                ? `Mit "DataBackup" markierte Kennzahlen kommen aus der separaten Backup-Software-Oberfläche (ProtectManager), nicht aus dem DeviceManager der Storage-Appliance selbst — alle anderen Kennzahlen dieses Abschnitts kommen vom Storage-Gerät.`
+                : `Metrics marked "DataBackup" come from the separate backup software interface (ProtectManager), not from the storage appliance's own DeviceManager — every other metric in this section comes from the storage device.`}
+            </Text>
+          )}
           {methodologyEntries.map((e) => (
             <Text key={e.key} style={styles.methodologyLine}>
               {e.label[locale]}: {e.methodology![locale]}
             </Text>
           ))}
+        </View>
+      )}
+
+      {(product.componentFaults?.length ?? 0) > 0 && (
+        <View style={{ marginTop: 14 }}>
+          <ComponentFaultsCard faults={product.componentFaults!} locale={locale} />
         </View>
       )}
     </View>

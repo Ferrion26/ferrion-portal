@@ -217,6 +217,13 @@ model ManagedServiceSubscription {
   // und nach Ressource — vom letzten Ingest überschrieben, keine Historie.
   topJobFailures Json?
 
+  // Details zu den konkreten Komponenten hinter einer Fehler-/Warnungs-
+  // Kennzahl > 0 im Infrastrukturstatus (z. B. welcher Controller, welche
+  // Lizenz läuft ab) — im Bericht als Referenzabschnitt am Ende gezeigt,
+  // damit ein Wert > 0 nicht ohne Kontext dasteht. Vom letzten Ingest
+  // überschrieben, keine Historie.
+  componentFaults Json?
+
   // Stichprobe der jüngsten Alarme/Ereignisse mit Klartext (Name,
   // Beschreibung, Empfehlung), vom Collector je Schweregrad mitgeliefert —
   // vom letzten Ingest überschrieben, keine Historie. Frei formatiertes

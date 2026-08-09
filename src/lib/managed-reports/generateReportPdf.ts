@@ -36,6 +36,7 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
     recentAlarms: (subscription.recentAlarms as unknown as ProductReportData["recentAlarms"]) ?? undefined,
     resourceBreakdown: (subscription.resourceBreakdown as unknown as ProductReportData["resourceBreakdown"]) ?? undefined,
     topJobFailures: (subscription.topJobFailures as unknown as ProductReportData["topJobFailures"]) ?? undefined,
+    componentFaults: (subscription.componentFaults as unknown as ProductReportData["componentFaults"]) ?? undefined,
     replicationNote: subscription.replicationNote ?? undefined,
   };
 }

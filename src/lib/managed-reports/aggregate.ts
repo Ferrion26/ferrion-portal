@@ -13,6 +13,7 @@ export interface QuarterSummaryEntry {
   methodology?: MetricDefinition["methodology"];
   statusThresholds?: MetricDefinition["statusThresholds"];
   derived?: MetricDefinition["derived"];
+  source?: MetricDefinition["source"];
   value: number;
   previousValue?: number;
 }
@@ -89,6 +90,7 @@ export async function computeQuarterSummary(
       methodology: def.methodology,
       statusThresholds: def.statusThresholds,
       derived: def.derived,
+      source: def.source,
       value: current.get(def.key)!,
       previousValue: previous.get(def.key),
     }));

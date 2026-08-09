@@ -14,6 +14,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     trendGood: "up",
     headline: true,
     derived: true,
+    source: "databackup",
     methodology: {
       de: "Berechnet als erfolgreiche Backup-Jobs ÷ alle Backup-Jobs im Berichtszeitraum, je Ressource ausgewertet (Quelle: OceanProtect DataBackup Job-Statistik). Kein vom Gerät direkt gemeldeter Einzelwert, sondern aus den Job-Rohdaten aggregiert.",
       en: "Calculated as successful backup jobs ÷ all backup jobs in the reporting period, evaluated per resource (source: OceanProtect DataBackup job statistics). Not a single value reported directly by the device — aggregated from raw job data.",
@@ -27,6 +28,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     section: "availability",
     trendGood: "up",
     derived: true,
+    source: "databackup",
     methodology: {
       de: "Anteil geschützter Ressourcen, deren letzte Sicherung innerhalb des vereinbarten Recovery Point Objective liegt (Quelle: OceanProtect DataBackup SLA-Compliance-Statistik).",
       en: "Share of protected resources whose most recent backup falls within the agreed Recovery Point Objective (source: OceanProtect DataBackup SLA compliance statistics).",
@@ -38,6 +40,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     format: "count",
     aggregation: "last",
     section: "availability",
+    source: "databackup",
   },
   {
     key: "sla_noncompliant_count",
@@ -46,6 +49,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     aggregation: "last",
     section: "availability",
     trendGood: "down",
+    source: "databackup",
   },
   {
     key: "resource_protection_rate",
@@ -55,6 +59,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     section: "availability",
     trendGood: "up",
     derived: true,
+    source: "databackup",
     methodology: {
       de: "Anteil der bei DataBackup bekannten Ressourcen (Dateisysteme, Datenbanken, VMs, …), für die aktuell eine Schutzrichtlinie aktiv ist (Quelle: OceanProtect DataBackup Ressourcenschutz-Übersicht).",
       en: "Share of resources known to DataBackup (file systems, databases, VMs, …) that currently have an active protection policy (source: OceanProtect DataBackup resource protection summary).",
@@ -67,6 +72,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     aggregation: "last",
     section: "availability",
     trendGood: "down",
+    source: "databackup",
   },
   {
     // Quelle: /v1/report-data/jobs (derselbe Aufruf wie backup_success_rate).
@@ -79,6 +85,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     aggregation: "last",
     section: "availability",
     trendGood: "down",
+    source: "databackup",
   },
   {
     key: "protected_capacity_tb",
@@ -187,6 +194,21 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     trendGood: "down",
   },
   {
+    // Aus dem Inspector-Healthcheck ("Consistency Check of the System
+    // Software Version") — unterschiedliche Firmware-Stände zwischen
+    // Controllern deuten auf ein unvollständiges Update hin.
+    key: "controllers_firmware_inconsistent",
+    label: { de: "Firmware zwischen Controllern uneinheitlich", en: "Firmware Inconsistent Across Controllers" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+    methodology: {
+      de: "1, wenn die Controller des Systems unterschiedliche Firmware-Versionen melden (Quelle: DeviceManager Controller-Firmware-Version), sonst 0.",
+      en: "1 if the system's controllers report different firmware versions (source: DeviceManager controller firmware version), otherwise 0.",
+    },
+  },
+  {
     key: "disks_faulty",
     label: { de: "Fehlerhafte Festplatten", en: "Faulty Disks" },
     format: "count",
@@ -257,6 +279,32 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     },
   },
   {
+    // Aus dem Inspector-Healthcheck ("Whether a temporary license exists").
+    key: "license_expiring_soon",
+    label: { de: "Lizenz läuft bald ab", en: "License Expiring Soon" },
+    format: "count",
+    aggregation: "last",
+    section: "operations",
+    trendGood: "down",
+    methodology: {
+      de: "1, wenn eine aktive Lizenzfunktion innerhalb von 30 Tagen abläuft oder bereits abgelaufen ist (Quelle: DeviceManager Lizenzstatus), sonst 0.",
+      en: "1 if an active license feature expires within 30 days or has already expired (source: DeviceManager license status), otherwise 0.",
+    },
+  },
+  {
+    // Aus dem Inspector-Healthcheck ("Checking Certificate Expiration Time").
+    key: "certificate_expiring_soon",
+    label: { de: "Zertifikat läuft bald ab", en: "Certificate Expiring Soon" },
+    format: "count",
+    aggregation: "last",
+    section: "operations",
+    trendGood: "down",
+    methodology: {
+      de: "1, wenn ein gültiges Zertifikat des Geräts innerhalb von 30 Tagen abläuft (Quelle: DeviceManager Zertifikatsstatus), sonst 0.",
+      en: "1 if a valid device certificate expires within 30 days (source: DeviceManager certificate status), otherwise 0.",
+    },
+  },
+  {
     // Backup-Software (DataBackup) läuft als Container-Dienst auf dem
     // Storage-Controller — dies sind die ihm zugeteilten Ressourcen, nicht
     // dessen tatsächliche Auslastung (dafür liefert die REST-API keinen
@@ -300,6 +348,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     format: "count",
     aggregation: "sum",
     section: "security",
+    source: "databackup",
   },
   {
     // Quelle: /v1/anti-ransomware/recovery-drill/plans/statistics.
@@ -311,6 +360,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     format: "count",
     aggregation: "last",
     section: "security",
+    source: "databackup",
   },
   {
     key: "recovery_drill_success_rate",
@@ -320,6 +370,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     section: "security",
     trendGood: "up",
     derived: true,
+    source: "databackup",
     methodology: {
       de: "Berechnet als erfolgreiche Recovery-Drills ÷ alle durchgeführten Recovery-Drills im Berichtszeitraum (Quelle: OceanProtect DataBackup Recovery-Drill-Statistik).",
       en: "Calculated as successful recovery drills ÷ all recovery drills executed in the reporting period (source: OceanProtect DataBackup recovery drill statistics).",
@@ -334,6 +385,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     aggregation: "last",
     section: "security",
     trendGood: "down",
+    source: "databackup",
   },
   {
     key: "ransomware_abnormal_copies",
@@ -342,6 +394,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     aggregation: "last",
     section: "security",
     trendGood: "down",
+    source: "databackup",
   },
   {
     key: "alerts_critical",

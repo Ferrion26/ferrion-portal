@@ -81,6 +81,32 @@ async function fetchOptional(config, label, promise) {
   }
 }
 
+// Klartext für die üblichen HEALTHSTATUS-Codes der DeviceManager-API — für
+// die Detailreferenz am Ende des Berichts, wenn eine Fehler-Kennzahl > 0 ist.
+const HEALTH_STATUS_LABELS = {
+  0: "Unbekannt",
+  2: "Fehlerhaft",
+  3: "Fällt demnächst aus",
+  9: "Inkonsistent",
+  11: "Kein Eingang",
+  17: "Nur ein Link",
+};
+function describeHealthStatus(code) {
+  return HEALTH_STATUS_LABELS[code] ?? `Status-Code ${code}`;
+}
+
+function collectFaultDetails(componentFaults, category, list, isOk) {
+  for (const item of list) {
+    const status = Number(item.HEALTHSTATUS ?? item.healthStatus);
+    if (isOk(status)) continue;
+    componentFaults.push({
+      category,
+      id: String(item.ID ?? item.id ?? "—"),
+      description: describeHealthStatus(status),
+    });
+  }
+}
+
 async function collectCapacityMetrics(config, session) {
   const { deviceManagerUrl } = config.oceanstor;
   const poolId = config.oceanstor.storagePoolId ?? "0";
@@ -140,7 +166,7 @@ async function collectHardwareMetrics(config, session) {
   const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
   const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
 
-  const [system, controllers, disks, fans, power, ethPorts, fsSnapshots, sfpModules, email, syslog] = await Promise.all([
+  const [system, controllers, disks, fans, power, ethPorts, fsSnapshots, sfpModules, email, syslog, license, certificates] = await Promise.all([
     requestJson(config, joinUrl(base, "/system/"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/controller"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/disk"), { headers: authHeaders }),
@@ -153,9 +179,12 @@ async function collectHardwareMetrics(config, session) {
     fetchOptional(config, "Optical-Module-Status", requestJson(config, joinUrl(base, "/sfp"), { headers: authHeaders })),
     fetchOptional(config, "Email-Benachrichtigung", requestJson(config, joinUrl(base, "/email"), { headers: authHeaders })),
     fetchOptional(config, "Syslog-Benachrichtigung", requestJson(config, joinUrl(base, "/syslog"), { headers: authHeaders })),
+    fetchOptional(config, "Lizenzstatus", requestJson(config, joinUrl(base, "/license/activelicense"), { headers: authHeaders })),
+    fetchOptional(config, "Zertifikatsstatus", requestJson(config, joinUrl(base, "/certificate"), { headers: authHeaders })),
   ]);
 
   const metrics = [];
+  const componentFaults = [];
 
   const sys = system.body.data;
   const systemHealthy = Number(sys.HEALTHSTATUS) === 1 && Number(sys.RUNNINGSTATUS) === 1 ? 100 : 0;
@@ -173,21 +202,40 @@ async function collectHardwareMetrics(config, session) {
     metrics.push({ key: "controller_memory_usage_avg", value: memValues.reduce((a, b) => a + b, 0) / memValues.length, unit: "%" });
   }
   metrics.push({ key: "controllers_faulty", value: controllerList.filter((c) => Number(c.HEALTHSTATUS) !== 1).length, unit: "count" });
+  collectFaultDetails(componentFaults, "Controller", controllerList, (s) => s === 1);
+
+  // Firmware-Konsistenz zwischen Controllern (aus dem Inspector-Healthcheck).
+  const firmwareVersions = new Set(controllerList.map((c) => c.SOFTVER).filter(Boolean));
+  if (firmwareVersions.size > 0) {
+    metrics.push({ key: "controllers_firmware_inconsistent", value: firmwareVersions.size > 1 ? 1 : 0, unit: "count" });
+    if (firmwareVersions.size > 1) {
+      for (const c of controllerList) {
+        componentFaults.push({ category: "Firmware", id: `Controller ${c.ID}`, description: `Version ${c.SOFTVER}` });
+      }
+    }
+  }
 
   const diskList = Array.isArray(disks.body.data) ? disks.body.data : [];
   metrics.push({ key: "disks_faulty", value: diskList.filter((d) => Number(d.HEALTHSTATUS) !== 1).length, unit: "count" });
+  collectFaultDetails(componentFaults, "Festplatte", diskList, (s) => s === 1);
 
   const fanList = Array.isArray(fans.body.data) ? fans.body.data : [];
   metrics.push({ key: "fans_faulty", value: fanList.filter((f) => Number(f.HEALTHSTATUS) !== 1).length, unit: "count" });
+  collectFaultDetails(componentFaults, "Lüfter", fanList, (s) => s === 1);
 
   const powerList = Array.isArray(power.body.data) ? power.body.data : [];
   metrics.push({ key: "power_modules_faulty", value: powerList.filter((p) => Number(p.HEALTHSTATUS) !== 1).length, unit: "count" });
+  collectFaultDetails(componentFaults, "Netzteil", powerList, (s) => s === 1);
 
   // Wartungsports (z. B. "CTE0.A.MAINTENANCE") sind regulär nicht
   // angeschlossen und würden sonst dauerhaft als "down" mitgezählt.
   const ethList = Array.isArray(ethPorts.body.data) ? ethPorts.body.data : [];
   const activePorts = ethList.filter((p) => Number(p.HEALTHSTATUS) !== 0 && !/maintenance/i.test(String(p.ID ?? "")));
-  metrics.push({ key: "eth_ports_down", value: activePorts.filter((p) => Number(p.RUNNINGSTATUS) === 11).length, unit: "count" });
+  const downPorts = activePorts.filter((p) => Number(p.RUNNINGSTATUS) === 11);
+  metrics.push({ key: "eth_ports_down", value: downPorts.length, unit: "count" });
+  for (const p of downPorts) {
+    componentFaults.push({ category: "Netzwerk-Port", id: String(p.ID ?? "—"), description: "Offline" });
+  }
 
   if (fsSnapshots) {
     metrics.push({ key: "snapshot_count", value: Number(fsSnapshots.body.data.COUNT) || 0, unit: "count" });
@@ -202,6 +250,7 @@ async function collectHardwareMetrics(config, session) {
       value: sfpList.filter((s) => ![0, 1].includes(Number(s.healthStatus))).length,
       unit: "count",
     });
+    collectFaultDetails(componentFaults, "Optikmodul", sfpList, (s) => s === 0 || s === 1);
   }
 
   if (email) {
@@ -215,7 +264,48 @@ async function collectHardwareMetrics(config, session) {
     });
   }
 
-  return { metrics, deviceInfo };
+  // Lizenz-/Zertifikatsablauf aus dem Inspector-Healthcheck. 30 Tage Vorlauf
+  // als bewusst konservative Schwelle, um rechtzeitig vor Ablauf zu warnen.
+  const EXPIRY_WARNING_DAYS = 30;
+  const now = Date.now();
+  function daysUntil(dateStr) {
+    if (!dateStr || dateStr === "--") return null;
+    const t = new Date(dateStr).getTime();
+    return Number.isFinite(t) ? Math.floor((t - now) / (1000 * 60 * 60 * 24)) : null;
+  }
+
+  if (license) {
+    const activeFunctions = (license.body.data.LicenseFunction ?? []).filter((f) => Number(f.FuncSwitch) === 1);
+    const expiringSoon = activeFunctions
+      .map((f) => ({ id: f.FeatureId, days: daysUntil(f.RunTime) }))
+      .filter((f) => f.days !== null && f.days <= EXPIRY_WARNING_DAYS);
+    metrics.push({ key: "license_expiring_soon", value: expiringSoon.length > 0 ? 1 : 0, unit: "count" });
+    for (const f of expiringSoon) {
+      componentFaults.push({
+        category: "Lizenz",
+        id: `Feature ${f.id}`,
+        description: f.days < 0 ? "Abgelaufen" : `Läuft in ${f.days} Tagen ab`,
+      });
+    }
+  }
+
+  if (certificates) {
+    const certList = Array.isArray(certificates.body.data) ? certificates.body.data : [];
+    const expiringSoon = certList
+      .filter((c) => Number(c.CERTIFICATE_STATUS) === 1)
+      .map((c) => ({ type: c.CERTIFICATE_TYPE, days: daysUntil(c.CERTIFICATE_EXPIRE_TIME) }))
+      .filter((c) => c.days !== null && c.days <= EXPIRY_WARNING_DAYS);
+    metrics.push({ key: "certificate_expiring_soon", value: expiringSoon.length > 0 ? 1 : 0, unit: "count" });
+    for (const c of expiringSoon) {
+      componentFaults.push({
+        category: "Zertifikat",
+        id: `Typ ${c.type}`,
+        description: c.days < 0 ? "Abgelaufen" : `Läuft in ${c.days} Tagen ab`,
+      });
+    }
+  }
+
+  return { metrics, deviceInfo, componentFaults };
 }
 
 async function collect(config) {
@@ -236,6 +326,7 @@ async function collect(config) {
     const metrics = [];
     let deviceInfo = null;
     let alarmSamples = [];
+    let componentFaults = [];
     if (capacityResult.status === "fulfilled") {
       metrics.push(...capacityResult.value.metrics);
       alarmSamples = capacityResult.value.alarmSamples;
@@ -245,6 +336,7 @@ async function collect(config) {
     if (hardwareResult.status === "fulfilled") {
       metrics.push(...hardwareResult.value.metrics);
       deviceInfo = hardwareResult.value.deviceInfo;
+      componentFaults = hardwareResult.value.componentFaults;
     } else {
       config.logger?.warn(`Hardware-Kennzahlen konnten nicht erhoben werden: ${hardwareResult.reason.message}`);
     }
@@ -259,6 +351,7 @@ async function collect(config) {
     if (deviceInfo?.model) meta.deviceModel = deviceInfo.model;
     if (deviceInfo?.softwareVersion) meta.deviceSoftwareVersion = deviceInfo.softwareVersion;
     if (alarmSamples.length > 0) meta.alarmSamples = alarmSamples;
+    if (componentFaults.length > 0) meta.componentFaults = componentFaults;
 
     return { metrics, meta: Object.keys(meta).length > 0 ? meta : undefined };
   } finally {

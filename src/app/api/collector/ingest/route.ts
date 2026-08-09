@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
   if (meta?.alarmSamples) deviceUpdate.recentAlarms = meta.alarmSamples;
   if (meta?.resourceBreakdown) deviceUpdate.resourceBreakdown = meta.resourceBreakdown;
   if (meta?.topJobFailures) deviceUpdate.topJobFailures = meta.topJobFailures;
+  if (meta?.componentFaults) deviceUpdate.componentFaults = meta.componentFaults;
 
   const [, ingestion] = await prisma.$transaction([
     prisma.collectorApiKey.update({

@@ -170,7 +170,7 @@ async function collectHardwareMetrics(config, session) {
   const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
   const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
 
-  const [system, controllers, disks, fans, power, ethPorts, replicationPairs, bbus, sfpModules, email, syslog] = await Promise.all([
+  const [system, controllers, disks, fans, power, ethPorts, replicationPairs, bbus, sfpModules, email, syslog, license, certificates] = await Promise.all([
     requestJson(config, joinUrl(base, "/system/"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/controller"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/disk"), { headers: authHeaders }),
@@ -190,9 +190,13 @@ async function collectHardwareMetrics(config, session) {
     fetchOptional(config, "Optical-Module-Status", requestJson(config, joinUrl(base, "/sfp"), { headers: authHeaders })),
     fetchOptional(config, "Email-Benachrichtigung", requestJson(config, joinUrl(base, "/email"), { headers: authHeaders })),
     fetchOptional(config, "Syslog-Benachrichtigung", requestJson(config, joinUrl(base, "/syslog"), { headers: authHeaders })),
+    // Weitere Inspector-Checks: Lizenz- und Zertifikatsablauf.
+    fetchOptional(config, "Lizenzstatus", requestJson(config, joinUrl(base, "/license/activelicense"), { headers: authHeaders })),
+    fetchOptional(config, "Zertifikatsstatus", requestJson(config, joinUrl(base, "/certificate"), { headers: authHeaders })),
   ]);
 
   const metrics = [];
+  const componentFaults = [];
 
   // System HEALTHSTATUS/RUNNINGSTATUS: 1 = Normal für beide.
   const sys = system.body.data;
@@ -217,18 +221,35 @@ async function collectHardwareMetrics(config, session) {
     value: controllerList.filter((c) => Number(c.HEALTHSTATUS) !== 1).length,
     unit: "count",
   });
+  collectFaultDetails(componentFaults, "Controller", controllerList, (s) => s === 1);
+
+  // Firmware-Konsistenz zwischen Controllern (aus dem Inspector-Healthcheck
+  // "Consistency Check of the System Software Version") — unterschiedliche
+  // SOFTVER-Werte deuten auf ein unvollständiges Update hin.
+  const firmwareVersions = new Set(controllerList.map((c) => c.SOFTVER).filter(Boolean));
+  if (firmwareVersions.size > 0) {
+    metrics.push({ key: "controllers_firmware_inconsistent", value: firmwareVersions.size > 1 ? 1 : 0, unit: "count" });
+    if (firmwareVersions.size > 1) {
+      for (const c of controllerList) {
+        componentFaults.push({ category: "Firmware", id: `Controller ${c.ID}`, description: `Version ${c.SOFTVER}` });
+      }
+    }
+  }
 
   // HEALTHSTATUS-Konvention für Disk/Fan/Power laut Doku: 1 = Normal, alles
   // andere (0 Unknown, 2 Faulty, 3 About to fail, 9 Inconsistent, 11 No
   // input, 17 Single link, ...) zählt hier als "nicht normal".
   const diskList = Array.isArray(disks.body.data) ? disks.body.data : [];
   metrics.push({ key: "disks_faulty", value: diskList.filter((d) => Number(d.HEALTHSTATUS) !== 1).length, unit: "count" });
+  collectFaultDetails(componentFaults, "Festplatte", diskList, (s) => s === 1);
 
   const fanList = Array.isArray(fans.body.data) ? fans.body.data : [];
   metrics.push({ key: "fans_faulty", value: fanList.filter((f) => Number(f.HEALTHSTATUS) !== 1).length, unit: "count" });
+  collectFaultDetails(componentFaults, "Lüfter", fanList, (s) => s === 1);
 
   const powerList = Array.isArray(power.body.data) ? power.body.data : [];
   metrics.push({ key: "power_modules_faulty", value: powerList.filter((p) => Number(p.HEALTHSTATUS) !== 1).length, unit: "count" });
+  collectFaultDetails(componentFaults, "Netzteil", powerList, (s) => s === 1);
 
   // Nur Ports zählen, die überhaupt in Betrieb sind (HEALTHSTATUS != 0
   // Unknown — unbestückte/inaktive Ports haben sonst RUNNINGSTATUS 0, was
@@ -237,11 +258,11 @@ async function collectHardwareMetrics(config, session) {
   // regulär nicht angeschlossen und würden sonst dauerhaft als "down" zählen.
   const ethList = Array.isArray(ethPorts.body.data) ? ethPorts.body.data : [];
   const activePorts = ethList.filter((p) => Number(p.HEALTHSTATUS) !== 0 && !/maintenance/i.test(String(p.ID ?? "")));
-  metrics.push({
-    key: "eth_ports_down",
-    value: activePorts.filter((p) => Number(p.RUNNINGSTATUS) === 11).length,
-    unit: "count",
-  });
+  const downPorts = activePorts.filter((p) => Number(p.RUNNINGSTATUS) === 11);
+  metrics.push({ key: "eth_ports_down", value: downPorts.length, unit: "count" });
+  for (const p of downPorts) {
+    componentFaults.push({ category: "Netzwerk-Port", id: String(p.ID ?? "—"), description: "Offline" });
+  }
 
   // Optical-Module-HEALTHSTATUS: 0 = nicht erkannt (laut Inspector-Kriterium
   // normal, z. B. unbestückter Port), 1 = normal, alles andere (2 faulty,
@@ -253,6 +274,48 @@ async function collectHardwareMetrics(config, session) {
       value: sfpList.filter((s) => ![0, 1].includes(Number(s.healthStatus))).length,
       unit: "count",
     });
+    collectFaultDetails(componentFaults, "Optikmodul", sfpList, (s) => s === 0 || s === 1);
+  }
+
+  // Lizenz-/Zertifikatsablauf aus dem Inspector-Healthcheck. 30 Tage Vorlauf
+  // als bewusst konservative Schwelle, um rechtzeitig vor Ablauf zu warnen.
+  const EXPIRY_WARNING_DAYS = 30;
+  const now = Date.now();
+  function daysUntil(dateStr) {
+    if (!dateStr || dateStr === "--") return null;
+    const t = new Date(dateStr).getTime();
+    return Number.isFinite(t) ? Math.floor((t - now) / (1000 * 60 * 60 * 24)) : null;
+  }
+
+  if (license) {
+    const activeFunctions = (license.body.data.LicenseFunction ?? []).filter((f) => Number(f.FuncSwitch) === 1);
+    const expiringSoon = activeFunctions
+      .map((f) => ({ id: f.FeatureId, days: daysUntil(f.RunTime) }))
+      .filter((f) => f.days !== null && f.days <= EXPIRY_WARNING_DAYS);
+    metrics.push({ key: "license_expiring_soon", value: expiringSoon.length > 0 ? 1 : 0, unit: "count" });
+    for (const f of expiringSoon) {
+      componentFaults.push({
+        category: "Lizenz",
+        id: `Feature ${f.id}`,
+        description: f.days < 0 ? "Abgelaufen" : `Läuft in ${f.days} Tagen ab`,
+      });
+    }
+  }
+
+  if (certificates) {
+    const certList = Array.isArray(certificates.body.data) ? certificates.body.data : [];
+    const expiringSoon = certList
+      .filter((c) => Number(c.CERTIFICATE_STATUS) === 1)
+      .map((c) => ({ type: c.CERTIFICATE_TYPE, days: daysUntil(c.CERTIFICATE_EXPIRE_TIME) }))
+      .filter((c) => c.days !== null && c.days <= EXPIRY_WARNING_DAYS);
+    metrics.push({ key: "certificate_expiring_soon", value: expiringSoon.length > 0 ? 1 : 0, unit: "count" });
+    for (const c of expiringSoon) {
+      componentFaults.push({
+        category: "Zertifikat",
+        id: `Typ ${c.type}`,
+        description: c.days < 0 ? "Abgelaufen" : `Läuft in ${c.days} Tagen ab`,
+      });
+    }
   }
 
   // Ob überhaupt eine Benachrichtigung eingerichtet ist, wenn ein Alarm
@@ -279,6 +342,7 @@ async function collectHardwareMetrics(config, session) {
       value: replicationPairList.filter((r) => Number(r.HEALTHSTATUS) !== 1).length,
       unit: "count",
     });
+    collectFaultDetails(componentFaults, "Replikationspaar", replicationPairList, (s) => s === 1);
   }
 
   // Nur melden, wenn der Endpunkt überhaupt Daten liefert — nicht jede
@@ -286,6 +350,7 @@ async function collectHardwareMetrics(config, session) {
   const bbuList = Array.isArray(bbus?.body?.data) ? bbus.body.data : [];
   if (bbuList.length > 0) {
     metrics.push({ key: "bbu_faulty", value: bbuList.filter((b) => Number(b.HEALTHSTATUS) !== 1).length, unit: "count" });
+    collectFaultDetails(componentFaults, "BBU", bbuList, (s) => s === 1);
   }
 
   // Die auf der Appliance mitlaufende Backup-Software (DataBackup) läuft
@@ -304,7 +369,7 @@ async function collectHardwareMetrics(config, session) {
     if (containerMetrics) metrics.push(...containerMetrics);
   }
 
-  return { metrics, deviceInfo };
+  return { metrics, deviceInfo, componentFaults };
 }
 
 // Eckdaten des Backup-Software-Containers (aktiv/inaktiv, zugeteilte
@@ -368,6 +433,36 @@ async function fetchRansomwareDetectStats(config, dataBackupUrl, authHeaders) {
   }
 
   return anyOk ? { infected, abnormal } : null;
+}
+
+// Klartext für die üblichen HEALTHSTATUS-Codes der DeviceManager-API — für
+// die Detailreferenz am Ende des Berichts, wenn eine Fehler-Kennzahl > 0 ist.
+const HEALTH_STATUS_LABELS = {
+  0: "Unbekannt",
+  2: "Fehlerhaft",
+  3: "Fällt demnächst aus",
+  9: "Inkonsistent",
+  11: "Kein Eingang",
+  17: "Nur ein Link",
+};
+function describeHealthStatus(code) {
+  return HEALTH_STATUS_LABELS[code] ?? `Status-Code ${code}`;
+}
+
+// Sammelt für eine Komponentenliste (Controller, Disk, Lüfter, …) Details zu
+// den NICHT normalen Einträgen — Grundlage für den Detail-Referenzabschnitt
+// am Ende des Berichts, damit z. B. "Fehlerhafte Controller: 1" nicht ohne
+// Kontext dasteht.
+function collectFaultDetails(componentFaults, category, list, isOk) {
+  for (const item of list) {
+    const status = Number(item.HEALTHSTATUS ?? item.healthStatus);
+    if (isOk(status)) continue;
+    componentFaults.push({
+      category,
+      id: String(item.ID ?? item.id ?? "—"),
+      description: describeHealthStatus(status),
+    });
+  }
 }
 
 // Jede DataBackup-Teilabfrage einzeln absichern: ein neuer/unsicherer
@@ -561,7 +656,7 @@ async function tryCollectStorage(config) {
     session = await loginStorage(config);
   } catch (err) {
     config.logger?.warn(`Storage-Login fehlgeschlagen — Storage-Kennzahlen werden übersprungen: ${err.message}`);
-    return { metrics: [], deviceSerialNumber: null, deviceInfo: null, alarmSamples: [] };
+    return { metrics: [], deviceSerialNumber: null, deviceInfo: null, alarmSamples: [], componentFaults: [] };
   }
   try {
     const [capacityResult, hardwareResult] = await Promise.allSettled([
@@ -571,6 +666,7 @@ async function tryCollectStorage(config) {
     const metrics = [];
     let deviceInfo = null;
     let alarmSamples = [];
+    let componentFaults = [];
     if (capacityResult.status === "fulfilled") {
       metrics.push(...capacityResult.value.metrics);
       alarmSamples = capacityResult.value.alarmSamples;
@@ -580,12 +676,13 @@ async function tryCollectStorage(config) {
     if (hardwareResult.status === "fulfilled") {
       metrics.push(...hardwareResult.value.metrics);
       deviceInfo = hardwareResult.value.deviceInfo;
+      componentFaults = hardwareResult.value.componentFaults;
     } else {
       config.logger?.warn(`Hardware-Kennzahlen konnten nicht erhoben werden: ${hardwareResult.reason.message}`);
     }
     // deviceId aus der Login-Antwort ist bei Huawei die Geräte-ESN
     // (Seriennummer) — dieselbe Kennung, die schon in jeder Request-URL steckt.
-    return { metrics, deviceSerialNumber: session.deviceId, deviceInfo, alarmSamples };
+    return { metrics, deviceSerialNumber: session.deviceId, deviceInfo, alarmSamples, componentFaults };
   } finally {
     await logoutStorage(config, session);
   }
@@ -630,6 +727,7 @@ async function collect(config) {
   if (storageResult.deviceInfo?.model) meta.deviceModel = storageResult.deviceInfo.model;
   if (storageResult.deviceInfo?.softwareVersion) meta.deviceSoftwareVersion = storageResult.deviceInfo.softwareVersion;
   if (storageResult.alarmSamples?.length > 0) meta.alarmSamples = storageResult.alarmSamples;
+  if (storageResult.componentFaults?.length > 0) meta.componentFaults = storageResult.componentFaults;
   if (dataBackupResult.dataBackupVersion) meta.dataBackupVersion = dataBackupResult.dataBackupVersion;
   if (dataBackupResult.resourceBreakdown?.length > 0) meta.resourceBreakdown = dataBackupResult.resourceBreakdown;
   if (dataBackupResult.topJobFailures && (dataBackupResult.topJobFailures.bySla.length > 0 || dataBackupResult.topJobFailures.byResource.length > 0)) {

@@ -64,6 +64,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       if (meta?.alarmSamples) deviceUpdate.recentAlarms = meta.alarmSamples;
       if (meta?.resourceBreakdown) deviceUpdate.resourceBreakdown = meta.resourceBreakdown;
       if (meta?.topJobFailures) deviceUpdate.topJobFailures = meta.topJobFailures;
+      if (meta?.componentFaults) deviceUpdate.componentFaults = meta.componentFaults;
       if (Object.keys(deviceUpdate).length > 0) {
         await prisma.managedServiceSubscription.update({ where: { id: params.id }, data: deviceUpdate });
       }

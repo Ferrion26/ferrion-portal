@@ -39,4 +39,9 @@ export interface MetricDefinition {
   // counts) rather than a single value the device reports directly — shown
   // with a "berechnet" marker so it's not mistaken for a raw sensor value.
   derived?: boolean;
+  // Which of a product's several REST APIs/GUIs this figure comes from —
+  // only set when a product has more than one (OceanProtect: Storage/
+  // DeviceManager vs. the separate DataBackup software), so the reader
+  // knows where to go look. Omit for the product's primary/default source.
+  source?: "databackup";
 }

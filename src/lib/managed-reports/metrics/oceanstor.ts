@@ -113,6 +113,18 @@ export const OCEANSTOR_METRICS: MetricDefinition[] = [
     trendGood: "down",
   },
   {
+    key: "controllers_firmware_inconsistent",
+    label: { de: "Firmware zwischen Controllern uneinheitlich", en: "Firmware Inconsistent Across Controllers" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+    methodology: {
+      de: "1, wenn die Controller des Systems unterschiedliche Firmware-Versionen melden (Quelle: DeviceManager Controller-Firmware-Version), sonst 0.",
+      en: "1 if the system's controllers report different firmware versions (source: DeviceManager controller firmware version), otherwise 0.",
+    },
+  },
+  {
     key: "disks_faulty",
     label: { de: "Fehlerhafte Festplatten", en: "Faulty Disks" },
     format: "count",
@@ -169,6 +181,30 @@ export const OCEANSTOR_METRICS: MetricDefinition[] = [
     methodology: {
       de: "1, wenn im Gerät keine Syslog-Weiterleitung für Alarme aktiviert ist (Quelle: DeviceManager Syslog-Konfiguration), sonst 0.",
       en: "1 if the device has no syslog forwarding enabled for alarms (source: DeviceManager syslog configuration), otherwise 0.",
+    },
+  },
+  {
+    key: "license_expiring_soon",
+    label: { de: "Lizenz läuft bald ab", en: "License Expiring Soon" },
+    format: "count",
+    aggregation: "last",
+    section: "operations",
+    trendGood: "down",
+    methodology: {
+      de: "1, wenn eine aktive Lizenzfunktion innerhalb von 30 Tagen abläuft oder bereits abgelaufen ist (Quelle: DeviceManager Lizenzstatus), sonst 0.",
+      en: "1 if an active license feature expires within 30 days or has already expired (source: DeviceManager license status), otherwise 0.",
+    },
+  },
+  {
+    key: "certificate_expiring_soon",
+    label: { de: "Zertifikat läuft bald ab", en: "Certificate Expiring Soon" },
+    format: "count",
+    aggregation: "last",
+    section: "operations",
+    trendGood: "down",
+    methodology: {
+      de: "1, wenn ein gültiges Zertifikat des Geräts innerhalb von 30 Tagen abläuft (Quelle: DeviceManager Zertifikatsstatus), sonst 0.",
+      en: "1 if a valid device certificate expires within 30 days (source: DeviceManager certificate status), otherwise 0.",
     },
   },
   {
