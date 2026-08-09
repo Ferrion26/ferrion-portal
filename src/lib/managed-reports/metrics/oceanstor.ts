@@ -137,6 +137,41 @@ export const OCEANSTOR_METRICS: MetricDefinition[] = [
     trendGood: "down",
   },
   {
+    // Aus dem Huawei-Inspector-Healthcheck übernommener Check ("Optical
+    // module status") — meldet z. B. eine Diskrepanz zwischen Modul- und
+    // Port-Übertragungsrate.
+    key: "optical_modules_faulty",
+    label: { de: "Fehlerhafte Transceiver/Optikmodule", en: "Faulty Transceivers/Optical Modules" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+  },
+  {
+    key: "email_notifications_disabled",
+    label: { de: "E-Mail-Benachrichtigung nicht eingerichtet", en: "Email Notifications Not Configured" },
+    format: "count",
+    aggregation: "last",
+    section: "operations",
+    trendGood: "down",
+    methodology: {
+      de: "1, wenn im Gerät keine E-Mail-Weiterleitung für Alarme aktiviert ist (Quelle: DeviceManager E-Mail-Konfiguration), sonst 0.",
+      en: "1 if the device has no email forwarding enabled for alarms (source: DeviceManager email configuration), otherwise 0.",
+    },
+  },
+  {
+    key: "syslog_notifications_disabled",
+    label: { de: "Syslog-Benachrichtigung nicht eingerichtet", en: "Syslog Notifications Not Configured" },
+    format: "count",
+    aggregation: "last",
+    section: "operations",
+    trendGood: "down",
+    methodology: {
+      de: "1, wenn im Gerät keine Syslog-Weiterleitung für Alarme aktiviert ist (Quelle: DeviceManager Syslog-Konfiguration), sonst 0.",
+      en: "1 if the device has no syslog forwarding enabled for alarms (source: DeviceManager syslog configuration), otherwise 0.",
+    },
+  },
+  {
     key: "eth_ports_down",
     label: { de: "Netzwerk-Ports offline", en: "Network Ports Down" },
     format: "count",

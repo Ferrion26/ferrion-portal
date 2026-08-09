@@ -170,7 +170,7 @@ async function collectHardwareMetrics(config, session) {
   const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
   const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
 
-  const [system, controllers, disks, fans, power, ethPorts, replicationPairs, bbus] = await Promise.all([
+  const [system, controllers, disks, fans, power, ethPorts, replicationPairs, bbus, sfpModules, email, syslog] = await Promise.all([
     requestJson(config, joinUrl(base, "/system/"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/controller"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/disk"), { headers: authHeaders }),
@@ -182,6 +182,14 @@ async function collectHardwareMetrics(config, session) {
     // Kennzahlen darüber nicht mitreißen.
     fetchOptional(config, "Replikationspaare", requestJson(config, joinUrl(base, "/REPLICATIONPAIR"), { headers: authHeaders })),
     fetchOptional(config, "BBU-Status", requestJson(config, joinUrl(base, "/backup_power"), { headers: authHeaders })),
+    // Aus dem Huawei-Inspector-Healthcheck abgeleitet: Optical-Module-Status
+    // ("Optical module status") sowie ob Email-/Syslog-Benachrichtigungen
+    // eingerichtet sind ("Checking DME IQ Access" — dort war zusätzlich der
+    // reine Call-Home-Kanal Teil des Checks, dafür fehlt in der REST-Doku
+    // aber ein Abfrage-Endpunkt, daher hier nur Email/Syslog).
+    fetchOptional(config, "Optical-Module-Status", requestJson(config, joinUrl(base, "/sfp"), { headers: authHeaders })),
+    fetchOptional(config, "Email-Benachrichtigung", requestJson(config, joinUrl(base, "/email"), { headers: authHeaders })),
+    fetchOptional(config, "Syslog-Benachrichtigung", requestJson(config, joinUrl(base, "/syslog"), { headers: authHeaders })),
   ]);
 
   const metrics = [];
@@ -234,6 +242,32 @@ async function collectHardwareMetrics(config, session) {
     value: activePorts.filter((p) => Number(p.RUNNINGSTATUS) === 11).length,
     unit: "count",
   });
+
+  // Optical-Module-HEALTHSTATUS: 0 = nicht erkannt (laut Inspector-Kriterium
+  // normal, z. B. unbestückter Port), 1 = normal, alles andere (2 faulty,
+  // 9 inconsistent) zählt als fehlerhaft.
+  const sfpList = Array.isArray(sfpModules?.body?.data) ? sfpModules.body.data : [];
+  if (sfpList.length > 0) {
+    metrics.push({
+      key: "optical_modules_faulty",
+      value: sfpList.filter((s) => ![0, 1].includes(Number(s.healthStatus))).length,
+      unit: "count",
+    });
+  }
+
+  // Ob überhaupt eine Benachrichtigung eingerichtet ist, wenn ein Alarm
+  // auftritt — ein Gerät ohne Email-/Syslog-Weiterleitung wird nur bemerkt,
+  // wenn jemand aktiv nachschaut.
+  if (email) {
+    metrics.push({ key: "email_notifications_disabled", value: Number(email.body.data.CMO_EMAIL_NEED_SEND) === 1 ? 0 : 1, unit: "count" });
+  }
+  if (syslog) {
+    metrics.push({
+      key: "syslog_notifications_disabled",
+      value: Number(syslog.body.data.OM_MSG_OP_SET_ALARM_SYSLOG_CFG) === 1 ? 0 : 1,
+      unit: "count",
+    });
+  }
 
   // Nur melden, wenn überhaupt Replikationspaare konfiguriert sind — sonst
   // würde "0" fälschlich als "alles gesund" statt "keine Replikation
