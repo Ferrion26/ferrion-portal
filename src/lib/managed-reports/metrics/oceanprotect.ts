@@ -204,6 +204,26 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     trendGood: "down",
   },
   {
+    // Backup-Software (DataBackup) läuft als Container-Dienst auf dem
+    // Storage-Controller — dies sind die ihm zugeteilten Ressourcen, nicht
+    // dessen tatsächliche Auslastung (dafür liefert die REST-API keinen
+    // Wert). Kein Softwareversions-Feld verfügbar (siehe deviceSoftwareVersion
+    // für die Appliance-Firmware, das ist eine andere Versionsnummer).
+    key: "container_cpu_cores",
+    label: { de: "Container-Dienst: zugeteilte CPU-Kerne", en: "Container Service: Allocated CPU Cores" },
+    format: "count",
+    aggregation: "last",
+    section: "operations",
+  },
+  {
+    key: "container_memory_gb",
+    label: { de: "Container-Dienst: zugeteilter Arbeitsspeicher", en: "Container Service: Allocated Memory" },
+    unit: "GB",
+    format: "gb",
+    aggregation: "last",
+    section: "operations",
+  },
+  {
     key: "eth_ports_down",
     label: { de: "Netzwerk-Ports offline", en: "Network Ports Down" },
     format: "count",

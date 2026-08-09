@@ -252,7 +252,55 @@ async function collectHardwareMetrics(config, session) {
     metrics.push({ key: "bbu_faulty", value: bbuList.filter((b) => Number(b.HEALTHSTATUS) !== 1).length, unit: "count" });
   }
 
+  // Die auf der Appliance mitlaufende Backup-Software (DataBackup) läuft
+  // selbst als Container-Dienst auf dem Storage-Controller — DEVICE_GLOBAL_
+  // CONF/get_container_enable_info und .../get_container_resource_info
+  // liefern dessen Eckdaten (aktiv/inaktiv, zugeteilte CPU-Kerne/RAM).
+  // Braucht einen ctrlNodeId (z. B. "0A") — der erste Controller aus der
+  // Liste oben reicht dafür.
+  const ctrlNodeId = controllerList[0]?.ID;
+  if (ctrlNodeId) {
+    const containerMetrics = await fetchOptional(
+      config,
+      "Container-Status",
+      collectContainerMetrics(config, base, authHeaders, ctrlNodeId)
+    );
+    if (containerMetrics) metrics.push(...containerMetrics);
+  }
+
   return { metrics, deviceInfo };
+}
+
+// Eckdaten des Backup-Software-Containers (aktiv/inaktiv, zugeteilte
+// CPU-Kerne/RAM) — kein eigener Softwareversions-Wert in dieser Schnittstelle
+// (die Version des Container-Images ist über die REST-API nicht abrufbar,
+// nur die von der Appliance zugewiesenen Ressourcen).
+async function collectContainerMetrics(config, base, authHeaders, ctrlNodeId) {
+  const { body: enableInfo } = await requestJson(config, joinUrl(base, "/DEVICE_GLOBAL_CONF/get_container_enable_info"), {
+    method: "PUT",
+    headers: authHeaders,
+    body: JSON.stringify({ ctrlNodeId }),
+  });
+
+  const metrics = [];
+  const containerEnabled = Number(enableInfo.data.containerEnable) === 1;
+  metrics.push({ key: "container_service_enabled", value: containerEnabled ? 1 : 0, unit: "bool" });
+
+  if (!containerEnabled) return metrics;
+
+  const { body: resourceInfo } = await requestJson(config, joinUrl(base, "/DEVICE_GLOBAL_CONF/get_container_resource_info"), {
+    method: "PUT",
+    headers: authHeaders,
+    body: JSON.stringify({ ctrlNodeId }),
+  });
+
+  const cpuCores = Number(resourceInfo.data.containerCpu);
+  if (Number.isFinite(cpuCores)) metrics.push({ key: "container_cpu_cores", value: cpuCores, unit: "cores" });
+
+  const memoryBytes = Number(resourceInfo.data.containerMemory);
+  if (Number.isFinite(memoryBytes)) metrics.push({ key: "container_memory_gb", value: memoryBytes / 1024 ** 3, unit: "GB" });
+
+  return metrics;
 }
 
 // Ransomware-Erkennung auf Kopien läuft pro Resource-Subtyp getrennt
