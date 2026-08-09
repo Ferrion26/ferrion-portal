@@ -58,11 +58,32 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     headline: true,
   },
   {
+    // Gesamte Datenreduktion (Dedup + Kompression) — entspricht dem
+    // "Reduction Ratio" im DeviceManager (Kachel "Data Reduction").
+    key: "data_reduction_ratio",
+    label: { de: "Datenreduktionsrate (gesamt)", en: "Data Reduction Ratio (Overall)" },
+    unit: "×",
+    format: "ratio",
+    aggregation: "avg",
+    section: "capacity",
+  },
+  {
     key: "dedup_ratio",
     label: { de: "Deduplizierungsrate", en: "Deduplication Ratio" },
     unit: "×",
     format: "ratio",
     aggregation: "avg",
+    section: "capacity",
+  },
+  {
+    // Errechnet aus protected_capacity_tb × data_reduction_ratio — die
+    // logische Kapazität, die ohne Reduktion belegt wäre ("Pre-Savings" im
+    // DeviceManager).
+    key: "capacity_before_reduction_tb",
+    label: { de: "Kapazität vor Reduktion", en: "Capacity Before Reduction" },
+    unit: "TB",
+    format: "tb",
+    aggregation: "last",
     section: "capacity",
   },
   {
@@ -76,11 +97,15 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     headline: true,
   },
   {
+    // Schwellwerte entsprechen Huaweis eigener Inspector-Regel für
+    // Controller-CPU/Cache-Watermark: <=60% normal, <=80% "Optimierung
+    // empfohlen", darüber kritisch.
     key: "controller_cpu_usage_avg",
     label: { de: "Controller-CPU-Auslastung", en: "Controller CPU Usage" },
     format: "percent",
     aggregation: "avg",
     section: "hardware",
+    trendGood: "down",
   },
   {
     key: "controller_memory_usage_avg",
@@ -100,6 +125,14 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
   {
     key: "disks_faulty",
     label: { de: "Fehlerhafte Festplatten", en: "Faulty Disks" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+  },
+  {
+    key: "bbu_faulty",
+    label: { de: "Fehlerhafte Batterien (BBU)", en: "Faulty Battery Backup Units" },
     format: "count",
     aggregation: "last",
     section: "hardware",
@@ -186,6 +219,14 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
   {
     key: "alerts_critical",
     label: { de: "Kritische Alarme", en: "Critical Alerts" },
+    format: "count",
+    aggregation: "sum",
+    section: "security",
+    trendGood: "down",
+  },
+  {
+    key: "alerts_major",
+    label: { de: "Schwerwiegende Alarme", en: "Major Alerts" },
     format: "count",
     aggregation: "sum",
     section: "security",

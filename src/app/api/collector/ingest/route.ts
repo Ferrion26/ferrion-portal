@@ -28,6 +28,10 @@ export async function POST(req: NextRequest) {
 
   const { collectedAt, metrics, meta } = parsed.data;
   const recordedAt = new Date(collectedAt);
+  const deviceUpdate: Record<string, string> = {};
+  if (meta?.deviceSerialNumber) deviceUpdate.deviceSerialNumber = meta.deviceSerialNumber;
+  if (meta?.deviceModel) deviceUpdate.deviceModel = meta.deviceModel;
+  if (meta?.deviceSoftwareVersion) deviceUpdate.deviceSoftwareVersion = meta.deviceSoftwareVersion;
 
   const [, ingestion] = await prisma.$transaction([
     prisma.collectorApiKey.update({
@@ -50,11 +54,11 @@ export async function POST(req: NextRequest) {
         },
       },
     }),
-    ...(meta?.deviceSerialNumber
+    ...(Object.keys(deviceUpdate).length > 0
       ? [
           prisma.managedServiceSubscription.update({
             where: { id: apiKey.subscriptionId },
-            data: { deviceSerialNumber: meta.deviceSerialNumber },
+            data: deviceUpdate,
           }),
         ]
       : []),

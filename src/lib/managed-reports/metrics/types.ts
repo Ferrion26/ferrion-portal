@@ -28,4 +28,10 @@ export interface MetricDefinition {
   // under the metric — only worth adding where the calculation isn't
   // self-evident from the label (e.g. "Backup-Erfolgsquote").
   methodology?: { de: string; en: string };
+  // Custom good/warning cutoffs for percent-format status derivation, only
+  // relevant when trendGood is set. For trendGood "up" (higher is better):
+  // value >= good → good, >= warning → warning, else critical. For "down"
+  // (lower is better, e.g. CPU usage): value <= good → good, <= warning →
+  // warning, else critical. Omit to use the default band for that direction.
+  statusThresholds?: { good: number; warning: number };
 }

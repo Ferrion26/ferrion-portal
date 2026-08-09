@@ -10,17 +10,36 @@ export type MetricStatus = "good" | "warning" | "critical" | "neutral";
 // worth a look but not an incident.
 const SEVERE_KEY_HINTS = ["critical", "infected"];
 
+// Default good/warning cutoffs by direction, used when a metric doesn't
+// define its own statusThresholds. "up": rates/compliance where higher is
+// better (backup success, RPO). "down": utilization-style figures where
+// lower is better (CPU usage — matches Huawei's own inspector thresholds
+// for controller CPU/cache watermark: <=60% normal, <=80% "optimize", >80% fail).
+const DEFAULT_THRESHOLDS = {
+  up: { good: 99, warning: 95 },
+  down: { good: 60, warning: 80 },
+};
+
 // Derives an at-a-glance status from a metric's format/trendGood/value —
 // deliberately conservative: metrics without a defined "better direction"
-// (CPU/memory usage, capacity levels, dedup ratio) never get a good/bad
-// judgment, since there's no universal target for them.
-export function deriveStatus(entry: Pick<QuarterSummaryEntry, "key" | "format" | "trendGood" | "value">): MetricStatus {
-  const { key, format, trendGood, value } = entry;
+// (capacity levels, dedup ratio) never get a good/bad judgment, since
+// there's no universal target for them.
+export function deriveStatus(
+  entry: Pick<QuarterSummaryEntry, "key" | "format" | "trendGood" | "value" | "statusThresholds">
+): MetricStatus {
+  const { key, format, trendGood, value, statusThresholds } = entry;
   if (!trendGood) return "neutral";
 
-  if (format === "percent" && trendGood === "up") {
-    if (value >= 99) return "good";
-    if (value >= 95) return "warning";
+  if (format === "percent") {
+    const t = statusThresholds ?? DEFAULT_THRESHOLDS[trendGood];
+    if (trendGood === "up") {
+      if (value >= t.good) return "good";
+      if (value >= t.warning) return "warning";
+      return "critical";
+    }
+    // trendGood === "down": lower is better, cutoffs are upper bounds.
+    if (value <= t.good) return "good";
+    if (value <= t.warning) return "warning";
     return "critical";
   }
 

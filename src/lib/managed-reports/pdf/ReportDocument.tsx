@@ -90,6 +90,10 @@ const styles = StyleSheet.create({
   metaValue: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: INK },
   metaSubValue: { fontSize: 6.5, color: MUTED, marginTop: 3 },
 
+  productHeader: { backgroundColor: INK, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 13, marginBottom: 10 },
+  productHeaderName: { fontSize: 11.5, fontFamily: "Helvetica-Bold", color: WHITE },
+  productHeaderMeta: { fontSize: 7, color: "#9CA3AF", marginTop: 2 },
+
   summaryBanner: { flexDirection: "row", backgroundColor: DARK, borderRadius: 8, padding: 15, marginBottom: 14, justifyContent: "space-between" },
   summaryLeft: { flex: 1, paddingRight: 12 },
   summaryHeadline: { fontSize: 12, fontFamily: "Helvetica-Bold", color: WHITE, marginBottom: 5 },
@@ -126,7 +130,7 @@ const styles = StyleSheet.create({
   barCardTitle: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 8 },
   barValue: { fontSize: 18, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 9 },
   barTrack: { height: 6, borderRadius: 3, backgroundColor: "#E5E7EB", position: "relative" },
-  barFill: { height: 6, borderRadius: 3, backgroundColor: GOLD, position: "absolute", left: 0, top: 0 },
+  barFill: { height: 6, borderRadius: 3, position: "absolute", left: 0, top: 0 },
 
   statRow: { flexDirection: "row", gap: 9 },
   statCard: { flex: 1, borderRadius: 8, padding: 11 },
@@ -137,7 +141,7 @@ const styles = StyleSheet.create({
   recTitle: { fontSize: 10, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 7 },
   recLine: { fontSize: 8, color: "#374151", marginBottom: 5, lineHeight: 1.4 },
 
-  capacityRow: { flexDirection: "row", gap: 10, marginBottom: 14 },
+  capacityRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 14 },
 
   methodologyBlock: { backgroundColor: WHITE, borderRadius: 8, padding: 12, marginBottom: 10 },
   methodologyTitle: { fontSize: 8, fontFamily: "Helvetica-Bold", color: GRAY, marginBottom: 4 },
@@ -228,12 +232,16 @@ function ListCard({ title, sub, entries, locale }: { title: string; sub?: string
 
 function UsageBarCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "de" | "en" }) {
   const pct = Math.max(0, Math.min(100, entry.value));
+  // Nur einfärben, wenn die Kennzahl tatsächlich bewertet wird (trendGood
+  // gesetzt) — sonst neutral in Gold, ohne eine Wertung vorzutäuschen.
+  const status = entry.trendGood ? deriveStatus(entry) : "neutral";
+  const fillColor = entry.trendGood ? STATUS_COLORS[status].dot : GOLD;
   return (
     <View style={styles.barCard} wrap={false}>
       <Text style={styles.barCardTitle}>{entry.label[locale]}</Text>
       <Text style={styles.barValue}>{formatValue(entry, locale)}</Text>
       <View style={styles.barTrack}>
-        <View style={{ ...styles.barFill, width: `${pct}%` }} />
+        <View style={{ ...styles.barFill, width: `${pct}%`, backgroundColor: fillColor }} />
       </View>
     </View>
   );
@@ -249,27 +257,17 @@ function CapacityStatCard({ entry, locale }: { entry: QuarterSummaryEntry; local
   );
 }
 
-export interface ReportDocumentProps {
-  locale: "de" | "en";
-  customerCompany: string;
-  productName: string;
-  vendor: string;
-  packageLabel?: string;
-  deviceSerialNumber?: string;
-  periodLabel: string;
-  entries: QuarterSummaryEntry[];
-  adminNotes?: string;
-}
-
 const COPY = {
   de: {
-    title: "QUARTALSBERICHT",
+    title: "MANAGED SERVICE REPORT",
     sub: "MANAGED SERVICE REPORT",
     customer: "Kunde",
     product: "Produkt",
     period: "Zeitraum",
     package: "Servicestufe",
-    sn: "Seriennummer",
+    sn: "SN",
+    model: "Modell",
+    version: "Version",
     headlineTitle: "Wichtigste Kennzahlen",
     infraTitle: "Infrastrukturstatus",
     infraSub: "Auffälligkeiten sind farblich markiert.",
@@ -279,13 +277,15 @@ const COPY = {
     generatedBy: "Erstellt von Ferrion IT Systemhaus GmbH",
   },
   en: {
-    title: "QUARTERLY REPORT",
+    title: "MANAGED SERVICE REPORT",
     sub: "MANAGED SERVICE REPORT",
     customer: "Customer",
     product: "Product",
     period: "Period",
     package: "Service Tier",
-    sn: "Serial Number",
+    sn: "SN",
+    model: "Model",
+    version: "Version",
     headlineTitle: "Key Metrics",
     infraTitle: "Infrastructure Status",
     infraSub: "Issues are color-coded.",
@@ -296,18 +296,31 @@ const COPY = {
   },
 };
 
-export function ReportDocument({
-  locale,
-  customerCompany,
-  productName,
-  vendor,
-  packageLabel,
-  deviceSerialNumber,
-  periodLabel,
-  entries,
-  adminNotes,
-}: ReportDocumentProps) {
+export interface ProductReportData {
+  productName: string;
+  vendor: string;
+  packageLabel?: string;
+  deviceSerialNumber?: string;
+  deviceModel?: string;
+  deviceSoftwareVersion?: string;
+  entries: QuarterSummaryEntry[];
+}
+
+export interface ReportDocumentProps {
+  locale: "de" | "en";
+  customerCompany: string;
+  periodLabel: string;
+  products: ProductReportData[];
+  adminNotes?: string;
+}
+
+// Ein Produktblock enthält alles, was bei einem Einzelprodukt-Bericht auf
+// der Seite steht — bei mehreren Produkten (kombinierter Bericht) wird das
+// pro Produkt hintereinander wiederholt, mit gemeinsamem Kopf-/Kundenblock
+// darüber (siehe ReportDocument unten).
+function ProductBlock({ product, locale, isCombined }: { product: ProductReportData; locale: "de" | "en"; isCombined: boolean }) {
   const t = COPY[locale];
+  const { entries } = product;
 
   const headlineEntries = entries.filter((e) => e.headline);
   const hardwareFaultEntries = entries.filter((e) => e.section === "hardware" && e.format === "count");
@@ -322,14 +335,116 @@ export function ReportDocument({
   const recommendations = buildRecommendations(entries, locale);
   const bannerHighlights = buildBannerHighlights(entries, locale);
 
+  const deviceMetaParts = [
+    product.deviceModel && `${t.model}: ${product.deviceModel}`,
+    product.deviceSoftwareVersion && `${t.version}: ${product.deviceSoftwareVersion}`,
+    product.deviceSerialNumber && `${t.sn}: ${product.deviceSerialNumber}`,
+  ].filter(Boolean);
+
   return (
-    <Document title={`${t.title} — ${customerCompany} — ${productName} — ${periodLabel}`}>
+    <View>
+      {isCombined && (
+        <View style={styles.productHeader} wrap={false}>
+          <Text style={styles.productHeaderName}>
+            {product.vendor} {product.productName}
+            {product.packageLabel ? ` · ${product.packageLabel}` : ""}
+          </Text>
+          {deviceMetaParts.length > 0 && <Text style={styles.productHeaderMeta}>{deviceMetaParts.join("  ·  ")}</Text>}
+        </View>
+      )}
+
+      <View style={styles.summaryBanner} wrap={false}>
+        <View style={styles.summaryLeft}>
+          <Text style={styles.summaryHeadline}>{summary.headline}</Text>
+          <Text style={styles.summaryText}>{summary.text}</Text>
+        </View>
+        <View style={styles.pillColumn}>
+          {bannerHighlights.map((h) => (
+            <StatusPill key={h.entry.key} status={h.status} text={h.text} />
+          ))}
+        </View>
+      </View>
+
+      {headlineEntries.length > 0 && (
+        <View wrap={false}>
+          <Text style={styles.sectionTitle}>{t.headlineTitle}</Text>
+          <View style={styles.headlineRow}>
+            {headlineEntries.map((e) => (
+              <HeadlineCard key={e.key} entry={e} locale={locale} />
+            ))}
+          </View>
+        </View>
+      )}
+
+      {(hardwareFaultEntries.length > 0 || usageBarEntries.length > 0) && (
+        <View style={styles.twoColRow}>
+          <View style={styles.leftCol}>
+            <ListCard title={t.infraTitle} sub={t.infraSub} entries={hardwareFaultEntries} locale={locale} />
+          </View>
+          <View style={styles.rightCol}>
+            {usageBarEntries.map((e) => (
+              <UsageBarCard key={e.key} entry={e} locale={locale} />
+            ))}
+          </View>
+        </View>
+      )}
+
+      {capacityEntries.length > 0 && (
+        <View wrap={false}>
+          <Text style={styles.sectionTitle}>{SECTION_LABELS.capacity[locale]}</Text>
+          <View style={styles.capacityRow}>
+            {capacityEntries.map((e) => (
+              <CapacityStatCard key={e.key} entry={e} locale={locale} />
+            ))}
+          </View>
+        </View>
+      )}
+
+      <View style={styles.recCard} wrap={false}>
+        <Text style={styles.recTitle}>{t.recTitle}</Text>
+        {recommendations.map((line, i) => (
+          <Text key={i} style={styles.recLine}>• {line}</Text>
+        ))}
+      </View>
+
+      <ListCard title={SECTION_LABELS.availability[locale]} entries={availabilityDetailEntries} locale={locale} />
+      {availabilityDetailEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
+
+      <ListCard title={SECTION_LABELS.security[locale]} entries={securityEntries} locale={locale} />
+      {securityEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
+
+      <ListCard title={SECTION_LABELS.operations[locale]} entries={operationsEntries} locale={locale} />
+      {operationsEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
+
+      {methodologyEntries.length > 0 && (
+        <View style={styles.methodologyBlock} wrap={false}>
+          <Text style={styles.methodologyTitle}>{t.methodologyTitle.toUpperCase()}</Text>
+          {methodologyEntries.map((e) => (
+            <Text key={e.key} style={styles.methodologyLine}>
+              {e.label[locale]}: {e.methodology![locale]}
+            </Text>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+export function ReportDocument({ locale, customerCompany, periodLabel, products, adminNotes }: ReportDocumentProps) {
+  const t = COPY[locale];
+  const isCombined = products.length > 1;
+  const singleProduct = !isCombined ? products[0] : null;
+
+  return (
+    <Document
+      title={`${t.title} — ${customerCompany} — ${products.map((p) => p.productName).join(" + ")} — ${periodLabel}`}
+    >
       <Page size="A4" style={styles.page}>
         <View style={styles.headerCard} wrap={false}>
           <View style={styles.headerRow}>
             <Image style={styles.logo} src={LOGO_DATA_URI} />
             <View>
-              <Text style={styles.headTitle}>{t.title}</Text>
+              <Text style={styles.headTitle}>{isCombined ? (locale === "de" ? "MANAGED SERVICE REPORT" : "MANAGED SERVICE REPORT") : (locale === "de" ? "QUARTALSBERICHT" : "QUARTERLY REPORT")}</Text>
               <Text style={styles.headSub}>{t.sub}</Text>
             </View>
           </View>
@@ -341,15 +456,29 @@ export function ReportDocument({
             <Text style={styles.metaLabel}>{t.customer.toUpperCase()}</Text>
             <Text style={styles.metaValue}>{customerCompany}</Text>
           </View>
-          <View style={styles.metaCard}>
-            <Text style={styles.metaLabel}>{t.product.toUpperCase()}</Text>
-            <Text style={styles.metaValue}>{vendor} {productName}</Text>
-            {deviceSerialNumber && <Text style={styles.metaSubValue}>{t.sn.toUpperCase()}: {deviceSerialNumber}</Text>}
-          </View>
-          {packageLabel && (
+          {singleProduct && (
+            <>
+              <View style={styles.metaCard}>
+                <Text style={styles.metaLabel}>{t.product.toUpperCase()}</Text>
+                <Text style={styles.metaValue}>{singleProduct.vendor} {singleProduct.productName}</Text>
+                {(singleProduct.deviceModel || singleProduct.deviceSoftwareVersion || singleProduct.deviceSerialNumber) && (
+                  <Text style={styles.metaSubValue}>
+                    {[singleProduct.deviceModel, singleProduct.deviceSoftwareVersion, singleProduct.deviceSerialNumber].filter(Boolean).join(" · ")}
+                  </Text>
+                )}
+              </View>
+              {singleProduct.packageLabel && (
+                <View style={styles.metaCard}>
+                  <Text style={styles.metaLabel}>{t.package.toUpperCase()}</Text>
+                  <Text style={styles.metaValue}>{singleProduct.packageLabel}</Text>
+                </View>
+              )}
+            </>
+          )}
+          {isCombined && (
             <View style={styles.metaCard}>
-              <Text style={styles.metaLabel}>{t.package.toUpperCase()}</Text>
-              <Text style={styles.metaValue}>{packageLabel}</Text>
+              <Text style={styles.metaLabel}>{t.product.toUpperCase()}</Text>
+              <Text style={styles.metaValue}>{products.map((p) => p.productName).join(" + ")}</Text>
             </View>
           )}
           <View style={styles.metaCard}>
@@ -358,79 +487,9 @@ export function ReportDocument({
           </View>
         </View>
 
-        <View style={styles.summaryBanner} wrap={false}>
-          <View style={styles.summaryLeft}>
-            <Text style={styles.summaryHeadline}>{summary.headline}</Text>
-            <Text style={styles.summaryText}>{summary.text}</Text>
-          </View>
-          <View style={styles.pillColumn}>
-            {bannerHighlights.map((h) => (
-              <StatusPill key={h.entry.key} status={h.status} text={h.text} />
-            ))}
-          </View>
-        </View>
-
-        {headlineEntries.length > 0 && (
-          <View wrap={false}>
-            <Text style={styles.sectionTitle}>{t.headlineTitle}</Text>
-            <View style={styles.headlineRow}>
-              {headlineEntries.map((e) => (
-                <HeadlineCard key={e.key} entry={e} locale={locale} />
-              ))}
-            </View>
-          </View>
-        )}
-
-        {(hardwareFaultEntries.length > 0 || usageBarEntries.length > 0) && (
-          <View style={styles.twoColRow}>
-            <View style={styles.leftCol}>
-              <ListCard title={t.infraTitle} sub={t.infraSub} entries={hardwareFaultEntries} locale={locale} />
-            </View>
-            <View style={styles.rightCol}>
-              {usageBarEntries.map((e) => (
-                <UsageBarCard key={e.key} entry={e} locale={locale} />
-              ))}
-            </View>
-          </View>
-        )}
-
-        {capacityEntries.length > 0 && (
-          <View wrap={false}>
-            <Text style={styles.sectionTitle}>{SECTION_LABELS.capacity[locale]}</Text>
-            <View style={styles.capacityRow}>
-              {capacityEntries.map((e) => (
-                <CapacityStatCard key={e.key} entry={e} locale={locale} />
-              ))}
-            </View>
-          </View>
-        )}
-
-        <View style={styles.recCard} wrap={false}>
-          <Text style={styles.recTitle}>{t.recTitle}</Text>
-          {recommendations.map((line, i) => (
-            <Text key={i} style={styles.recLine}>• {line}</Text>
-          ))}
-        </View>
-
-        <ListCard title={SECTION_LABELS.availability[locale]} entries={availabilityDetailEntries} locale={locale} />
-        {availabilityDetailEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
-
-        <ListCard title={SECTION_LABELS.security[locale]} entries={securityEntries} locale={locale} />
-        {securityEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
-
-        <ListCard title={SECTION_LABELS.operations[locale]} entries={operationsEntries} locale={locale} />
-        {operationsEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
-
-        {methodologyEntries.length > 0 && (
-          <View style={styles.methodologyBlock} wrap={false}>
-            <Text style={styles.methodologyTitle}>{t.methodologyTitle.toUpperCase()}</Text>
-            {methodologyEntries.map((e) => (
-              <Text key={e.key} style={styles.methodologyLine}>
-                {e.label[locale]}: {e.methodology![locale]}
-              </Text>
-            ))}
-          </View>
-        )}
+        {products.map((product, i) => (
+          <ProductBlock key={product.productName + i} product={product} locale={locale} isCombined={isCombined} />
+        ))}
 
         {adminNotes && (
           <View style={styles.notesBlock} wrap={false}>

@@ -9,6 +9,7 @@ import ApiKeyManager from "./ApiKeyManager";
 import ManualUploadForm from "./ManualUploadForm";
 import GenerateReportButton from "./GenerateReportButton";
 import PublishButton from "./PublishButton";
+import DeleteReportButton from "./DeleteReportButton";
 
 export const metadata = { title: "Subscription — Managed Reports — Admin" };
 
@@ -26,6 +27,16 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
 
   const product = PRODUCTS.find((p) => p.slug === subscription.productSlug);
 
+  // Andere aktive Subscriptions desselben Kunden — können zu einem
+  // kombinierten Bericht (getrennte Abschnitte pro Produkt) hinzugefügt werden.
+  const siblingSubscriptions = await prisma.managedServiceSubscription.findMany({
+    where: { customerId: subscription.customerId, id: { not: subscription.id }, active: true },
+  });
+  const siblings = siblingSubscriptions.map((s) => {
+    const p = PRODUCTS.find((pr) => pr.slug === s.productSlug);
+    return { id: s.id, label: `${p?.vendor ?? ""} ${p?.name ?? s.productSlug}`.trim() };
+  });
+
   return (
     <div className="space-y-8">
       <div>
@@ -38,6 +49,13 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
         <p className="text-sm text-gray-500">
           {subscription._count.metrics} Kennzahlen empfangen · Subscription seit {formatDate(subscription.startDate)}
         </p>
+        {(subscription.deviceModel || subscription.deviceSoftwareVersion || subscription.deviceSerialNumber) && (
+          <p className="text-sm text-gray-500 mt-1">
+            {subscription.deviceModel && <>Modell: {subscription.deviceModel} · </>}
+            {subscription.deviceSoftwareVersion && <>Version: {subscription.deviceSoftwareVersion} · </>}
+            {subscription.deviceSerialNumber && <>SN: {subscription.deviceSerialNumber}</>}
+          </p>
+        )}
       </div>
 
       <div className="bg-[#111827] border border-white/10 p-6">
@@ -62,7 +80,11 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
       <div className="bg-[#111827] border border-white/10 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-white">Berichte</h2>
-          <GenerateReportButton subscriptionId={subscription.id} />
+          <GenerateReportButton
+            subscriptionId={subscription.id}
+            defaultPeriodType={subscription.defaultPeriodType}
+            siblings={siblings}
+          />
         </div>
 
         <table className="w-full text-sm">
@@ -77,7 +99,14 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
           <tbody>
             {subscription.reports.map((report) => (
               <tr key={report.id} className="border-b border-white/5">
-                <td className="py-2 text-gray-300">{periodLabel(report.periodType, report.periodStart)}</td>
+                <td className="py-2 text-gray-300">
+                  {periodLabel(report.periodType, report.periodStart)}
+                  {report.additionalSubscriptionIds.length > 0 && (
+                    <span className="ml-2 text-[10px] text-[#c9a84c] tracking-widest uppercase">
+                      kombiniert ({report.additionalSubscriptionIds.length + 1} Produkte)
+                    </span>
+                  )}
+                </td>
                 <td className="py-2 text-gray-400">{formatDate(report.generatedAt)}</td>
                 <td className="py-2">
                   <Badge variant={report.status === "PUBLISHED" ? "green" : "yellow"}>
@@ -91,6 +120,7 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
                   {report.status === "DRAFT" && (
                     <PublishButton subscriptionId={subscription.id} reportId={report.id} />
                   )}
+                  <DeleteReportButton subscriptionId={subscription.id} reportId={report.id} published={report.status === "PUBLISHED"} />
                 </td>
               </tr>
             ))}

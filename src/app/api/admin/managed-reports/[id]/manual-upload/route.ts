@@ -56,11 +56,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         },
       });
 
-      if (meta?.deviceSerialNumber) {
-        await prisma.managedServiceSubscription.update({
-          where: { id: params.id },
-          data: { deviceSerialNumber: meta.deviceSerialNumber },
-        });
+      const deviceUpdate: Record<string, string> = {};
+      if (meta?.deviceSerialNumber) deviceUpdate.deviceSerialNumber = meta.deviceSerialNumber;
+      if (meta?.deviceModel) deviceUpdate.deviceModel = meta.deviceModel;
+      if (meta?.deviceSoftwareVersion) deviceUpdate.deviceSoftwareVersion = meta.deviceSoftwareVersion;
+      if (Object.keys(deviceUpdate).length > 0) {
+        await prisma.managedServiceSubscription.update({ where: { id: params.id }, data: deviceUpdate });
       }
 
       results.push({ fileName: file.name, ok: true, metricsStored: metrics.length });

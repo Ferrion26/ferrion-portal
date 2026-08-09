@@ -9,6 +9,7 @@ const createSchema = z.object({
   customerId: z.string().min(1),
   productSlug: z.string().min(1),
   packageId: z.enum(["MONITOR", "OPERATE", "COMPLETE"]),
+  defaultPeriodType: z.enum(["MONTH", "QUARTER", "HALF_YEAR", "YEAR"]).default("QUARTER"),
 });
 
 export async function POST(req: NextRequest) {

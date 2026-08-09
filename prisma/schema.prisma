@@ -198,11 +198,16 @@ model ManagedServiceSubscription {
   startDate   DateTime            @default(now())
   createdAt   DateTime            @default(now())
 
-  // Vom Collector gemeldet (meta.deviceSerialNumber im Ingest-Payload) —
-  // bei OceanProtect die Huawei-ESN, gleichzeitig die deviceId, mit der der
-  // Collector sich am DeviceManager anmeldet. Geräteattribut, keine
-  // Zeitreihen-Kennzahl, daher hier statt in ManagedServiceMetric.
-  deviceSerialNumber String?
+  // Vom Collector gemeldet (meta im Ingest-Payload) — Geräteattribute, keine
+  // Zeitreihen-Kennzahlen, daher hier statt in ManagedServiceMetric.
+  deviceSerialNumber     String?
+  deviceModel            String?
+  deviceSoftwareVersion  String?
+
+  // Voreingestellter Berichtszyklus für diese Subscription (z. B. Quartal
+  // bei OceanProtect, Monat bei OceanStor desselben Kunden) — steuert nur
+  // die Vorauswahl im Admin-Bereich, keine automatische Erstellung.
+  defaultPeriodType ReportPeriodType @default(QUARTER)
 
   customerId String
   customer   User   @relation(fields: [customerId], references: [id])
@@ -281,6 +286,11 @@ model QuarterlyReport {
 
   subscriptionId String
   subscription   ManagedServiceSubscription @relation(fields: [subscriptionId], references: [id])
+
+  // Für kombinierte Berichte (mehrere Produkte desselben Kunden im selben
+  // Zyklus in einem PDF): weitere Subscription-IDs neben der primären
+  // subscriptionId oben. Leer für einen Einzelprodukt-Bericht.
+  additionalSubscriptionIds String[] @default([])
 
   document Document?
 

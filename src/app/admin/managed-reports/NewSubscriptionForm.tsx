@@ -7,12 +7,19 @@ type Customer = { id: string; name: string | null; email: string; company: strin
 type Product = { slug: string; name: string; vendor: string };
 
 const PACKAGES = ["MONITOR", "OPERATE", "COMPLETE"] as const;
+const PERIOD_TYPES = [
+  { value: "MONTH", label: "Monat" },
+  { value: "QUARTER", label: "Quartal" },
+  { value: "HALF_YEAR", label: "Halbjahr" },
+  { value: "YEAR", label: "Jahr" },
+] as const;
 
 export default function NewSubscriptionForm({ customers, products }: { customers: Customer[]; products: Product[] }) {
   const router = useRouter();
   const [customerId, setCustomerId] = useState("");
   const [productSlug, setProductSlug] = useState(products[0]?.slug ?? "");
   const [packageId, setPackageId] = useState<(typeof PACKAGES)[number]>("OPERATE");
+  const [defaultPeriodType, setDefaultPeriodType] = useState<(typeof PERIOD_TYPES)[number]["value"]>("QUARTER");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +32,7 @@ export default function NewSubscriptionForm({ customers, products }: { customers
     const res = await fetch("/api/admin/managed-reports", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ customerId, productSlug, packageId }),
+      body: JSON.stringify({ customerId, productSlug, packageId, defaultPeriodType }),
     });
     setSaving(false);
 
@@ -84,6 +91,21 @@ export default function NewSubscriptionForm({ customers, products }: { customers
           {PACKAGES.map((p) => (
             <option key={p} value={p}>
               {p}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-gray-400 mb-1">Standard-Berichtszyklus</label>
+        <select
+          className="bg-[#0d1117] border border-white/10 text-white text-sm px-3 py-2"
+          value={defaultPeriodType}
+          onChange={(e) => setDefaultPeriodType(e.target.value as (typeof PERIOD_TYPES)[number]["value"])}
+        >
+          {PERIOD_TYPES.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
             </option>
           ))}
         </select>

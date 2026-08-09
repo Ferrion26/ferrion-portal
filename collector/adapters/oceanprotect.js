@@ -48,6 +48,14 @@ async function loginDataBackup(config) {
   return body.token;
 }
 
+// Parst die JSON-String-Ratio-Felder, die der DeviceManager für
+// Reduktionsraten liefert, z. B. {"numerator":"1265","denominator":"1000"}.
+function parseRatio(raw) {
+  const r = JSON.parse(raw);
+  const ratio = Number(r.numerator) / Number(r.denominator);
+  return Number.isFinite(ratio) ? ratio : null;
+}
+
 async function collectStorageMetrics(config, session) {
   const { deviceManagerUrl } = config.oceanprotect;
   const poolId = config.oceanprotect.storagePoolId ?? "0";
@@ -64,21 +72,37 @@ async function collectStorageMetrics(config, session) {
 
   const metrics = [];
 
-  // DEDUPLICATIONRATE ist laut Doku ein JSON-String wie
-  // {"numerator":"10","denominator":"10","logic":"="}.
+  // DEDUPLICATIONRATE/SPACEREDUCTIONRATE sind laut Doku JSON-Strings wie
+  // {"numerator":"10","denominator":"10","logic":"="}. SPACEREDUCTIONRATE
+  // ist die Gesamtreduktion (Dedup + Kompression) — das, was der
+  // DeviceManager unter "Data Reduction" als Reduction Ratio anzeigt.
+  let reductionRatio = null;
   try {
-    const dedup = JSON.parse(dataInfo.body.data.DEDUPLICATIONRATE);
-    const ratio = Number(dedup.numerator) / Number(dedup.denominator);
-    if (Number.isFinite(ratio)) metrics.push({ key: "dedup_ratio", value: ratio, unit: "x" });
+    const ratio = parseRatio(dataInfo.body.data.DEDUPLICATIONRATE);
+    if (ratio !== null) metrics.push({ key: "dedup_ratio", value: ratio, unit: "x" });
   } catch (err) {
     config.logger?.warn(`dedup_ratio konnte nicht ausgewertet werden (übersprungen): ${err.message}`);
+  }
+  try {
+    reductionRatio = parseRatio(dataInfo.body.data.SPACEREDUCTIONRATE);
+    if (reductionRatio !== null) metrics.push({ key: "data_reduction_ratio", value: reductionRatio, unit: "x" });
+  } catch (err) {
+    config.logger?.warn(`data_reduction_ratio konnte nicht ausgewertet werden (übersprungen): ${err.message}`);
   }
 
   // USERCONSUMEDCAPACITY ist in Sektoren (512 Byte) angegeben.
   const usedSectors = Number(poolInfo.body.data.USERCONSUMEDCAPACITY);
+  let usedTB = null;
   if (Number.isFinite(usedSectors)) {
-    const usedTB = (usedSectors * 512) / 1024 ** 4;
+    usedTB = (usedSectors * 512) / 1024 ** 4;
     metrics.push({ key: "protected_capacity_tb", value: usedTB, unit: "TB" });
+  }
+
+  // "Kapazität vor Reduktion" (Pre-Savings) = genutzte Kapazität ×
+  // Gesamtreduktionsrate — kein eigener Rohwert in der API, aber aus den
+  // beiden oben ohnehin abgefragten Werten berechenbar.
+  if (usedTB !== null && reductionRatio !== null) {
+    metrics.push({ key: "capacity_before_reduction_tb", value: usedTB * reductionRatio, unit: "TB" });
   }
 
   const fillLevel = Number(poolInfo.body.data.USERCONSUMEDCAPACITYPERCENTAGE);
@@ -86,15 +110,12 @@ async function collectStorageMetrics(config, session) {
     metrics.push({ key: "storage_pool_fill_level", value: fillLevel, unit: "%" });
   }
 
-  // Alarm-Level laut Doku: 3 = warning, 5 = major, 6 = critical.
-  // "major" wird hier zusammen mit "warning" gezählt, da unser Report nur
-  // zwei Stufen (kritisch/Warnung) unterscheidet.
+  // Alarm-Level laut Doku: 3 = warning, 5 = major, 6 = critical — als drei
+  // getrennte Kennzahlen gemeldet (deckt sich mit der Darstellung im
+  // DeviceManager selbst: "0 Critical / 1 Major / 1 Warning").
   metrics.push({ key: "alerts_critical", value: Number(critical.body.data.COUNT) || 0, unit: "count" });
-  metrics.push({
-    key: "alerts_warning",
-    value: (Number(major.body.data.COUNT) || 0) + (Number(warning.body.data.COUNT) || 0),
-    unit: "count",
-  });
+  metrics.push({ key: "alerts_major", value: Number(major.body.data.COUNT) || 0, unit: "count" });
+  metrics.push({ key: "alerts_warning", value: Number(warning.body.data.COUNT) || 0, unit: "count" });
 
   return metrics;
 }
@@ -108,7 +129,7 @@ async function collectHardwareMetrics(config, session) {
   const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
   const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
 
-  const [system, controllers, disks, fans, power, ethPorts, replicationPairs] = await Promise.all([
+  const [system, controllers, disks, fans, power, ethPorts, replicationPairs, bbus] = await Promise.all([
     requestJson(config, joinUrl(base, "/system/"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/controller"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/disk"), { headers: authHeaders }),
@@ -119,6 +140,7 @@ async function collectHardwareMetrics(config, session) {
     // des obigen Promise.all — ein Fehlschlag hier soll die längst bewährten
     // Kennzahlen darüber nicht mitreißen.
     fetchOptional(config, "Replikationspaare", requestJson(config, joinUrl(base, "/REPLICATIONPAIR"), { headers: authHeaders })),
+    fetchOptional(config, "BBU-Status", requestJson(config, joinUrl(base, "/backup_power"), { headers: authHeaders })),
   ]);
 
   const metrics = [];
@@ -127,6 +149,10 @@ async function collectHardwareMetrics(config, session) {
   const sys = system.body.data;
   const systemHealthy = Number(sys.HEALTHSTATUS) === 1 && Number(sys.RUNNINGSTATUS) === 1 ? 100 : 0;
   metrics.push({ key: "system_availability", value: systemHealthy, unit: "%" });
+
+  // Modell/Version sind Geräteattribute (kein Zeitreihen-Wert) — werden
+  // getrennt als deviceInfo zurückgegeben, nicht als Metrik.
+  const deviceInfo = { model: sys.productModeString || null, softwareVersion: sys.PRODUCTVERSION || null };
 
   const controllerList = Array.isArray(controllers.body.data) ? controllers.body.data : [];
   const cpuValues = controllerList.map((c) => Number(c.CPUUSAGE)).filter(Number.isFinite);
@@ -178,7 +204,14 @@ async function collectHardwareMetrics(config, session) {
     });
   }
 
-  return metrics;
+  // Nur melden, wenn der Endpunkt überhaupt Daten liefert — nicht jede
+  // Appliance-Konfiguration hat BBUs verbaut.
+  const bbuList = Array.isArray(bbus?.body?.data) ? bbus.body.data : [];
+  if (bbuList.length > 0) {
+    metrics.push({ key: "bbu_faulty", value: bbuList.filter((b) => Number(b.HEALTHSTATUS) !== 1).length, unit: "count" });
+  }
+
+  return { metrics, deviceInfo };
 }
 
 // Ransomware-Erkennung auf Kopien läuft pro Resource-Subtyp getrennt
@@ -323,7 +356,7 @@ async function tryCollectStorage(config) {
     session = await loginStorage(config);
   } catch (err) {
     config.logger?.warn(`Storage-Login fehlgeschlagen — Storage-Kennzahlen werden übersprungen: ${err.message}`);
-    return { metrics: [], deviceSerialNumber: null };
+    return { metrics: [], deviceSerialNumber: null, deviceInfo: null };
   }
   try {
     const [capacityResult, hardwareResult] = await Promise.allSettled([
@@ -331,19 +364,21 @@ async function tryCollectStorage(config) {
       collectHardwareMetrics(config, session),
     ]);
     const metrics = [];
+    let deviceInfo = null;
     if (capacityResult.status === "fulfilled") {
       metrics.push(...capacityResult.value);
     } else {
       config.logger?.warn(`Kapazitäts-/Alarm-Kennzahlen konnten nicht erhoben werden: ${capacityResult.reason.message}`);
     }
     if (hardwareResult.status === "fulfilled") {
-      metrics.push(...hardwareResult.value);
+      metrics.push(...hardwareResult.value.metrics);
+      deviceInfo = hardwareResult.value.deviceInfo;
     } else {
       config.logger?.warn(`Hardware-Kennzahlen konnten nicht erhoben werden: ${hardwareResult.reason.message}`);
     }
     // deviceId aus der Login-Antwort ist bei Huawei die Geräte-ESN
     // (Seriennummer) — dieselbe Kennung, die schon in jeder Request-URL steckt.
-    return { metrics, deviceSerialNumber: session.deviceId };
+    return { metrics, deviceSerialNumber: session.deviceId, deviceInfo };
   } finally {
     await logoutStorage(config, session);
   }
@@ -383,8 +418,12 @@ async function collect(config) {
     throw new Error("Weder Storage- noch DataBackup-Kennzahlen konnten erhoben werden — siehe Warnungen oben.");
   }
 
-  const meta = storageResult.deviceSerialNumber ? { deviceSerialNumber: storageResult.deviceSerialNumber } : undefined;
-  return { metrics, meta };
+  const meta = {};
+  if (storageResult.deviceSerialNumber) meta.deviceSerialNumber = storageResult.deviceSerialNumber;
+  if (storageResult.deviceInfo?.model) meta.deviceModel = storageResult.deviceInfo.model;
+  if (storageResult.deviceInfo?.softwareVersion) meta.deviceSoftwareVersion = storageResult.deviceInfo.softwareVersion;
+
+  return { metrics, meta: Object.keys(meta).length > 0 ? meta : undefined };
 }
 
 module.exports = { collect };
