@@ -29,12 +29,20 @@ export const ingestPayloadSchema = z.object({
       // Bei OceanProtect eine zweite, unabhängige Versionsnummer (Backup-
       // Software, getrennt von der Storage-Firmware in deviceSoftwareVersion).
       dataBackupVersion: z.string().min(1).max(100).optional(),
-      // Stichprobe der jüngsten Alarme mit Klartext, je Schweregrad —
-      // ersetzt jeweils die vorherige Stichprobe (keine Historie).
+      // Stichprobe der aktuell aktiven Alarme mit Klartext, je Schweregrad —
+      // wird bei jedem Ingest gegen den bisherigen Verlauf abgeglichen
+      // (reconcileFindings): nicht mehr gemeldete, zuvor offene Alarme
+      // gelten als behoben. Ein leeres Array ("aktuell keine Alarme") ist
+      // ein gültiges Ergebnis und wird bewusst mitgeschickt; nur ein
+      // komplett fehlendes Feld bedeutet "nicht erhoben".
       alarmSamples: z
         .array(
           z.object({
             severity: z.enum(["critical", "major", "warning"]),
+            // Alarm-Sequenznummer des Geräts — stabile Kennung derselben
+            // Alarminstanz über mehrere Collector-Läufe hinweg. Fehlt sie,
+            // wird ersatzweise severity+name als (gröbere) Kennung genutzt.
+            sequence: z.string().max(50).optional(),
             name: z.string().min(1).max(200),
             description: z.string().min(1).max(500),
             suggestion: z.string().max(500).optional(),
@@ -65,7 +73,7 @@ export const ingestPayloadSchema = z.object({
         .optional(),
       // Details zu den konkreten Komponenten hinter einer Fehler-/Warnungs-
       // Kennzahl > 0 (z. B. welcher Controller, welche Lizenz läuft ab) —
-      // ersetzt jeweils die vorherige Stichprobe (keine Historie).
+      // wie alarmSamples bei jedem Ingest gegen den Verlauf abgeglichen.
       componentFaults: z
         .array(
           z.object({

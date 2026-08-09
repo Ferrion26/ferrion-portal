@@ -305,8 +305,18 @@ const ALARM_SEVERITY_LABEL: Record<"de" | "en", Record<AlarmSample["severity"], 
 };
 
 const ALARM_CARD_COPY = {
-  de: { title: "Alarme im Detail", sub: "Jüngste Ereignisse aus dem Ereignisprotokoll des Geräts, je Schweregrad." },
-  en: { title: "Alarms in Detail", sub: "Most recent events from the device's event log, by severity." },
+  de: {
+    title: "Alarme im Detail",
+    sub: "Ereignisse aus dem Ereignisprotokoll des Geräts, die im Berichtszeitraum aktiv waren.",
+    resolvedOn: (date: string) => `Behoben am ${date}`,
+    active: "Aktiv",
+  },
+  en: {
+    title: "Alarms in Detail",
+    sub: "Events from the device's event log that were active during the reporting period.",
+    resolvedOn: (date: string) => `Resolved on ${date}`,
+    active: "Active",
+  },
 };
 
 const MAX_ALARM_SAMPLES_SHOWN = 8;
@@ -342,12 +352,16 @@ function AlarmCard({ alarms, locale }: { alarms: AlarmSample[]; locale: "de" | "
       <Text style={styles.listCardTitle}>{t.title}</Text>
       <Text style={styles.listCardSub}>{t.sub}</Text>
       {shown.map((alarm, i) => (
-        <View key={i} style={styles.alarmRow}>
+        <View key={i} style={{ ...styles.alarmRow, opacity: alarm.status === "resolved" ? 0.55 : 1 }}>
           <View style={styles.alarmTopRow}>
             <View style={styles.alarmTitleGroup}>
-              <Dot status={ALARM_SEVERITY_TO_STATUS[alarm.severity]} />
+              <Dot status={alarm.status === "resolved" ? "good" : ALARM_SEVERITY_TO_STATUS[alarm.severity]} />
               <Text style={styles.alarmName}>{decodeHtmlEntities(alarm.name)}</Text>
-              <StatusPill status={ALARM_SEVERITY_TO_STATUS[alarm.severity]} text={ALARM_SEVERITY_LABEL[locale][alarm.severity]} />
+              {alarm.status === "resolved" && alarm.resolvedAt ? (
+                <StatusPill status="good" text={t.resolvedOn(formatDateTime(alarm.resolvedAt, locale))} />
+              ) : (
+                <StatusPill status={ALARM_SEVERITY_TO_STATUS[alarm.severity]} text={ALARM_SEVERITY_LABEL[locale][alarm.severity]} />
+              )}
             </View>
             {alarm.time && <Text style={styles.alarmTime}>{formatDateTime(alarm.time, locale)}</Text>}
           </View>
@@ -374,10 +388,15 @@ function ComponentFaultsCard({ faults, locale }: { faults: ComponentFault[]; loc
       <Text style={styles.listCardTitle}>{t.detailsTitle}</Text>
       <Text style={styles.listCardSub}>{t.detailsSub}</Text>
       {shown.map((fault, i) => (
-        <View key={i} style={{ ...styles.tableRow, alignItems: "flex-start" }}>
+        <View key={i} style={{ ...styles.tableRow, alignItems: "flex-start", opacity: fault.status === "resolved" ? 0.55 : 1 }}>
           <Text style={{ width: 90, color: MUTED, fontSize: 7, paddingTop: 1 }}>{fault.category}</Text>
-          <Text style={{ width: 130, fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, paddingRight: 6 }}>{fault.id}</Text>
+          <Text style={{ width: 110, fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, paddingRight: 6 }}>{fault.id}</Text>
           <Text style={{ flex: 1, fontSize: 8, color: "#374151" }}>{fault.description}</Text>
+          <Text style={{ width: 90, fontSize: 6.5, color: fault.status === "resolved" ? STATUS_COLORS.good.dot : STATUS_COLORS.warning.dot, textAlign: "right" }}>
+            {fault.status === "resolved" && fault.resolvedAt
+              ? (locale === "de" ? `Behoben ${formatDateTime(fault.resolvedAt, locale)}` : `Resolved ${formatDateTime(fault.resolvedAt, locale)}`)
+              : locale === "de" ? "Aktiv" : "Active"}
+          </Text>
         </View>
       ))}
       {overflow > 0 && (
@@ -513,6 +532,10 @@ export interface AlarmSample {
   description: string;
   suggestion?: string;
   time?: string;
+  // Aus der Findings-Historie: ob der Alarm zum Erstellzeitpunkt noch aktiv
+  // ist oder im Berichtszeitraum wieder verschwunden (behoben) ist.
+  status: "active" | "resolved";
+  resolvedAt?: string;
 }
 
 export interface ResourceBreakdownEntry {
@@ -530,6 +553,8 @@ export interface ComponentFault {
   category: string;
   id: string;
   description: string;
+  status: "active" | "resolved";
+  resolvedAt?: string;
 }
 
 export interface ProductReportData {

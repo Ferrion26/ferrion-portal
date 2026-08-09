@@ -13,6 +13,7 @@ import GenerateReportButton from "./GenerateReportButton";
 import PublishButton from "./PublishButton";
 import DeleteReportButton from "./DeleteReportButton";
 import ReplicationNoteForm from "./ReplicationNoteForm";
+import RetentionForm from "./RetentionForm";
 
 export const metadata = { title: "Subscription — Managed Reports — Admin" };
 
@@ -27,6 +28,16 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
     },
   });
   if (!subscription) notFound();
+
+  const [ingestions, openFindingsCount] = await Promise.all([
+    prisma.collectorIngestion.findMany({
+      where: { subscriptionId: params.id },
+      orderBy: { receivedAt: "desc" },
+      take: 30,
+      include: { _count: { select: { metrics: true } } },
+    }),
+    prisma.deviceFinding.count({ where: { subscriptionId: params.id, resolvedAt: null } }),
+  ]);
 
   const product = PRODUCTS.find((p) => p.slug === subscription.productSlug);
 
@@ -54,6 +65,12 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
         </h1>
         <p className="text-sm text-gray-500">
           {subscription._count.metrics} Kennzahlen empfangen · Subscription seit {formatDate(subscription.startDate)}
+          {openFindingsCount > 0 && (
+            <>
+              {" · "}
+              <span className="text-amber-400">{openFindingsCount} offene Alarme/Fehler</span>
+            </>
+          )}
         </p>
         {(subscription.deviceModel || subscription.deviceSoftwareVersion || subscription.deviceSerialNumber) && (
           <p className="text-sm text-gray-500 mt-1">
@@ -84,11 +101,57 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
       </div>
 
       <div className="bg-[#111827] border border-white/10 p-6">
+        <h2 className="font-semibold text-white mb-4">Ingestion-Verlauf</h2>
+        <p className="text-xs text-gray-500 mb-4">Welche Daten wann eingegangen sind — sowohl Live-Pushes des Collectors als auch manuelle Uploads.</p>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-white/10 text-left text-gray-500">
+              <th className="py-2 font-medium">Zeitpunkt</th>
+              <th className="py-2 font-medium">Quelle</th>
+              <th className="py-2 font-medium">Datei</th>
+              <th className="py-2 font-medium">Kennzahlen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ingestions.map((ing) => (
+              <tr key={ing.id} className="border-b border-white/5">
+                <td className="py-2 text-gray-300">{formatDateTime(ing.receivedAt)}</td>
+                <td className="py-2">
+                  <Badge variant={ing.source === "MANUAL_UPLOAD" ? "yellow" : "green"}>
+                    {ing.source === "MANUAL_UPLOAD" ? "Manueller Upload" : "Collector (Live)"}
+                  </Badge>
+                </td>
+                <td className="py-2 text-gray-400">{ing.fileName ?? "—"}</td>
+                <td className="py-2 text-gray-400">{ing._count.metrics}</td>
+              </tr>
+            ))}
+            {ingestions.length === 0 && (
+              <tr>
+                <td colSpan={4} className="py-6 text-center text-gray-500">
+                  Noch keine Daten eingegangen.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+        {ingestions.length === 30 && <p className="text-xs text-gray-500 mt-3">Zeigt die letzten 30 Einträge.</p>}
+      </div>
+
+      <div className="bg-[#111827] border border-white/10 p-6">
         <h2 className="font-semibold text-white mb-2">Hinweis für den Bericht</h2>
         <p className="text-xs text-gray-500 mb-4">
           Freitext, z. B. um eine Beziehung zu einem anderen System zu dokumentieren — erscheint als Hinweiszeile im Bericht.
         </p>
         <ReplicationNoteForm subscriptionId={subscription.id} initialValue={subscription.replicationNote} />
+      </div>
+
+      <div className="bg-[#111827] border border-white/10 p-6">
+        <h2 className="font-semibold text-white mb-2">Datenaufbewahrung</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Nach wie vielen Tagen Rohdaten (Kennzahlen, Ingestion-Verlauf, bereits behobene Alarme/Fehler) automatisch gelöscht werden. Leer = unbegrenzt. Aktive,
+          noch offene Alarme/Fehler werden nie automatisch gelöscht.
+        </p>
+        <RetentionForm subscriptionId={subscription.id} initialDays={subscription.metricsRetentionDays} />
       </div>
 
       <div className="bg-[#111827] border border-white/10 p-6">

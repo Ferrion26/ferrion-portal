@@ -83,6 +83,10 @@ async function fetchAlarmSamples(config, base, authHeaders) {
       for (const alarm of body.data ?? []) {
         samples.push({
           severity,
+          // Stabile Kennung derselben Alarminstanz über mehrere Collector-
+          // Läufe hinweg (für die Historie im Portal) — fällt auf
+          // Schweregrad+Name zurück, falls sequence einmal fehlen sollte.
+          sequence: alarm.sequence !== undefined ? String(alarm.sequence) : undefined,
           name: String(alarm.name ?? "").slice(0, 200) || "Alarm",
           description: String(alarm.description ?? "").slice(0, 500) || "—",
           suggestion: alarm.suggestion ? String(alarm.suggestion).slice(0, 500) : undefined,
@@ -656,7 +660,11 @@ async function tryCollectStorage(config) {
     session = await loginStorage(config);
   } catch (err) {
     config.logger?.warn(`Storage-Login fehlgeschlagen — Storage-Kennzahlen werden übersprungen: ${err.message}`);
-    return { metrics: [], deviceSerialNumber: null, deviceInfo: null, alarmSamples: [], componentFaults: [] };
+    // undefined statt [] für alarmSamples/componentFaults: "nicht erhoben"
+    // muss sich vom echten "aktuell keine Alarme/Fehler" unterscheiden
+    // lassen, sonst würde ein Login-Fehlschlag fälschlich die gesamte
+    // Findings-Historie als behoben markieren (siehe collect() unten).
+    return { metrics: [], deviceSerialNumber: null, deviceInfo: null, alarmSamples: undefined, componentFaults: undefined };
   }
   try {
     const [capacityResult, hardwareResult] = await Promise.allSettled([
@@ -665,8 +673,8 @@ async function tryCollectStorage(config) {
     ]);
     const metrics = [];
     let deviceInfo = null;
-    let alarmSamples = [];
-    let componentFaults = [];
+    let alarmSamples;
+    let componentFaults;
     if (capacityResult.status === "fulfilled") {
       metrics.push(...capacityResult.value.metrics);
       alarmSamples = capacityResult.value.alarmSamples;
@@ -726,8 +734,12 @@ async function collect(config) {
   if (storageResult.deviceSerialNumber) meta.deviceSerialNumber = storageResult.deviceSerialNumber;
   if (storageResult.deviceInfo?.model) meta.deviceModel = storageResult.deviceInfo.model;
   if (storageResult.deviceInfo?.softwareVersion) meta.deviceSoftwareVersion = storageResult.deviceInfo.softwareVersion;
-  if (storageResult.alarmSamples?.length > 0) meta.alarmSamples = storageResult.alarmSamples;
-  if (storageResult.componentFaults?.length > 0) meta.componentFaults = storageResult.componentFaults;
+  // undefined = nicht erhoben (Login/Abruf fehlgeschlagen) → weglassen statt
+  // fälschlich "aktuell keine Alarme/Fehler" zu melden. Ein leeres Array ist
+  // dagegen ein echtes Ergebnis und wird bewusst mitgeschickt, damit das
+  // Portal zuvor offene Findings als behoben erkennen kann.
+  if (storageResult.alarmSamples !== undefined) meta.alarmSamples = storageResult.alarmSamples;
+  if (storageResult.componentFaults !== undefined) meta.componentFaults = storageResult.componentFaults;
   if (dataBackupResult.dataBackupVersion) meta.dataBackupVersion = dataBackupResult.dataBackupVersion;
   if (dataBackupResult.resourceBreakdown?.length > 0) meta.resourceBreakdown = dataBackupResult.resourceBreakdown;
   if (dataBackupResult.topJobFailures && (dataBackupResult.topJobFailures.bySla.length > 0 || dataBackupResult.topJobFailures.byResource.length > 0)) {

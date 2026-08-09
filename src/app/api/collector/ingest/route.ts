@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { hashApiKey } from "@/lib/managed-reports/apiKey";
 import { ingestPayloadSchema } from "@/lib/managed-reports/ingestSchema";
+import { reconcileFindings, alarmSamplesToFindings, componentFaultsToFindings } from "@/lib/managed-reports/reconcileFindings";
 
 export async function POST(req: NextRequest) {
   const apiKeyHeader = req.headers.get("x-api-key");
@@ -33,10 +34,8 @@ export async function POST(req: NextRequest) {
   if (meta?.deviceModel) deviceUpdate.deviceModel = meta.deviceModel;
   if (meta?.deviceSoftwareVersion) deviceUpdate.deviceSoftwareVersion = meta.deviceSoftwareVersion;
   if (meta?.dataBackupVersion) deviceUpdate.dataBackupVersion = meta.dataBackupVersion;
-  if (meta?.alarmSamples) deviceUpdate.recentAlarms = meta.alarmSamples;
   if (meta?.resourceBreakdown) deviceUpdate.resourceBreakdown = meta.resourceBreakdown;
   if (meta?.topJobFailures) deviceUpdate.topJobFailures = meta.topJobFailures;
-  if (meta?.componentFaults) deviceUpdate.componentFaults = meta.componentFaults;
 
   const [, ingestion] = await prisma.$transaction([
     prisma.collectorApiKey.update({
@@ -68,6 +67,16 @@ export async function POST(req: NextRequest) {
         ]
       : []),
   ]);
+
+  // Historie separat abgleichen statt im selben Schreibvorgang zu
+  // überschreiben — nicht kritisch für die Transaktionsatomarität der
+  // eigentlichen Metrik-Speicherung oben.
+  if (meta?.alarmSamples) {
+    await reconcileFindings(apiKey.subscriptionId, "ALARM", alarmSamplesToFindings(meta.alarmSamples));
+  }
+  if (meta?.componentFaults) {
+    await reconcileFindings(apiKey.subscriptionId, "COMPONENT_FAULT", componentFaultsToFindings(meta.componentFaults));
+  }
 
   return NextResponse.json({ id: ingestion.id, metricsStored: metrics.length }, { status: 201 });
 }

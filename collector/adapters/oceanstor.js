@@ -59,6 +59,7 @@ async function fetchAlarmSamples(config, base, authHeaders) {
       for (const alarm of body.data ?? []) {
         samples.push({
           severity,
+          sequence: alarm.sequence !== undefined ? String(alarm.sequence) : undefined,
           name: String(alarm.name ?? "").slice(0, 200) || "Alarm",
           description: String(alarm.description ?? "").slice(0, 500) || "—",
           suggestion: alarm.suggestion ? String(alarm.suggestion).slice(0, 500) : undefined,
@@ -325,8 +326,8 @@ async function collect(config) {
 
     const metrics = [];
     let deviceInfo = null;
-    let alarmSamples = [];
-    let componentFaults = [];
+    let alarmSamples;
+    let componentFaults;
     if (capacityResult.status === "fulfilled") {
       metrics.push(...capacityResult.value.metrics);
       alarmSamples = capacityResult.value.alarmSamples;
@@ -350,8 +351,10 @@ async function collect(config) {
     if (session.deviceId) meta.deviceSerialNumber = session.deviceId;
     if (deviceInfo?.model) meta.deviceModel = deviceInfo.model;
     if (deviceInfo?.softwareVersion) meta.deviceSoftwareVersion = deviceInfo.softwareVersion;
-    if (alarmSamples.length > 0) meta.alarmSamples = alarmSamples;
-    if (componentFaults.length > 0) meta.componentFaults = componentFaults;
+    // undefined = nicht erhoben, weglassen; leeres Array = echtes Ergebnis
+    // ("aktuell keine Alarme/Fehler"), wird mitgeschickt.
+    if (alarmSamples !== undefined) meta.alarmSamples = alarmSamples;
+    if (componentFaults !== undefined) meta.componentFaults = componentFaults;
 
     return { metrics, meta: Object.keys(meta).length > 0 ? meta : undefined };
   } finally {

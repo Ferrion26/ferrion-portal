@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ingestPayloadSchema } from "@/lib/managed-reports/ingestSchema";
+import { reconcileFindings, alarmSamplesToFindings, componentFaultsToFindings } from "@/lib/managed-reports/reconcileFindings";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         data: {
           subscriptionId: params.id,
           source: "MANUAL_UPLOAD",
+          fileName: file.name,
           payload: parsed.data,
           metrics: {
             create: metrics.map((m) => ({
@@ -61,12 +63,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       if (meta?.deviceModel) deviceUpdate.deviceModel = meta.deviceModel;
       if (meta?.deviceSoftwareVersion) deviceUpdate.deviceSoftwareVersion = meta.deviceSoftwareVersion;
       if (meta?.dataBackupVersion) deviceUpdate.dataBackupVersion = meta.dataBackupVersion;
-      if (meta?.alarmSamples) deviceUpdate.recentAlarms = meta.alarmSamples;
       if (meta?.resourceBreakdown) deviceUpdate.resourceBreakdown = meta.resourceBreakdown;
       if (meta?.topJobFailures) deviceUpdate.topJobFailures = meta.topJobFailures;
-      if (meta?.componentFaults) deviceUpdate.componentFaults = meta.componentFaults;
       if (Object.keys(deviceUpdate).length > 0) {
         await prisma.managedServiceSubscription.update({ where: { id: params.id }, data: deviceUpdate });
+      }
+      if (meta?.alarmSamples) {
+        await reconcileFindings(params.id, "ALARM", alarmSamplesToFindings(meta.alarmSamples));
+      }
+      if (meta?.componentFaults) {
+        await reconcileFindings(params.id, "COMPONENT_FAULT", componentFaultsToFindings(meta.componentFaults));
       }
 
       results.push({ fileName: file.name, ok: true, metricsStored: metrics.length });

@@ -11,7 +11,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "collector:package": "node scripts/package-collector.js"
+    "collector:package": "node scripts/package-collector.js",
+    "test": "vitest run"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",
@@ -44,7 +45,8 @@
     "sharp": "^0.35.3",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.19.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   },
   "allowScripts": {
     "@prisma/client@5.22.0": true,

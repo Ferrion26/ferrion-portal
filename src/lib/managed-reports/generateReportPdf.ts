@@ -16,13 +16,56 @@ async function loadSubscription(subscriptionId: string) {
   });
 }
 
+// Findings, die irgendwann während des Berichtszeitraums offen waren —
+// entweder noch offen (resolvedAt null) oder erst danach behoben. So bleibt
+// im Bericht sichtbar, was in diesem Zeitraum ein Thema war, auch wenn es
+// inzwischen gelöst ist (mit "behoben am ..." markiert statt einfach zu
+// verschwinden).
+async function loadFindings(subscriptionId: string, periodStart: Date, periodEnd: Date) {
+  return prisma.deviceFinding.findMany({
+    where: {
+      subscriptionId,
+      firstSeenAt: { lt: periodEnd },
+      OR: [{ resolvedAt: null }, { resolvedAt: { gte: periodStart } }],
+    },
+    // Postgres sortiert NULL bei DESC standardmäßig zuerst — so stehen aktive
+    // Findings (resolvedAt = null) vor bereits behobenen.
+    orderBy: [{ resolvedAt: "desc" }, { firstSeenAt: "desc" }],
+  });
+}
+
 async function buildProductData(subscription: SubscriptionWithCustomer, periodStart: Date, periodEnd: Date): Promise<ProductReportData> {
   const product = PRODUCTS.find((p) => p.slug === subscription.productSlug);
   const packageLabel = product?.managedServices?.packages.find(
     (p) => p.id === subscription.packageId.toLowerCase()
   )?.name;
 
-  const entries = await computeQuarterSummary(subscription.id, periodStart, periodEnd);
+  const [entries, findings] = await Promise.all([
+    computeQuarterSummary(subscription.id, periodStart, periodEnd),
+    loadFindings(subscription.id, periodStart, periodEnd),
+  ]);
+
+  const recentAlarms: ProductReportData["recentAlarms"] = findings
+    .filter((f) => f.kind === "ALARM")
+    .map((f) => ({
+      severity: f.category as "critical" | "major" | "warning",
+      name: f.title,
+      description: f.description,
+      suggestion: f.suggestion ?? undefined,
+      time: f.firstSeenAt.toISOString(),
+      status: (f.resolvedAt ? "resolved" : "active") as "active" | "resolved",
+      resolvedAt: f.resolvedAt?.toISOString(),
+    }));
+
+  const componentFaults: ProductReportData["componentFaults"] = findings
+    .filter((f) => f.kind === "COMPONENT_FAULT")
+    .map((f) => ({
+      category: f.category,
+      id: f.title,
+      description: f.description,
+      status: (f.resolvedAt ? "resolved" : "active") as "active" | "resolved",
+      resolvedAt: f.resolvedAt?.toISOString(),
+    }));
 
   return {
     productName: product?.name ?? subscription.productSlug,
@@ -33,10 +76,10 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
     deviceSoftwareVersion: subscription.deviceSoftwareVersion ?? undefined,
     dataBackupVersion: subscription.dataBackupVersion ?? undefined,
     entries,
-    recentAlarms: (subscription.recentAlarms as unknown as ProductReportData["recentAlarms"]) ?? undefined,
+    recentAlarms: recentAlarms.length > 0 ? recentAlarms : undefined,
     resourceBreakdown: (subscription.resourceBreakdown as unknown as ProductReportData["resourceBreakdown"]) ?? undefined,
     topJobFailures: (subscription.topJobFailures as unknown as ProductReportData["topJobFailures"]) ?? undefined,
-    componentFaults: (subscription.componentFaults as unknown as ProductReportData["componentFaults"]) ?? undefined,
+    componentFaults: componentFaults.length > 0 ? componentFaults : undefined,
     replicationNote: subscription.replicationNote ?? undefined,
   };
 }

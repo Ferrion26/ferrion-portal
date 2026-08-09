@@ -67,6 +67,11 @@ enum IngestionSource {
   MANUAL_UPLOAD
 }
 
+enum FindingKind {
+  ALARM
+  COMPONENT_FAULT
+}
+
 model SiteSetting {
   key       String   @id
   value     Json
@@ -210,25 +215,14 @@ model ManagedServiceSubscription {
 
   // Aufschlüsselung der bei DataBackup bekannten Ressourcen nach Typ
   // (Dateisystem, Datenbank, VM, …) inkl. geschützt/ungeschützt — vom
-  // letzten Ingest überschrieben, keine Historie.
+  // letzten Ingest überschrieben, keine Historie (im Gegensatz zu Alarmen/
+  // Component Faults ist das eine reine Momentaufnahme ohne "aktiv/gelöst"-
+  // Konzept, daher weiterhin als einfaches JSON statt eigener Tabelle).
   resourceBreakdown Json?
 
   // Die am häufigsten fehlgeschlagenen Jobs, getrennt nach SLA-Richtlinie
   // und nach Ressource — vom letzten Ingest überschrieben, keine Historie.
   topJobFailures Json?
-
-  // Details zu den konkreten Komponenten hinter einer Fehler-/Warnungs-
-  // Kennzahl > 0 im Infrastrukturstatus (z. B. welcher Controller, welche
-  // Lizenz läuft ab) — im Bericht als Referenzabschnitt am Ende gezeigt,
-  // damit ein Wert > 0 nicht ohne Kontext dasteht. Vom letzten Ingest
-  // überschrieben, keine Historie.
-  componentFaults Json?
-
-  // Stichprobe der jüngsten Alarme/Ereignisse mit Klartext (Name,
-  // Beschreibung, Empfehlung), vom Collector je Schweregrad mitgeliefert —
-  // vom letzten Ingest überschrieben, keine Historie. Frei formatiertes
-  // JSON statt eigener Tabelle, da nur zur Anzeige im Bericht gedacht.
-  recentAlarms Json?
 
   // Freitext, den ein Admin manuell pflegt, um eine Beziehung zu einem
   // anderen System zu dokumentieren (z. B. "Snapshots werden von
@@ -240,6 +234,13 @@ model ManagedServiceSubscription {
   // die Vorauswahl im Admin-Bereich, keine automatische Erstellung.
   defaultPeriodType ReportPeriodType @default(QUARTER)
 
+  // Wie lange Rohdaten (ManagedServiceMetric, CollectorIngestion, bereits
+  // gelöste DeviceFinding-Einträge) für diese Subscription aufbewahrt
+  // werden, bevor der Cleanup-Cron sie löscht. null = unbegrenzt (Default,
+  // kein Datenverlust ohne bewusste Konfiguration). Aktive/ungelöste
+  // Findings werden unabhängig vom Alter nie automatisch gelöscht.
+  metricsRetentionDays Int?
+
   customerId String
   customer   User   @relation(fields: [customerId], references: [id])
 
@@ -247,6 +248,7 @@ model ManagedServiceSubscription {
   ingestions CollectorIngestion[]
   metrics    ManagedServiceMetric[]
   reports    QuarterlyReport[]
+  findings   DeviceFinding[]
 
   @@index([customerId])
   @@index([productSlug])
@@ -273,6 +275,11 @@ model CollectorIngestion {
   payload    Json
   source     IngestionSource @default(COLLECTOR)
   receivedAt DateTime        @default(now())
+
+  // Nur bei MANUAL_UPLOAD gesetzt — der ursprüngliche Dateiname der
+  // hochgeladenen Collector-Export-Datei, für die Ingestion-Übersicht im
+  // Admin-Bereich ("welche Datei wurde wann hochgeladen").
+  fileName String?
 
   subscriptionId String
   subscription   ManagedServiceSubscription @relation(fields: [subscriptionId], references: [id])
@@ -302,6 +309,32 @@ model ManagedServiceMetric {
   ingestion   CollectorIngestion @relation(fields: [ingestionId], references: [id])
 
   @@index([subscriptionId, metricKey, recordedAt])
+}
+
+// Alarme (vom Storage-Gerät gemeldet) und Component Faults (vom Collector
+// aus Health-Checks abgeleitet, z. B. "Controller 0B fehlerhaft") mit
+// Verlauf: bei jedem Ingest wird abgeglichen, welche zuvor offenen Einträge
+// nicht mehr gemeldet werden (→ resolvedAt gesetzt) und welche neu sind.
+// identityKey ist der stabile Schlüssel, über den ein Eintrag über mehrere
+// Ingests hinweg wiedererkannt wird (z. B. "Controller:0B" oder die
+// Alarm-Sequenznummer des Geräts).
+model DeviceFinding {
+  id          String      @id @default(cuid())
+  kind        FindingKind
+  identityKey String
+  category    String
+  title       String
+  description String
+  suggestion  String?
+  firstSeenAt DateTime    @default(now())
+  lastSeenAt  DateTime    @default(now())
+  resolvedAt  DateTime?
+
+  subscriptionId String
+  subscription   ManagedServiceSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@unique([subscriptionId, kind, identityKey])
+  @@index([subscriptionId, kind, resolvedAt])
 }
 
 model QuarterlyReport {
