@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { getCollectorBaseline, saveCollectorBaseline } from "@/lib/settings";
+import { KNOWN_COLLECTOR_VERSIONS } from "@/lib/managed-reports/collectorVersions";
 
 export const dynamic = "force-dynamic";
 
+// Nur eine tatsächlich existierende Collector-Version (siehe
+// collector/versions.json) darf als Baseline gesetzt werden — verhindert
+// Tippfehler, die die Warnung für veraltete Collector unbemerkt außer Kraft
+// setzen würden.
+const KNOWN_VERSION_STRINGS = KNOWN_COLLECTOR_VERSIONS.map((v) => v.version);
 const putSchema = z.object({
   minVersion: z
     .string()
-    .regex(/^\d+\.\d+\.\d+$/, "Format MAJOR.MINOR.PATCH, z. B. 1.2.0")
+    .refine((v) => KNOWN_VERSION_STRINGS.includes(v), "Unbekannte Collector-Version.")
     .nullable(),
 });
 

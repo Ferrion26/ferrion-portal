@@ -32,6 +32,18 @@ async function logout(config, session) {
   }).catch((err) => config.logger?.warn(`Logout fehlgeschlagen (ignoriert): ${err.message}`));
 }
 
+// Sammelt die vollständige Rohantwort eines REST-Aufrufs unter einem
+// sprechenden Schlüssel (nicht nur die paar Felder, die aktuell in Metriken
+// umgewandelt werden) — landet unverändert in meta.rawEndpoints und damit im
+// Ingest-Payload (siehe CollectorIngestion.payload). So lassen sich später
+// neue Auswertungen auf bereits gesammelten Ingestions nachrüsten, ohne dass
+// jeder Kundenstandort erst einen neuen Collector bekommen muss, nur weil
+// eine Spalte im ursprünglichen Adapter vergessen wurde.
+function captureRaw(rawEndpoints, key, result) {
+  if (!result) return;
+  rawEndpoints[key] = result.body?.data !== undefined ? result.body.data : result.body;
+}
+
 // Parst die JSON-String-Ratio-Felder, die der DeviceManager für
 // Reduktionsraten liefert, z. B. {"numerator":"1265","denominator":"1000"}.
 function parseRatio(raw) {
@@ -47,7 +59,7 @@ const ALARM_LEVELS = [
 ];
 const ALARM_SAMPLE_SIZE = 5;
 
-async function fetchAlarmSamples(config, base, authHeaders) {
+async function fetchAlarmSamples(config, base, authHeaders, rawEndpoints) {
   const samples = [];
   for (const { level, severity } of ALARM_LEVELS) {
     try {
@@ -56,6 +68,7 @@ async function fetchAlarmSamples(config, base, authHeaders) {
         joinUrl(base, `/alarm/currentalarm?filter=level::${level}&sortby=startTime,d&range=[0-${ALARM_SAMPLE_SIZE - 1}]`),
         { headers: authHeaders }
       );
+      if (rawEndpoints) rawEndpoints[`/alarm/currentalarm?level=${level}`] = body.data;
       for (const alarm of body.data ?? []) {
         samples.push({
           severity,
@@ -124,14 +137,17 @@ async function collectCapacityMetrics(config, session) {
   const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
   const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
 
+  const rawEndpoints = {};
   const [dataInfo, poolInfo, critical, major, warning, alarmSamples] = await Promise.all([
     requestJson(config, joinUrl(base, `/storagepool_data_info/${poolId}`), { headers: authHeaders }),
     requestJson(config, joinUrl(base, `/storagepool/${poolId}`), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/alarm/currentalarm/count?filter=level::6"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/alarm/currentalarm/count?filter=level::5"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/alarm/currentalarm/count?filter=level::3"), { headers: authHeaders }),
-    fetchAlarmSamples(config, base, authHeaders),
+    fetchAlarmSamples(config, base, authHeaders, rawEndpoints),
   ]);
+  captureRaw(rawEndpoints, "/storagepool_data_info", dataInfo);
+  captureRaw(rawEndpoints, "/storagepool", poolInfo);
 
   const metrics = [];
 
@@ -173,7 +189,7 @@ async function collectCapacityMetrics(config, session) {
   metrics.push({ key: "alerts_major", value: Number(major.body.data.COUNT) || 0, unit: "count" });
   metrics.push({ key: "alerts_warning", value: Number(warning.body.data.COUNT) || 0, unit: "count" });
 
-  return { metrics, alarmSamples };
+  return { metrics, alarmSamples, rawEndpoints };
 }
 
 async function collectHardwareMetrics(config, session) {
@@ -201,6 +217,22 @@ async function collectHardwareMetrics(config, session) {
     fetchOptional(config, "Lizenzstatus", requestJson(config, joinUrl(base, "/license/activelicense"), { headers: authHeaders })),
     fetchOptional(config, "Zertifikatsstatus", requestJson(config, joinUrl(base, "/certificate"), { headers: authHeaders })),
   ]);
+
+  const rawEndpoints = {};
+  captureRaw(rawEndpoints, "/system", system);
+  captureRaw(rawEndpoints, "/controller", controllers);
+  captureRaw(rawEndpoints, "/disk", disks);
+  captureRaw(rawEndpoints, "/fan", fans);
+  captureRaw(rawEndpoints, "/power", power);
+  captureRaw(rawEndpoints, "/eth_port", ethPorts);
+  captureRaw(rawEndpoints, "/FSSNAPSHOT/count", fsSnapshots);
+  captureRaw(rawEndpoints, "/REPLICATIONPAIR", replicationPairs);
+  captureRaw(rawEndpoints, "/remote_device", remoteDevices);
+  captureRaw(rawEndpoints, "/sfp", sfpModules);
+  captureRaw(rawEndpoints, "/email", email);
+  captureRaw(rawEndpoints, "/syslog", syslog);
+  captureRaw(rawEndpoints, "/license/activelicense", license);
+  captureRaw(rawEndpoints, "/certificate", certificates);
 
   const metrics = [];
   const componentFaults = [];
@@ -353,7 +385,7 @@ async function collectHardwareMetrics(config, session) {
     }
   }
 
-  return { metrics, deviceInfo, componentFaults };
+  return { metrics, deviceInfo, componentFaults, rawEndpoints };
 }
 
 async function collect(config) {
@@ -375,9 +407,11 @@ async function collect(config) {
     let deviceInfo = null;
     let alarmSamples;
     let componentFaults;
+    const rawEndpoints = {};
     if (capacityResult.status === "fulfilled") {
       metrics.push(...capacityResult.value.metrics);
       alarmSamples = capacityResult.value.alarmSamples;
+      Object.assign(rawEndpoints, capacityResult.value.rawEndpoints);
     } else {
       config.logger?.warn(`Kapazitäts-/Alarm-Kennzahlen konnten nicht erhoben werden: ${capacityResult.reason.message}`);
     }
@@ -385,6 +419,7 @@ async function collect(config) {
       metrics.push(...hardwareResult.value.metrics);
       deviceInfo = hardwareResult.value.deviceInfo;
       componentFaults = hardwareResult.value.componentFaults;
+      Object.assign(rawEndpoints, hardwareResult.value.rawEndpoints);
     } else {
       config.logger?.warn(`Hardware-Kennzahlen konnten nicht erhoben werden: ${hardwareResult.reason.message}`);
     }
@@ -402,6 +437,10 @@ async function collect(config) {
     // ("aktuell keine Alarme/Fehler"), wird mitgeschickt.
     if (alarmSamples !== undefined) meta.alarmSamples = alarmSamples;
     if (componentFaults !== undefined) meta.componentFaults = componentFaults;
+    // Vollständige Rohantworten aller abgefragten Endpunkte (siehe captureRaw
+    // oben) — für spätere Auswertungen, ohne dafür einen neuen Collector zu
+    // benötigen, falls in einem Adapter mal ein Feld vergessen wurde.
+    if (Object.keys(rawEndpoints).length > 0) meta.rawEndpoints = rawEndpoints;
 
     return { metrics, meta: Object.keys(meta).length > 0 ? meta : undefined };
   } finally {

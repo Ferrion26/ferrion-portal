@@ -48,6 +48,18 @@ async function loginDataBackup(config) {
   return body.token;
 }
 
+// Sammelt die vollständige Rohantwort eines REST-Aufrufs unter einem
+// sprechenden Schlüssel (nicht nur die paar Felder, die aktuell in Metriken
+// umgewandelt werden) — landet unverändert in meta.rawEndpoints und damit im
+// Ingest-Payload (siehe CollectorIngestion.payload). So lassen sich später
+// neue Auswertungen auf bereits gesammelten Ingestions nachrüsten, ohne dass
+// jeder Kundenstandort erst einen neuen Collector bekommen muss, nur weil
+// eine Spalte im ursprünglichen Adapter vergessen wurde.
+function captureRaw(rawEndpoints, key, result) {
+  if (!result) return;
+  rawEndpoints[key] = result.body?.data !== undefined ? result.body.data : result.body;
+}
+
 // Parst die JSON-String-Ratio-Felder, die der DeviceManager für
 // Reduktionsraten liefert, z. B. {"numerator":"1265","denominator":"1000"}.
 function parseRatio(raw) {
@@ -71,7 +83,7 @@ const ALARM_SAMPLE_SIZE = 5;
 // (description/name/suggestion) — separat von den reinen Zählungen, da die
 // Liste (anders als /count) bei einem leeren Ergebnis keinen Fehler werfen
 // soll, der die restliche Kennzahlerhebung mitreißt.
-async function fetchAlarmSamples(config, base, authHeaders) {
+async function fetchAlarmSamples(config, base, authHeaders, rawEndpoints) {
   const samples = [];
   for (const { level, severity } of ALARM_LEVELS) {
     try {
@@ -80,6 +92,7 @@ async function fetchAlarmSamples(config, base, authHeaders) {
         joinUrl(base, `/alarm/currentalarm?filter=level::${level}&sortby=startTime,d&range=[0-${ALARM_SAMPLE_SIZE - 1}]`),
         { headers: authHeaders }
       );
+      if (rawEndpoints) rawEndpoints[`/alarm/currentalarm?level=${level}`] = body.data;
       for (const alarm of body.data ?? []) {
         samples.push({
           severity,
@@ -106,14 +119,17 @@ async function collectStorageMetrics(config, session) {
   const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
   const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
 
+  const rawEndpoints = {};
   const [dataInfo, poolInfo, critical, major, warning, alarmSamples] = await Promise.all([
     requestJson(config, joinUrl(base, `/storagepool_data_info/${poolId}`), { headers: authHeaders }),
     requestJson(config, joinUrl(base, `/storagepool/${poolId}`), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/alarm/currentalarm/count?filter=level::6"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/alarm/currentalarm/count?filter=level::5"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/alarm/currentalarm/count?filter=level::3"), { headers: authHeaders }),
-    fetchAlarmSamples(config, base, authHeaders),
+    fetchAlarmSamples(config, base, authHeaders, rawEndpoints),
   ]);
+  captureRaw(rawEndpoints, "/storagepool_data_info", dataInfo);
+  captureRaw(rawEndpoints, "/storagepool", poolInfo);
 
   const metrics = [];
 
@@ -168,7 +184,7 @@ async function collectStorageMetrics(config, session) {
   metrics.push({ key: "alerts_major", value: Number(major.body.data.COUNT) || 0, unit: "count" });
   metrics.push({ key: "alerts_warning", value: Number(warning.body.data.COUNT) || 0, unit: "count" });
 
-  return { metrics, alarmSamples };
+  return { metrics, alarmSamples, rawEndpoints };
 }
 
 // Geräte-/Komponentenstatus: Systemzustand, Controller (CPU/Speicher),
@@ -208,6 +224,22 @@ async function collectHardwareMetrics(config, session) {
     fetchOptional(config, "Lizenzstatus", requestJson(config, joinUrl(base, "/license/activelicense"), { headers: authHeaders })),
     fetchOptional(config, "Zertifikatsstatus", requestJson(config, joinUrl(base, "/certificate"), { headers: authHeaders })),
   ]);
+
+  const rawEndpoints = {};
+  captureRaw(rawEndpoints, "/system", system);
+  captureRaw(rawEndpoints, "/controller", controllers);
+  captureRaw(rawEndpoints, "/disk", disks);
+  captureRaw(rawEndpoints, "/fan", fans);
+  captureRaw(rawEndpoints, "/power", power);
+  captureRaw(rawEndpoints, "/eth_port", ethPorts);
+  captureRaw(rawEndpoints, "/REPLICATIONPAIR", replicationPairs);
+  captureRaw(rawEndpoints, "/remote_device", remoteDevices);
+  captureRaw(rawEndpoints, "/backup_power", bbus);
+  captureRaw(rawEndpoints, "/sfp", sfpModules);
+  captureRaw(rawEndpoints, "/email", email);
+  captureRaw(rawEndpoints, "/syslog", syslog);
+  captureRaw(rawEndpoints, "/license/activelicense", license);
+  captureRaw(rawEndpoints, "/certificate", certificates);
 
   const metrics = [];
   const componentFaults = [];
@@ -397,24 +429,25 @@ async function collectHardwareMetrics(config, session) {
     const containerMetrics = await fetchOptional(
       config,
       "Container-Status",
-      collectContainerMetrics(config, base, authHeaders, ctrlNodeId)
+      collectContainerMetrics(config, base, authHeaders, ctrlNodeId, rawEndpoints)
     );
     if (containerMetrics) metrics.push(...containerMetrics);
   }
 
-  return { metrics, deviceInfo, componentFaults };
+  return { metrics, deviceInfo, componentFaults, rawEndpoints };
 }
 
 // Eckdaten des Backup-Software-Containers (aktiv/inaktiv, zugeteilte
 // CPU-Kerne/RAM) — kein eigener Softwareversions-Wert in dieser Schnittstelle
 // (die Version des Container-Images ist über die REST-API nicht abrufbar,
 // nur die von der Appliance zugewiesenen Ressourcen).
-async function collectContainerMetrics(config, base, authHeaders, ctrlNodeId) {
+async function collectContainerMetrics(config, base, authHeaders, ctrlNodeId, rawEndpoints) {
   const { body: enableInfo } = await requestJson(config, joinUrl(base, "/DEVICE_GLOBAL_CONF/get_container_enable_info"), {
     method: "PUT",
     headers: authHeaders,
     body: JSON.stringify({ ctrlNodeId }),
   });
+  if (rawEndpoints) rawEndpoints["/DEVICE_GLOBAL_CONF/get_container_enable_info"] = enableInfo.data;
 
   const metrics = [];
   const containerEnabled = Number(enableInfo.data.containerEnable) === 1;
@@ -427,6 +460,7 @@ async function collectContainerMetrics(config, base, authHeaders, ctrlNodeId) {
     headers: authHeaders,
     body: JSON.stringify({ ctrlNodeId }),
   });
+  if (rawEndpoints) rawEndpoints["/DEVICE_GLOBAL_CONF/get_container_resource_info"] = resourceInfo.data;
 
   const cpuCores = Number(resourceInfo.data.containerCpu);
   if (Number.isFinite(cpuCores)) metrics.push({ key: "container_cpu_cores", value: cpuCores, unit: "cores" });
@@ -443,10 +477,11 @@ async function collectContainerMetrics(config, base, authHeaders, ctrlNodeId) {
 // verhindern — daher einzeln try/catch statt Promise.all.
 const RANSOMWARE_RESOURCE_SUBTYPES = ["vim.VirtualMachine", "NasShare", "NasFileSystem"];
 
-async function fetchRansomwareDetectStats(config, dataBackupUrl, authHeaders) {
+async function fetchRansomwareDetectStats(config, dataBackupUrl, authHeaders, rawEndpoints) {
   let infected = 0;
   let abnormal = 0;
   let anyOk = false;
+  const rawBySubtype = {};
 
   for (const resourceSubType of RANSOMWARE_RESOURCE_SUBTYPES) {
     try {
@@ -455,6 +490,7 @@ async function fetchRansomwareDetectStats(config, dataBackupUrl, authHeaders) {
         joinUrl(dataBackupUrl, `/v1/copies/detect-statistics?resource_sub_type=${encodeURIComponent(resourceSubType)}&page_no=0&page_size=200`),
         { headers: authHeaders }
       );
+      rawBySubtype[resourceSubType] = body.items;
       for (const item of body.items ?? []) {
         infected += Number(item.infected_copy_num) || 0;
         abnormal += Number(item.abnormal_copy_num) || 0;
@@ -464,6 +500,7 @@ async function fetchRansomwareDetectStats(config, dataBackupUrl, authHeaders) {
       config.logger?.debug(`Ransomware-Erkennungsstatistik für ${resourceSubType} nicht verfügbar: ${err.message}`);
     }
   }
+  if (rawEndpoints) rawEndpoints["/v1/copies/detect-statistics"] = rawBySubtype;
 
   return anyOk ? { infected, abnormal } : null;
 }
@@ -553,6 +590,7 @@ function topFailuresFrom(summary, nameField) {
 async function collectDataBackupMetrics(config, token) {
   const { dataBackupUrl } = config.oceanprotect;
   const authHeaders = { "X-Auth-Token": token };
+  const rawEndpoints = {};
 
   const [sla, jobStatsByResource, jobStatsBySla, airgap, drills, ransomware, protection, nodeDetail] = await Promise.all([
     fetchOptional(config, "SLA-Compliance", requestJson(config, joinUrl(dataBackupUrl, "/v1/protected-objects/sla-compliance"), { headers: authHeaders })),
@@ -590,12 +628,19 @@ async function collectDataBackupMetrics(config, token) {
       "Recovery-Drill-Statistik",
       requestJson(config, joinUrl(dataBackupUrl, "/v1/anti-ransomware/recovery-drill/plans/statistics"), { headers: authHeaders })
     ),
-    fetchRansomwareDetectStats(config, dataBackupUrl, authHeaders),
+    fetchRansomwareDetectStats(config, dataBackupUrl, authHeaders, rawEndpoints),
     fetchOptional(config, "Ressourcenschutz-Übersicht", requestJson(config, joinUrl(dataBackupUrl, "/v1/resource/protection/summary?sub_type=null"), { headers: authHeaders })),
     // Liefert u. a. die Versionsnummer der Backup-Software selbst (getrennt
     // von der Storage-Firmware, die der DeviceManager unter PRODUCTVERSION meldet).
     fetchOptional(config, "Backup-Node-Details", requestJson(config, joinUrl(dataBackupUrl, "/v1/clusters/backup/local-node/detail"), { headers: authHeaders })),
   ]);
+  captureRaw(rawEndpoints, "/v1/protected-objects/sla-compliance", sla);
+  captureRaw(rawEndpoints, "/v1/report-data/jobs?type=RESOURCE", jobStatsByResource);
+  captureRaw(rawEndpoints, "/v1/report-data/jobs?type=SLA", jobStatsBySla);
+  captureRaw(rawEndpoints, "/v1/anti-ransomware/airgap/job/isolation", airgap);
+  captureRaw(rawEndpoints, "/v1/anti-ransomware/recovery-drill/plans/statistics", drills);
+  captureRaw(rawEndpoints, "/v1/resource/protection/summary", protection);
+  captureRaw(rawEndpoints, "/v1/clusters/backup/local-node/detail", nodeDetail);
 
   const metrics = [];
   let dataBackupVersion;
@@ -685,7 +730,7 @@ async function collectDataBackupMetrics(config, token) {
     dataBackupVersion = String(nodeDetail.body.version);
   }
 
-  return { metrics, dataBackupVersion, resourceBreakdown, topJobFailures };
+  return { metrics, dataBackupVersion, resourceBreakdown, topJobFailures, rawEndpoints };
 }
 
 // Storage und DataBackup sind unabhängige Dienste mit unabhängigem Login.
@@ -714,9 +759,11 @@ async function tryCollectStorage(config) {
     let deviceInfo = null;
     let alarmSamples;
     let componentFaults;
+    const rawEndpoints = {};
     if (capacityResult.status === "fulfilled") {
       metrics.push(...capacityResult.value.metrics);
       alarmSamples = capacityResult.value.alarmSamples;
+      Object.assign(rawEndpoints, capacityResult.value.rawEndpoints);
     } else {
       config.logger?.warn(`Kapazitäts-/Alarm-Kennzahlen konnten nicht erhoben werden: ${capacityResult.reason.message}`);
     }
@@ -724,12 +771,13 @@ async function tryCollectStorage(config) {
       metrics.push(...hardwareResult.value.metrics);
       deviceInfo = hardwareResult.value.deviceInfo;
       componentFaults = hardwareResult.value.componentFaults;
+      Object.assign(rawEndpoints, hardwareResult.value.rawEndpoints);
     } else {
       config.logger?.warn(`Hardware-Kennzahlen konnten nicht erhoben werden: ${hardwareResult.reason.message}`);
     }
     // deviceId aus der Login-Antwort ist bei Huawei die Geräte-ESN
     // (Seriennummer) — dieselbe Kennung, die schon in jeder Request-URL steckt.
-    return { metrics, deviceSerialNumber: session.deviceId, deviceInfo, alarmSamples, componentFaults };
+    return { metrics, deviceSerialNumber: session.deviceId, deviceInfo, alarmSamples, componentFaults, rawEndpoints };
   } finally {
     await logoutStorage(config, session);
   }
@@ -784,6 +832,11 @@ async function collect(config) {
   if (dataBackupResult.topJobFailures && (dataBackupResult.topJobFailures.bySla.length > 0 || dataBackupResult.topJobFailures.byResource.length > 0)) {
     meta.topJobFailures = dataBackupResult.topJobFailures;
   }
+  // Vollständige Rohantworten aller abgefragten Endpunkte (siehe captureRaw
+  // oben) — für spätere Auswertungen, ohne dafür einen neuen Collector zu
+  // benötigen, falls in einem Adapter mal ein Feld vergessen wurde.
+  const rawEndpoints = { ...storageResult.rawEndpoints, ...dataBackupResult.rawEndpoints };
+  if (Object.keys(rawEndpoints).length > 0) meta.rawEndpoints = rawEndpoints;
 
   return { metrics, meta: Object.keys(meta).length > 0 ? meta : undefined };
 }

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { getCollectorBaseline } from "@/lib/settings";
+import { KNOWN_COLLECTOR_VERSIONS } from "@/lib/managed-reports/collectorVersions";
 import CollectorBaselineForm from "./CollectorBaselineForm";
 
 export const metadata = { title: "Managed Reports — Admin" };
@@ -45,7 +46,10 @@ export default async function ManagedReportsPage() {
           Globale Mindestversion für den Collector (siehe collector/version.js). Kunden mit einem älteren Collector-Stand
           werden auf ihrer Subscription-Seite mit einem Hinweis markiert. Leer = keine Baseline, keine Warnungen.
         </p>
-        <CollectorBaselineForm initialMinVersion={collectorBaseline} />
+        <CollectorBaselineForm
+          initialMinVersion={collectorBaseline}
+          knownVersions={KNOWN_COLLECTOR_VERSIONS.map((v) => v.version)}
+        />
       </div>
 
       <div className="bg-[#111827] border border-white/10 overflow-hidden">

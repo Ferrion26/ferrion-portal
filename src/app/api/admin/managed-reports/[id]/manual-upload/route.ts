@@ -45,7 +45,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           subscriptionId: params.id,
           source: "MANUAL_UPLOAD",
           fileName: file.name,
-          payload: parsed.data,
+          payload: parsed.data as unknown as object,
           metrics: {
             create: metrics.map((m) => ({
               subscriptionId: params.id,

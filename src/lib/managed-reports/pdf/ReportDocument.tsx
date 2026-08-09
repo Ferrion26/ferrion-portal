@@ -348,11 +348,11 @@ function AlarmCard({ alarms, locale }: { alarms: AlarmSample[]; locale: "de" | "
   const t = ALARM_CARD_COPY[locale];
   const shown = alarms.slice(0, MAX_ALARM_SAMPLES_SHOWN);
   return (
-    <View style={styles.alarmCard} wrap={false}>
+    <View style={styles.alarmCard}>
       <Text style={styles.listCardTitle}>{t.title}</Text>
       <Text style={styles.listCardSub}>{t.sub}</Text>
       {shown.map((alarm, i) => (
-        <View key={i} style={{ ...styles.alarmRow, opacity: alarm.status === "resolved" ? 0.55 : 1 }}>
+        <View key={i} wrap={false} style={{ ...styles.alarmRow, opacity: alarm.status === "resolved" ? 0.55 : 1 }}>
           <View style={styles.alarmTopRow}>
             <View style={styles.alarmTitleGroup}>
               <Dot status={alarm.status === "resolved" ? "good" : ALARM_SEVERITY_TO_STATUS[alarm.severity]} />
@@ -384,11 +384,11 @@ function ComponentFaultsCard({ faults, locale }: { faults: ComponentFault[]; loc
   const shown = faults.slice(0, MAX_COMPONENT_FAULTS_SHOWN);
   const overflow = faults.length - shown.length;
   return (
-    <View style={styles.tableCardBlock} wrap={false}>
+    <View style={styles.tableCardBlock}>
       <Text style={styles.listCardTitle}>{t.detailsTitle}</Text>
       <Text style={styles.listCardSub}>{t.detailsSub}</Text>
       {shown.map((fault, i) => (
-        <View key={i} style={{ ...styles.tableRow, alignItems: "flex-start", opacity: fault.status === "resolved" ? 0.55 : 1 }}>
+        <View key={i} wrap={false} style={{ ...styles.tableRow, alignItems: "flex-start", opacity: fault.status === "resolved" ? 0.55 : 1 }}>
           <Text style={{ width: 90, color: MUTED, fontSize: 7, paddingTop: 1 }}>{fault.category}</Text>
           <Text style={{ width: 110, fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, paddingRight: 6 }}>{fault.id}</Text>
           <Text style={{ flex: 1, fontSize: 8, color: "#374151" }}>{fault.description}</Text>

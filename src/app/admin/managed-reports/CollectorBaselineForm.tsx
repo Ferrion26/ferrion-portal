@@ -3,24 +3,27 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function CollectorBaselineForm({ initialMinVersion }: { initialMinVersion: string | null }) {
+const NO_BASELINE = "";
+
+export default function CollectorBaselineForm({
+  initialMinVersion,
+  knownVersions,
+}: {
+  initialMinVersion: string | null;
+  knownVersions: string[];
+}) {
   const router = useRouter();
-  const [value, setValue] = useState(initialMinVersion ?? "");
+  const [value, setValue] = useState(initialMinVersion ?? NO_BASELINE);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSave() {
-    const trimmed = value.trim();
-    if (trimmed !== "" && !/^\d+\.\d+\.\d+$/.test(trimmed)) {
-      setError("Format: MAJOR.MINOR.PATCH, z. B. 1.2.0");
-      return;
-    }
     setError(null);
     setSaving(true);
     const res = await fetch("/api/admin/managed-reports/settings/collector-baseline", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ minVersion: trimmed === "" ? null : trimmed }),
+      body: JSON.stringify({ minVersion: value === NO_BASELINE ? null : value }),
     });
     setSaving(false);
     if (!res.ok) {
@@ -34,13 +37,18 @@ export default function CollectorBaselineForm({ initialMinVersion }: { initialMi
     <div className="flex items-end gap-3">
       <div>
         <label className="block text-xs font-medium text-gray-400 mb-1">Mindest-Collector-Version</label>
-        <input
-          type="text"
-          placeholder="keine Baseline"
+        <select
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          className="bg-[#0d1117] border border-white/10 text-white text-sm px-3 py-2 w-40"
-        />
+          className="bg-[#0d1117] border border-white/10 text-white text-sm px-3 py-2 w-56"
+        >
+          <option value={NO_BASELINE}>keine Baseline</option>
+          {knownVersions.map((v) => (
+            <option key={v} value={v}>
+              {v}
+            </option>
+          ))}
+        </select>
       </div>
       <button
         onClick={handleSave}

@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       data: {
         subscriptionId: apiKey.subscriptionId,
         apiKeyId: apiKey.id,
-        payload: parsed.data,
+        payload: parsed.data as unknown as object,
         metrics: {
           create: metrics.map((m) => ({
             subscriptionId: apiKey.subscriptionId,

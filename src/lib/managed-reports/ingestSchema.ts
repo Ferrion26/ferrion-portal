@@ -89,6 +89,19 @@ export const ingestPayloadSchema = z.object({
         )
         .max(50)
         .optional(),
+      // Vollständige Rohantworten der abgefragten REST-Endpunkte, unter dem
+      // jeweiligen Pfad als Schlüssel (siehe captureRaw in den Collector-
+      // Adaptern) — bewusst lose typisiert (unbekannte Gerätefelder), damit
+      // spätere Auswertungen auf bereits gesammelten Ingestions aufsetzen
+      // können, ohne dass ein neuer Collector nötig wird, nur weil ein
+      // Adapter ursprünglich ein Feld nicht ausgewertet hat. Größenlimit
+      // schützt vor einem ausufernden Payload bei sehr großen Anlagen.
+      rawEndpoints: z
+        .record(z.string(), z.unknown())
+        .optional()
+        .refine((v) => !v || JSON.stringify(v).length <= 2_000_000, {
+          message: "rawEndpoints darf 2 MB (JSON) nicht überschreiten.",
+        }),
     })
     .optional(),
 });
