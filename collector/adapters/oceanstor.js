@@ -178,8 +178,10 @@ async function collectHardwareMetrics(config, session) {
   const powerList = Array.isArray(power.body.data) ? power.body.data : [];
   metrics.push({ key: "power_modules_faulty", value: powerList.filter((p) => Number(p.HEALTHSTATUS) !== 1).length, unit: "count" });
 
+  // Wartungsports (z. B. "CTE0.A.MAINTENANCE") sind regulär nicht
+  // angeschlossen und würden sonst dauerhaft als "down" mitgezählt.
   const ethList = Array.isArray(ethPorts.body.data) ? ethPorts.body.data : [];
-  const activePorts = ethList.filter((p) => Number(p.HEALTHSTATUS) !== 0);
+  const activePorts = ethList.filter((p) => Number(p.HEALTHSTATUS) !== 0 && !/maintenance/i.test(String(p.ID ?? "")));
   metrics.push({ key: "eth_ports_down", value: activePorts.filter((p) => Number(p.RUNNINGSTATUS) === 11).length, unit: "count" });
 
   if (fsSnapshots) {

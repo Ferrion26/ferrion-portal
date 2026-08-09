@@ -14,9 +14,19 @@ const PERIOD_TYPES = [
   { value: "YEAR", label: "Jahr" },
 ] as const;
 
-export default function NewSubscriptionForm({ customers, products }: { customers: Customer[]; products: Product[] }) {
+export default function NewSubscriptionForm({
+  customers,
+  products,
+  fixedCustomerId,
+}: {
+  customers?: Customer[];
+  products: Product[];
+  // Von der Kunden-Detailseite gesetzt — dort ist der Kunde bereits durch
+  // die Navigation festgelegt, eine Dropdown-Auswahl wäre redundant.
+  fixedCustomerId?: string;
+}) {
   const router = useRouter();
-  const [customerId, setCustomerId] = useState("");
+  const [customerId, setCustomerId] = useState(fixedCustomerId ?? "");
   const [productSlug, setProductSlug] = useState(products[0]?.slug ?? "");
   const [packageId, setPackageId] = useState<(typeof PACKAGES)[number]>("OPERATE");
   const [defaultPeriodType, setDefaultPeriodType] = useState<(typeof PERIOD_TYPES)[number]["value"]>("QUARTER");
@@ -42,28 +52,30 @@ export default function NewSubscriptionForm({ customers, products }: { customers
       return;
     }
 
-    setCustomerId("");
+    if (!fixedCustomerId) setCustomerId("");
     router.refresh();
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-4">
-      <div>
-        <label className="block text-xs font-medium text-gray-400 mb-1">Kunde</label>
-        <select
-          required
-          className="bg-[#0d1117] border border-white/10 text-white text-sm px-3 py-2 min-w-[220px]"
-          value={customerId}
-          onChange={(e) => setCustomerId(e.target.value)}
-        >
-          <option value="">Kunde wählen…</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.company ?? c.name ?? c.email}
-            </option>
-          ))}
-        </select>
-      </div>
+      {!fixedCustomerId && (
+        <div>
+          <label className="block text-xs font-medium text-gray-400 mb-1">Kunde</label>
+          <select
+            required
+            className="bg-[#0d1117] border border-white/10 text-white text-sm px-3 py-2 min-w-[220px]"
+            value={customerId}
+            onChange={(e) => setCustomerId(e.target.value)}
+          >
+            <option value="">Kunde wählen…</option>
+            {customers?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.company ?? c.name ?? c.email}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div>
         <label className="block text-xs font-medium text-gray-400 mb-1">Produkt</label>

@@ -24,6 +24,9 @@ export function formatValue(entry: Pick<QuarterSummaryEntry, "format" | "value" 
 // zeigt bewusst nur das Datum (wird an vielen Stellen für reine
 // Kalenderdaten verwendet); der Berichts-Erstellzeitpunkt soll dagegen auf
 // die Minute genau nachvollziehbar sein.
+// Ohne explizite timeZone verwendet Intl die Zeitzone der Laufzeitumgebung
+// (auf Vercel: UTC) statt der des Kunden — das war die Ursache für die um
+// 1–2 Stunden (je nach Sommer-/Winterzeit) verschobenen Uhrzeiten im Bericht.
 export function formatDateTime(date: Date | string, locale: "de" | "en" = "de") {
   return new Intl.DateTimeFormat(locale === "de" ? "de-AT" : "en-US", {
     day: "2-digit",
@@ -31,5 +34,6 @@ export function formatDateTime(date: Date | string, locale: "de" | "en" = "de") 
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Vienna",
   }).format(new Date(date));
 }

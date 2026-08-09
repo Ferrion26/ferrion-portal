@@ -224,9 +224,11 @@ async function collectHardwareMetrics(config, session) {
 
   // Nur Ports zählen, die überhaupt in Betrieb sind (HEALTHSTATUS != 0
   // Unknown — unbestückte/inaktive Ports haben sonst RUNNINGSTATUS 0, was
-  // fälschlich als "down" durchgehen würde).
+  // fälschlich als "down" durchgehen würde) und die kein reiner
+  // Wartungsport sind (z. B. "CTE0.A.MAINTENANCE") — die sind laut Kunde
+  // regulär nicht angeschlossen und würden sonst dauerhaft als "down" zählen.
   const ethList = Array.isArray(ethPorts.body.data) ? ethPorts.body.data : [];
-  const activePorts = ethList.filter((p) => Number(p.HEALTHSTATUS) !== 0);
+  const activePorts = ethList.filter((p) => Number(p.HEALTHSTATUS) !== 0 && !/maintenance/i.test(String(p.ID ?? "")));
   metrics.push({
     key: "eth_ports_down",
     value: activePorts.filter((p) => Number(p.RUNNINGSTATUS) === 11).length,
@@ -347,19 +349,57 @@ async function fetchOptional(config, label, promise) {
   }
 }
 
+// Laut Doku unterstützt /v1/report-data/jobs nur diese drei festen,
+// rollierenden Fenster (kein freier Start/Ende) — LAST_WEEK statt des
+// vorher verwendeten LAST_THREE_MONTH, damit ein Kennzahlwert nicht über
+// drei Monate hinweg gemittelt wird, wenn der Collector viel öfter läuft
+// (jeder Lauf liefert damit einen aktuelleren Schnappschuss; das Portal
+// mittelt ohnehin selbst über den gewählten Berichtszeitraum).
+const JOB_STATS_TIME_RANGE = "LAST_WEEK";
+// Wie viele der am häufigsten fehlschlagenden SLA-Richtlinien/Ressourcen
+// im Bericht gezeigt werden (analog zum Huawei-Dashboard "Top Job Failures").
+const TOP_FAILURES_LIMIT = 5;
+
+// Extrahiert aus einem ResourceTaskSummary/SlaTaskSummary-Array (siehe
+// /v1/report-data/jobs) die am häufigsten fehlgeschlagenen Einträge, absteigend
+// sortiert. Mehrere Zeilen können sich denselben Namen mit unterschiedlichem
+// Status teilen — pro Name werden nur die "fail"-artigen Zeilen aufsummiert.
+function topFailuresFrom(summary, nameField) {
+  const byName = new Map();
+  for (const entry of summary ?? []) {
+    if (!/fail/i.test(entry.status ?? "")) continue;
+    const name = entry[nameField];
+    if (!name) continue;
+    byName.set(name, (byName.get(name) ?? 0) + (Number(entry.count) || 0));
+  }
+  return [...byName.entries()]
+    .map(([name, failedCount]) => ({ name, failedCount }))
+    .sort((a, b) => b.failedCount - a.failedCount)
+    .slice(0, TOP_FAILURES_LIMIT);
+}
+
 async function collectDataBackupMetrics(config, token) {
   const { dataBackupUrl } = config.oceanprotect;
   const authHeaders = { "X-Auth-Token": token };
 
-  const [sla, jobStats, airgap, drills, ransomware, protection] = await Promise.all([
+  const [sla, jobStatsByResource, jobStatsBySla, airgap, drills, ransomware, protection, nodeDetail] = await Promise.all([
     fetchOptional(config, "SLA-Compliance", requestJson(config, joinUrl(dataBackupUrl, "/v1/protected-objects/sla-compliance"), { headers: authHeaders })),
     fetchOptional(
       config,
-      "Backup-Job-Statistik",
+      "Backup-Job-Statistik (Ressourcen)",
       requestJson(config, joinUrl(dataBackupUrl, "/v1/report-data/jobs"), {
         method: "POST",
         headers: authHeaders,
-        body: JSON.stringify({ timeRange: "LAST_THREE_MONTH", dataQueryTypeEnum: "RESOURCE" }),
+        body: JSON.stringify({ timeRange: JOB_STATS_TIME_RANGE, dataQueryTypeEnum: "RESOURCE" }),
+      })
+    ),
+    fetchOptional(
+      config,
+      "Backup-Job-Statistik (SLA)",
+      requestJson(config, joinUrl(dataBackupUrl, "/v1/report-data/jobs"), {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ timeRange: JOB_STATS_TIME_RANGE, dataQueryTypeEnum: "SLA" }),
       })
     ),
     fetchOptional(
@@ -380,13 +420,21 @@ async function collectDataBackupMetrics(config, token) {
     ),
     fetchRansomwareDetectStats(config, dataBackupUrl, authHeaders),
     fetchOptional(config, "Ressourcenschutz-Übersicht", requestJson(config, joinUrl(dataBackupUrl, "/v1/resource/protection/summary?sub_type=null"), { headers: authHeaders })),
+    // Liefert u. a. die Versionsnummer der Backup-Software selbst (getrennt
+    // von der Storage-Firmware, die der DeviceManager unter PRODUCTVERSION meldet).
+    fetchOptional(config, "Backup-Node-Details", requestJson(config, joinUrl(dataBackupUrl, "/v1/clusters/backup/local-node/detail"), { headers: authHeaders })),
   ]);
 
   const metrics = [];
+  let dataBackupVersion;
+  let resourceBreakdown;
+  let topJobFailures;
 
   if (sla) {
     const inCompliance = Number(sla.body.in_compliance) || 0;
     const outOfCompliance = Number(sla.body.out_of_compliance) || 0;
+    metrics.push({ key: "sla_compliant_count", value: inCompliance, unit: "count" });
+    metrics.push({ key: "sla_noncompliant_count", value: outOfCompliance, unit: "count" });
     if (inCompliance + outOfCompliance > 0) {
       metrics.push({
         key: "rpo_compliance_rate",
@@ -396,11 +444,11 @@ async function collectDataBackupMetrics(config, token) {
     }
   }
 
-  if (jobStats) {
+  if (jobStatsByResource) {
     // Die Doku listet für ResourceTaskSummary.status keine feste Werteliste
     // — hier wird case-insensitive auf "success" gematcht. Bei Abweichungen
     // im realen Antwortformat ggf. anpassen (Log-Ausgabe der Rohdaten prüfen).
-    const summary = jobStats.body.resourceTaskSummary ?? [];
+    const summary = jobStatsByResource.body.resourceTaskSummary ?? [];
     let successCount = 0;
     let totalCount = 0;
     for (const entry of summary) {
@@ -412,6 +460,12 @@ async function collectDataBackupMetrics(config, token) {
       metrics.push({ key: "backup_success_rate", value: (successCount / totalCount) * 100, unit: "%" });
       metrics.push({ key: "backup_failed_jobs_count", value: totalCount - successCount, unit: "count" });
     }
+    topJobFailures = { bySla: [], byResource: topFailuresFrom(summary, "resourceName") };
+  }
+
+  if (jobStatsBySla) {
+    const summary = jobStatsBySla.body.slaTaskSummary ?? [];
+    topJobFailures = { bySla: topFailuresFrom(summary, "slaName"), byResource: topJobFailures?.byResource ?? [] };
   }
 
   if (airgap) {
@@ -436,17 +490,30 @@ async function collectDataBackupMetrics(config, token) {
     const summary = protection.body.summary ?? [];
     let protectedCount = 0;
     let unprotectedCount = 0;
+    const byType = new Map();
     for (const entry of summary) {
-      protectedCount += Number(entry.protected_count) || 0;
-      unprotectedCount += Number(entry.unprotected_count) || 0;
+      const p = Number(entry.protected_count) || 0;
+      const u = Number(entry.unprotected_count) || 0;
+      protectedCount += p;
+      unprotectedCount += u;
+      const type = entry.resource_type || entry.resource_sub_type || "Sonstige";
+      const prev = byType.get(type) ?? { protectedCount: 0, unprotectedCount: 0 };
+      byType.set(type, { protectedCount: prev.protectedCount + p, unprotectedCount: prev.unprotectedCount + u });
     }
     if (protectedCount + unprotectedCount > 0) {
       metrics.push({ key: "resource_protection_rate", value: (protectedCount / (protectedCount + unprotectedCount)) * 100, unit: "%" });
       metrics.push({ key: "resources_unprotected_count", value: unprotectedCount, unit: "count" });
     }
+    if (byType.size > 0) {
+      resourceBreakdown = [...byType.entries()].map(([resourceType, counts]) => ({ resourceType, ...counts }));
+    }
   }
 
-  return metrics;
+  if (nodeDetail?.body?.version) {
+    dataBackupVersion = String(nodeDetail.body.version);
+  }
+
+  return { metrics, dataBackupVersion, resourceBreakdown, topJobFailures };
 }
 
 // Storage und DataBackup sind unabhängige Dienste mit unabhängigem Login.
@@ -496,13 +563,13 @@ async function tryCollectDataBackup(config) {
     token = await loginDataBackup(config);
   } catch (err) {
     config.logger?.warn(`DataBackup-Login fehlgeschlagen — DataBackup-Kennzahlen werden übersprungen: ${err.message}`);
-    return [];
+    return { metrics: [] };
   }
   try {
     return await collectDataBackupMetrics(config, token);
   } catch (err) {
     config.logger?.warn(`DataBackup-Kennzahlen konnten nicht erhoben werden: ${err.message}`);
-    return [];
+    return { metrics: [] };
   }
 }
 
@@ -514,11 +581,11 @@ async function collect(config) {
     throw new Error(`collector/adapters/oceanprotect.js: config.oceanprotect fehlt: ${missing.join(", ")}`);
   }
 
-  const [storageResult, dataBackupMetrics] = await Promise.all([
+  const [storageResult, dataBackupResult] = await Promise.all([
     tryCollectStorage(config),
     tryCollectDataBackup(config),
   ]);
-  const metrics = [...storageResult.metrics, ...dataBackupMetrics];
+  const metrics = [...storageResult.metrics, ...dataBackupResult.metrics];
 
   if (metrics.length === 0) {
     throw new Error("Weder Storage- noch DataBackup-Kennzahlen konnten erhoben werden — siehe Warnungen oben.");
@@ -529,6 +596,11 @@ async function collect(config) {
   if (storageResult.deviceInfo?.model) meta.deviceModel = storageResult.deviceInfo.model;
   if (storageResult.deviceInfo?.softwareVersion) meta.deviceSoftwareVersion = storageResult.deviceInfo.softwareVersion;
   if (storageResult.alarmSamples?.length > 0) meta.alarmSamples = storageResult.alarmSamples;
+  if (dataBackupResult.dataBackupVersion) meta.dataBackupVersion = dataBackupResult.dataBackupVersion;
+  if (dataBackupResult.resourceBreakdown?.length > 0) meta.resourceBreakdown = dataBackupResult.resourceBreakdown;
+  if (dataBackupResult.topJobFailures && (dataBackupResult.topJobFailures.bySla.length > 0 || dataBackupResult.topJobFailures.byResource.length > 0)) {
+    meta.topJobFailures = dataBackupResult.topJobFailures;
+  }
 
   return { metrics, meta: Object.keys(meta).length > 0 ? meta : undefined };
 }

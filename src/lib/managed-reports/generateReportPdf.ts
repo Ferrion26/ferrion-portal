@@ -31,8 +31,11 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
     deviceSerialNumber: subscription.deviceSerialNumber ?? undefined,
     deviceModel: subscription.deviceModel ?? undefined,
     deviceSoftwareVersion: subscription.deviceSoftwareVersion ?? undefined,
+    dataBackupVersion: subscription.dataBackupVersion ?? undefined,
     entries,
     recentAlarms: (subscription.recentAlarms as unknown as ProductReportData["recentAlarms"]) ?? undefined,
+    resourceBreakdown: (subscription.resourceBreakdown as unknown as ProductReportData["resourceBreakdown"]) ?? undefined,
+    topJobFailures: (subscription.topJobFailures as unknown as ProductReportData["topJobFailures"]) ?? undefined,
     replicationNote: subscription.replicationNote ?? undefined,
   };
 }

@@ -203,6 +203,19 @@ model ManagedServiceSubscription {
   deviceSerialNumber     String?
   deviceModel            String?
   deviceSoftwareVersion  String?
+  // Bei OceanProtect eine zweite, unabhängige Versionsnummer: die
+  // Backup-Software (DataBackup) läuft als eigener Dienst mit eigenem
+  // Versionsstand, getrennt von der Storage-Firmware in deviceSoftwareVersion.
+  dataBackupVersion      String?
+
+  // Aufschlüsselung der bei DataBackup bekannten Ressourcen nach Typ
+  // (Dateisystem, Datenbank, VM, …) inkl. geschützt/ungeschützt — vom
+  // letzten Ingest überschrieben, keine Historie.
+  resourceBreakdown Json?
+
+  // Die am häufigsten fehlgeschlagenen Jobs, getrennt nach SLA-Richtlinie
+  // und nach Ressource — vom letzten Ingest überschrieben, keine Historie.
+  topJobFailures Json?
 
   // Stichprobe der jüngsten Alarme/Ereignisse mit Klartext (Name,
   // Beschreibung, Empfehlung), vom Collector je Schweregrad mitgeliefert —

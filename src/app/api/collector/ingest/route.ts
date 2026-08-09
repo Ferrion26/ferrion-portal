@@ -32,7 +32,10 @@ export async function POST(req: NextRequest) {
   if (meta?.deviceSerialNumber) deviceUpdate.deviceSerialNumber = meta.deviceSerialNumber;
   if (meta?.deviceModel) deviceUpdate.deviceModel = meta.deviceModel;
   if (meta?.deviceSoftwareVersion) deviceUpdate.deviceSoftwareVersion = meta.deviceSoftwareVersion;
+  if (meta?.dataBackupVersion) deviceUpdate.dataBackupVersion = meta.dataBackupVersion;
   if (meta?.alarmSamples) deviceUpdate.recentAlarms = meta.alarmSamples;
+  if (meta?.resourceBreakdown) deviceUpdate.resourceBreakdown = meta.resourceBreakdown;
+  if (meta?.topJobFailures) deviceUpdate.topJobFailures = meta.topJobFailures;
 
   const [, ingestion] = await prisma.$transaction([
     prisma.collectorApiKey.update({

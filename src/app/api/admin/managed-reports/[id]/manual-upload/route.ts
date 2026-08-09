@@ -60,7 +60,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       if (meta?.deviceSerialNumber) deviceUpdate.deviceSerialNumber = meta.deviceSerialNumber;
       if (meta?.deviceModel) deviceUpdate.deviceModel = meta.deviceModel;
       if (meta?.deviceSoftwareVersion) deviceUpdate.deviceSoftwareVersion = meta.deviceSoftwareVersion;
+      if (meta?.dataBackupVersion) deviceUpdate.dataBackupVersion = meta.dataBackupVersion;
       if (meta?.alarmSamples) deviceUpdate.recentAlarms = meta.alarmSamples;
+      if (meta?.resourceBreakdown) deviceUpdate.resourceBreakdown = meta.resourceBreakdown;
+      if (meta?.topJobFailures) deviceUpdate.topJobFailures = meta.topJobFailures;
       if (Object.keys(deviceUpdate).length > 0) {
         await prisma.managedServiceSubscription.update({ where: { id: params.id }, data: deviceUpdate });
       }

@@ -33,6 +33,21 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     },
   },
   {
+    key: "sla_compliant_count",
+    label: { de: "SLA-konforme Ressourcen", en: "SLA-Compliant Resources" },
+    format: "count",
+    aggregation: "last",
+    section: "availability",
+  },
+  {
+    key: "sla_noncompliant_count",
+    label: { de: "SLA-abweichende Ressourcen", en: "SLA-Non-Compliant Resources" },
+    format: "count",
+    aggregation: "last",
+    section: "availability",
+    trendGood: "down",
+  },
+  {
     key: "resource_protection_rate",
     label: { de: "Ressourcen-Schutzquote", en: "Resource Protection Rate" },
     format: "percent",

@@ -26,6 +26,9 @@ export const ingestPayloadSchema = z.object({
       deviceSerialNumber: z.string().min(1).max(100).optional(),
       deviceModel: z.string().min(1).max(100).optional(),
       deviceSoftwareVersion: z.string().min(1).max(100).optional(),
+      // Bei OceanProtect eine zweite, unabhängige Versionsnummer (Backup-
+      // Software, getrennt von der Storage-Firmware in deviceSoftwareVersion).
+      dataBackupVersion: z.string().min(1).max(100).optional(),
       // Stichprobe der jüngsten Alarme mit Klartext, je Schweregrad —
       // ersetzt jeweils die vorherige Stichprobe (keine Historie).
       alarmSamples: z
@@ -39,6 +42,26 @@ export const ingestPayloadSchema = z.object({
           })
         )
         .max(30)
+        .optional(),
+      // Aufschlüsselung der bekannten Ressourcen nach Typ (Dateisystem,
+      // Datenbank, VM, …) inkl. geschützt/ungeschützt.
+      resourceBreakdown: z
+        .array(
+          z.object({
+            resourceType: z.string().min(1).max(100),
+            protectedCount: z.number().min(0),
+            unprotectedCount: z.number().min(0),
+          })
+        )
+        .max(50)
+        .optional(),
+      // Die am häufigsten fehlgeschlagenen Jobs, getrennt nach SLA-Richtlinie
+      // und nach Ressource.
+      topJobFailures: z
+        .object({
+          bySla: z.array(z.object({ name: z.string().min(1).max(200), failedCount: z.number().min(0) })).max(10),
+          byResource: z.array(z.object({ name: z.string().min(1).max(200), failedCount: z.number().min(0) })).max(10),
+        })
         .optional(),
     })
     .optional(),

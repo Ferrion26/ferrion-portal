@@ -139,6 +139,14 @@ const styles = StyleSheet.create({
   recLineRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginBottom: 6 },
   recDot: { width: 6, height: 6, borderRadius: 3, marginTop: 3 },
 
+  tableCardBlock: { backgroundColor: WHITE, borderRadius: 8, padding: 13 },
+  tableCard: { backgroundColor: WHITE, borderRadius: 8, padding: 13, flex: 1 },
+  tableHeaderRow: { flexDirection: "row", paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
+  tableHeaderCell: { fontSize: 6.5, color: GRAY, letterSpacing: 0.3 },
+  tableRow: { flexDirection: "row", alignItems: "center", paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: ROW_DIVIDER },
+  tableCellName: { fontSize: 8, color: INK, flex: 1, paddingRight: 6 },
+  tableCellNum: { fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, width: 56, textAlign: "right" },
+
   barCard: { backgroundColor: WHITE, borderRadius: 8, padding: 13, flex: 1 },
   barCardTitle: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 8 },
   barValue: { fontSize: 18, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 9 },
@@ -338,6 +346,71 @@ function AlarmCard({ alarms, locale }: { alarms: AlarmSample[]; locale: "de" | "
   );
 }
 
+const RESOURCE_BREAKDOWN_COPY = {
+  de: { title: "Ressourcen nach Typ", type: "Typ", protectedCol: "Geschützt", unprotectedCol: "Ungeschützt" },
+  en: { title: "Resources by Type", type: "Type", protectedCol: "Protected", unprotectedCol: "Unprotected" },
+};
+
+function ResourceBreakdownCard({ breakdown, locale }: { breakdown: ResourceBreakdownEntry[]; locale: "de" | "en" }) {
+  const t = RESOURCE_BREAKDOWN_COPY[locale];
+  const sorted = [...breakdown].sort((a, b) => b.protectedCount + b.unprotectedCount - (a.protectedCount + a.unprotectedCount));
+  return (
+    <View style={styles.tableCardBlock} wrap={false}>
+      <Text style={styles.listCardTitle}>{t.title}</Text>
+      <View style={{ ...styles.tableHeaderRow, marginTop: 8 }}>
+        <Text style={{ ...styles.tableHeaderCell, flex: 1 }}>{t.type}</Text>
+        <Text style={{ ...styles.tableHeaderCell, width: 56, textAlign: "right" }}>{t.protectedCol}</Text>
+        <Text style={{ ...styles.tableHeaderCell, width: 56, textAlign: "right" }}>{t.unprotectedCol}</Text>
+      </View>
+      {sorted.map((row) => (
+        <View key={row.resourceType} style={styles.tableRow}>
+          <Text style={styles.tableCellName}>{row.resourceType}</Text>
+          <Text style={styles.tableCellNum}>{row.protectedCount.toLocaleString(locale === "de" ? "de-AT" : "en-US")}</Text>
+          <Text style={{ ...styles.tableCellNum, color: row.unprotectedCount > 0 ? STATUS_COLORS.warning.dot : INK }}>
+            {row.unprotectedCount.toLocaleString(locale === "de" ? "de-AT" : "en-US")}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const TOP_FAILURES_COPY = {
+  de: { bySlaTitle: "Meiste Fehlschläge: SLA-Richtlinie", byResourceTitle: "Meiste Fehlschläge: Ressource", count: "Fehlschläge" },
+  en: { bySlaTitle: "Top Failures: SLA Policy", byResourceTitle: "Top Failures: Resource", count: "Failures" },
+};
+
+function TopFailuresList({ title, rows, locale }: { title: string; rows: { name: string; failedCount: number }[]; locale: "de" | "en" }) {
+  if (rows.length === 0) return null;
+  const t = TOP_FAILURES_COPY[locale];
+  return (
+    <View style={styles.tableCard} wrap={false}>
+      <Text style={styles.listCardTitle}>{title}</Text>
+      <View style={{ ...styles.tableHeaderRow, marginTop: 8 }}>
+        <Text style={{ ...styles.tableHeaderCell, flex: 1 }} />
+        <Text style={{ ...styles.tableHeaderCell, width: 56, textAlign: "right" }}>{t.count}</Text>
+      </View>
+      {rows.map((row) => (
+        <View key={row.name} style={styles.tableRow}>
+          <Text style={styles.tableCellName}>{row.name}</Text>
+          <Text style={{ ...styles.tableCellNum, color: STATUS_COLORS.warning.dot }}>{row.failedCount}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function TopFailuresCards({ failures, locale }: { failures: TopJobFailures; locale: "de" | "en" }) {
+  const t = TOP_FAILURES_COPY[locale];
+  if (failures.bySla.length === 0 && failures.byResource.length === 0) return null;
+  return (
+    <View style={styles.twoColRow}>
+      <TopFailuresList title={t.bySlaTitle} rows={failures.bySla} locale={locale} />
+      <TopFailuresList title={t.byResourceTitle} rows={failures.byResource} locale={locale} />
+    </View>
+  );
+}
+
 function CapacityStatCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "de" | "en" }) {
   const tinted = entry.format === "percent" ? { bg: "#FEF3C7", text: "#92400E" } : { bg: "#DBEAFE", text: "#1E40AF" };
   return (
@@ -395,6 +468,17 @@ export interface AlarmSample {
   time?: string;
 }
 
+export interface ResourceBreakdownEntry {
+  resourceType: string;
+  protectedCount: number;
+  unprotectedCount: number;
+}
+
+export interface TopJobFailures {
+  bySla: { name: string; failedCount: number }[];
+  byResource: { name: string; failedCount: number }[];
+}
+
 export interface ProductReportData {
   productName: string;
   vendor: string;
@@ -402,8 +486,13 @@ export interface ProductReportData {
   deviceSerialNumber?: string;
   deviceModel?: string;
   deviceSoftwareVersion?: string;
+  // Bei OceanProtect eine zweite, unabhängige Versionsnummer (Backup-
+  // Software, getrennt von der Storage-Firmware in deviceSoftwareVersion).
+  dataBackupVersion?: string;
   entries: QuarterSummaryEntry[];
   recentAlarms?: AlarmSample[];
+  resourceBreakdown?: ResourceBreakdownEntry[];
+  topJobFailures?: TopJobFailures;
   replicationNote?: string;
 }
 
@@ -440,6 +529,7 @@ function ProductBlock({ product, locale, isCombined }: { product: ProductReportD
   const deviceMetaParts = [
     product.deviceModel && `${t.model}: ${product.deviceModel}`,
     product.deviceSoftwareVersion && `${t.version}: ${product.deviceSoftwareVersion}`,
+    product.dataBackupVersion && `DataBackup: ${product.dataBackupVersion}`,
     product.deviceSerialNumber && `${t.sn}: ${product.deviceSerialNumber}`,
   ].filter(Boolean);
 
@@ -511,6 +601,18 @@ function ProductBlock({ product, locale, isCombined }: { product: ProductReportD
           </View>
         ))}
       </View>
+
+      {(product.resourceBreakdown?.length ?? 0) > 0 && (
+        <View style={{ marginBottom: 14 }}>
+          <ResourceBreakdownCard breakdown={product.resourceBreakdown!} locale={locale} />
+        </View>
+      )}
+
+      {product.topJobFailures && (
+        <View style={{ marginBottom: 14 }}>
+          <TopFailuresCards failures={product.topJobFailures} locale={locale} />
+        </View>
+      )}
 
       {(product.recentAlarms?.length ?? 0) > 0 && (
         <View style={{ marginBottom: 14 }}>
@@ -586,9 +688,16 @@ export function ReportDocument({ locale, customerCompany, periodLabel, products,
               <View style={styles.metaCard}>
                 <Text style={styles.metaLabel}>{t.product.toUpperCase()}</Text>
                 <Text style={styles.metaValue}>{singleProduct.vendor} {singleProduct.productName}</Text>
-                {(singleProduct.deviceModel || singleProduct.deviceSoftwareVersion || singleProduct.deviceSerialNumber) && (
+                {(singleProduct.deviceModel || singleProduct.deviceSoftwareVersion || singleProduct.dataBackupVersion || singleProduct.deviceSerialNumber) && (
                   <Text style={styles.metaSubValue}>
-                    {[singleProduct.deviceModel, singleProduct.deviceSoftwareVersion, singleProduct.deviceSerialNumber].filter(Boolean).join(" · ")}
+                    {[
+                      singleProduct.deviceModel,
+                      singleProduct.deviceSoftwareVersion,
+                      singleProduct.dataBackupVersion && `DataBackup ${singleProduct.dataBackupVersion}`,
+                      singleProduct.deviceSerialNumber,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </Text>
                 )}
               </View>

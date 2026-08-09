@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
@@ -42,7 +43,10 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-xs text-gray-500 tracking-widest uppercase mb-2">
+        <Link href={`/admin/managed-reports/customers/${subscription.customerId}`} className="text-xs text-gray-500 hover:text-[#c9a84c]">
+          ← {subscription.customer.company ?? subscription.customer.name ?? subscription.customer.email}
+        </Link>
+        <p className="text-xs text-gray-500 tracking-widest uppercase mb-2 mt-2">
           {product?.vendor ?? ""} {product?.name ?? subscription.productSlug} · {subscription.packageId}
         </p>
         <h1 className="text-2xl font-bold text-white mb-1">
