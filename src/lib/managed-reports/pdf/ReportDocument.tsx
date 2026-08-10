@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { Document, Page, View, Text, Image, StyleSheet, Svg, Path as SvgPath, Circle, Font } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet, Svg, Path as SvgPath, Circle, Font, Link } from "@react-pdf/renderer";
 import { QuarterSummaryEntry } from "../aggregate";
 import { ReportSection } from "../metrics";
 import { formatValue, formatDateTime } from "../reportFormat";
@@ -221,6 +221,43 @@ const styles = StyleSheet.create({
 
   footer: { position: "absolute", bottom: 18, left: SIDEBAR_WIDTH + PAGE_PADDING, right: PAGE_PADDING, borderTopWidth: 1, borderTopColor: GOLD, paddingTop: 7, textAlign: "center" },
   footerText: { fontSize: 7, color: GRAY },
+
+  // Deckblatt: volle dunkle Fläche im selben Look wie die Sidebar der
+  // Produktseiten, damit der Bericht als Ganzes konsistent wirkt.
+  coverPage: {
+    fontFamily: "Helvetica",
+    backgroundColor: DARK,
+    color: WHITE,
+    paddingHorizontal: 56,
+    paddingVertical: 64,
+    justifyContent: "space-between",
+  },
+  coverLogo: { width: 84, height: 44, objectFit: "contain", marginBottom: 40 },
+  coverKicker: { fontSize: 9, color: GOLD, letterSpacing: 2.5, marginBottom: 10 },
+  coverTitle: { fontSize: 30, fontFamily: "Helvetica-Bold", color: WHITE, marginBottom: 18 },
+  coverRule: { borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.15)", marginBottom: 18 },
+  coverCustomer: { fontSize: 15, fontFamily: "Helvetica-Bold", color: WHITE, marginBottom: 22 },
+  coverProductList: { gap: 10 },
+  coverProductRow: { borderLeftWidth: 2, borderLeftColor: GOLD, paddingLeft: 10 },
+  coverProductName: { fontSize: 11, fontFamily: "Helvetica-Bold", color: WHITE },
+  coverProductMeta: { fontSize: 8, color: "#8B94A3", marginTop: 1 },
+  coverFooterLine: { fontSize: 8.5, color: "#C3C2B7", marginTop: 4, marginBottom: 4 },
+  coverFooterTagline: { fontSize: 8, color: GOLD, letterSpacing: 1.5, marginBottom: 6 },
+  coverFooterUrl: { fontSize: 7, color: "#6B7280" },
+
+  // Inhaltsverzeichnis: helle Seite wie die übrigen Inhaltsseiten, damit
+  // sie sich als Navigationshilfe zum Bericht zugehörig, aber nicht wie
+  // eine weitere Produktseite anfühlt.
+  tocPage: { fontFamily: "Helvetica", color: INK, fontSize: 9, backgroundColor: PAGE_BG, paddingHorizontal: 56, paddingVertical: 56 },
+  tocLogo: { width: 56, height: 29, objectFit: "contain", marginBottom: 24 },
+  tocTitle: { fontSize: 20, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 10 },
+  tocRule: { borderBottomWidth: 1, borderBottomColor: GOLD, marginBottom: 18 },
+  tocLinkReset: { textDecoration: "none", color: INK },
+  tocEntryRow: { flexDirection: "row", alignItems: "baseline", gap: 8, marginBottom: 6 },
+  tocEntryNumber: { fontSize: 10, fontFamily: "Helvetica-Bold", color: GOLD_DARK },
+  tocEntryTitle: { fontSize: 12.5, fontFamily: "Helvetica-Bold", color: INK },
+  tocSubEntryRow: { paddingLeft: 26, paddingVertical: 2.5, borderBottomWidth: 1, borderBottomColor: ROW_DIVIDER },
+  tocSubEntryTitle: { fontSize: 9, color: "#374151" },
 });
 
 function Dot({ status }: { status: MetricStatus }) {
@@ -802,6 +839,7 @@ export interface ReportDocumentProps {
 // Seite" automatisch mit.
 function ProductPage({
   product,
+  index,
   locale,
   customerCompany,
   periodLabel,
@@ -809,6 +847,7 @@ function ProductPage({
   adminNotes,
 }: {
   product: ProductReportData;
+  index: number;
   locale: "de" | "en";
   customerCompany: string;
   periodLabel: string;
@@ -833,7 +872,7 @@ function ProductPage({
   const overallStatus: MetricStatus = summary.issueCount === 0 ? "good" : entries.some((e) => deriveStatus(e) === "critical") ? "critical" : "warning";
 
   return (
-    <Page size="A4" style={styles.page}>
+    <Page id={`product-${index}`} size="A4" style={styles.page}>
       <View style={styles.sidebar} fixed>
         <Image style={styles.sidebarLogo} src={LOGO_DATA_URI} />
         <Text style={styles.sidebarReportLabel}>{t.reportLabel}</Text>
@@ -916,7 +955,7 @@ function ProductPage({
         </View>
 
         {headlineEntries.length > 0 && (
-          <View wrap={false}>
+          <View id={`p${index}-kennzahlen`} wrap={false}>
             <Text style={styles.sectionTitle}>{t.headlineTitle}</Text>
             <View style={styles.headlineRow}>
               {headlineEntries.map((e) => (
@@ -926,7 +965,7 @@ function ProductPage({
           </View>
         )}
 
-        <View style={styles.recCard} wrap={false}>
+        <View id={`p${index}-schritte`} style={styles.recCard} wrap={false}>
           <Text style={styles.recTitle}>{t.recTitle}</Text>
           {recommendations.map((rec, i) => (
             <View key={i} style={styles.recLineRow}>
@@ -939,7 +978,7 @@ function ProductPage({
         </View>
 
         {(hardwareFaultEntries.length > 0 || usageBarEntries.length > 0) && (
-          <View style={styles.twoColRow}>
+          <View id={`p${index}-infra`} style={styles.twoColRow}>
             <View style={styles.leftCol}>
               <ListCard title={t.infraTitle} sub={t.infraSub} entries={hardwareFaultEntries} locale={locale} />
             </View>
@@ -951,7 +990,9 @@ function ProductPage({
           </View>
         )}
 
-        <CapacitySection entries={capacityEntries} locale={locale} />
+        <View id={`p${index}-kapazitaet`}>
+          <CapacitySection entries={capacityEntries} locale={locale} />
+        </View>
 
         {(product.resourceBreakdown?.length ?? 0) > 0 && (
           <View style={{ marginBottom: 14 }}>
@@ -993,7 +1034,7 @@ function ProductPage({
           // (inzwischen ~10+) — ein starr unteilbarer Block kann dann größer
           // als eine Seite werden und den PDF-Export zum Absturz bringen
           // (siehe die gleiche Korrektur bei AlarmCard/ComponentFaultsCard).
-          <View style={styles.methodologyBlock}>
+          <View id={`p${index}-methodik`} style={styles.methodologyBlock}>
             <Text style={styles.methodologyTitle}>{t.methodologyTitle.toUpperCase()}</Text>
             {entries.some((e) => e.derived) && (
               <View wrap={false}>
@@ -1024,7 +1065,7 @@ function ProductPage({
         )}
 
         {(product.componentFaults?.length ?? 0) > 0 && (
-          <View style={{ marginBottom: 14 }}>
+          <View id={`p${index}-auffaelligkeiten`} style={{ marginBottom: 14 }}>
             <ComponentFaultsCard faults={product.componentFaults!} locale={locale} />
           </View>
         )}
@@ -1037,7 +1078,9 @@ function ProductPage({
         )}
 
         {(product.componentChecks?.length ?? 0) > 0 && (
-          <SuccessfulChecksCard checks={product.componentChecks!} locale={locale} />
+          <View id={`p${index}-geprueft`}>
+            <SuccessfulChecksCard checks={product.componentChecks!} locale={locale} />
+          </View>
         )}
       </View>
 
@@ -1050,6 +1093,112 @@ function ProductPage({
   );
 }
 
+// Deckblatt: eigene erste Seite, einmal für den ganzen (auch kombinierten)
+// Bericht — dunkel im Sidebar-Look, mit Kunde/Produkt(e)/Zeitraum/Erstellt
+// am als kompakte Übersicht, bevor die Detailseiten pro Produkt beginnen.
+function CoverPage({
+  locale,
+  customerCompany,
+  periodLabel,
+  products,
+  generatedAt,
+}: {
+  locale: "de" | "en";
+  customerCompany: string;
+  periodLabel: string;
+  products: ProductReportData[];
+  generatedAt: Date;
+}) {
+  const t = COPY[locale];
+  return (
+    <Page size="A4" style={styles.coverPage}>
+      <View>
+        <Image style={styles.coverLogo} src={LOGO_DATA_URI} />
+        <Text style={styles.coverKicker}>{t.title}</Text>
+        <Text style={styles.coverTitle}>{periodLabel}</Text>
+        <View style={styles.coverRule} />
+        <Text style={styles.coverCustomer}>{customerCompany}</Text>
+
+        <View style={styles.coverProductList}>
+          {products.map((p, i) => (
+            <View key={p.productName + i} style={styles.coverProductRow}>
+              <Text style={styles.coverProductName}>
+                {p.vendor} {p.productName}
+              </Text>
+              {p.packageLabel && <Text style={styles.coverProductMeta}>{p.packageLabel}</Text>}
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View>
+        <View style={styles.coverRule} />
+        <Text style={styles.coverFooterLine}>
+          {t.createdOn} {formatDateTime(generatedAt, locale)}
+        </Text>
+        <Text style={styles.coverFooterTagline}>build to endure</Text>
+        <Text style={styles.coverFooterUrl}>Erstellt von Ferrion IT Systemhaus GmbH · info@ferrion.at · ferrion.at</Text>
+      </View>
+    </Page>
+  );
+}
+
+// Welche Unterabschnitte für ein Produkt tatsächlich im Bericht vorkommen —
+// muss exakt dieselben Bedingungen wie ProductPage spiegeln, sonst würde
+// das Inhaltsverzeichnis auf leere/nicht vorhandene Abschnitte verlinken.
+function productTocSections(product: ProductReportData, locale: "de" | "en", index: number) {
+  const t = COPY[locale];
+  const { entries } = product;
+  const hasHeadline = entries.some((e) => e.headline);
+  const hasInfra = entries.some((e) => e.section === "hardware" && (e.format === "count" || e.format === "percent"));
+  const hasCapacity = entries.some((e) => e.section === "capacity");
+  const hasMethodology =
+    entries.some((e) => e.methodology) || entries.some((e) => e.derived) || entries.some((e) => e.source);
+
+  return [
+    hasHeadline && { label: t.headlineTitle, anchor: `p${index}-kennzahlen` },
+    { label: t.recTitle, anchor: `p${index}-schritte` },
+    hasInfra && { label: t.infraTitle, anchor: `p${index}-infra` },
+    hasCapacity && { label: SECTION_LABELS.capacity[locale], anchor: `p${index}-kapazitaet` },
+    (product.componentFaults?.length ?? 0) > 0 && { label: t.detailsTitle, anchor: `p${index}-auffaelligkeiten` },
+    (product.componentChecks?.length ?? 0) > 0 && { label: t.successTitle, anchor: `p${index}-geprueft` },
+    hasMethodology && { label: t.methodologyTitle, anchor: `p${index}-methodik` },
+  ].filter((s): s is { label: string; anchor: string } => Boolean(s));
+}
+
+const TOC_COPY = { de: { title: "Inhaltsverzeichnis" }, en: { title: "Table of Contents" } };
+
+function TocPage({ locale, products }: { locale: "de" | "en"; products: ProductReportData[] }) {
+  const tt = TOC_COPY[locale];
+  return (
+    <Page size="A4" style={styles.tocPage}>
+      <Image style={styles.tocLogo} src={LOGO_DATA_URI} />
+      <Text style={styles.tocTitle}>{tt.title}</Text>
+      <View style={styles.tocRule} />
+
+      {products.map((product, i) => (
+        <View key={product.productName + i} style={{ marginBottom: 16 }} wrap={false}>
+          <Link src={`#product-${i}`} style={styles.tocLinkReset}>
+            <View style={styles.tocEntryRow}>
+              <Text style={styles.tocEntryNumber}>{String(i + 1).padStart(2, "0")}</Text>
+              <Text style={styles.tocEntryTitle}>
+                {product.vendor} {product.productName}
+              </Text>
+            </View>
+          </Link>
+          {productTocSections(product, locale, i).map((section) => (
+            <Link key={section.anchor} src={`#${section.anchor}`} style={styles.tocLinkReset}>
+              <View style={styles.tocSubEntryRow}>
+                <Text style={styles.tocSubEntryTitle}>{section.label}</Text>
+              </View>
+            </Link>
+          ))}
+        </View>
+      ))}
+    </Page>
+  );
+}
+
 export function ReportDocument({ locale, customerCompany, periodLabel, products, adminNotes, generatedAt }: ReportDocumentProps) {
   const t = COPY[locale];
 
@@ -1057,10 +1206,13 @@ export function ReportDocument({ locale, customerCompany, periodLabel, products,
     <Document
       title={`${t.title} — ${customerCompany} — ${products.map((p) => p.productName).join(" + ")} — ${periodLabel}`}
     >
+      <CoverPage locale={locale} customerCompany={customerCompany} periodLabel={periodLabel} products={products} generatedAt={generatedAt} />
+      <TocPage locale={locale} products={products} />
       {products.map((product, i) => (
         <ProductPage
           key={product.productName + i}
           product={product}
+          index={i}
           locale={locale}
           customerCompany={customerCompany}
           periodLabel={periodLabel}
