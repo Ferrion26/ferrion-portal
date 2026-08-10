@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { daysToThreshold } from "@/lib/managed-reports/reportFormat";
+import { daysToThreshold, trendGrowthPerDay } from "@/lib/managed-reports/reportFormat";
 
 const GOLD = "#c9a84c";
 const WIDTH = 640;
-const HEIGHT = 200;
+const HEIGHT = 170;
 const PAD = { top: 14, right: 14, bottom: 26, left: 32 };
 
 const COPY = {
@@ -16,6 +16,7 @@ const COPY = {
     date: "Datum",
     value: "Füllgrad",
     daysTo: (d: number, pct: number) => `> ${d} Tage bis ${pct} %`,
+    growthLabel: "Ø Wachstum",
   },
   en: {
     title: "Capacity Trend",
@@ -24,8 +25,14 @@ const COPY = {
     date: "Date",
     value: "Fill Level",
     daysTo: (d: number, pct: number) => `> ${d} days to reach ${pct}%`,
+    growthLabel: "Avg. growth",
   },
 };
+
+function formatGrowthRate(perDay: number, locale: "de" | "en") {
+  const sign = perDay >= 0 ? "+" : "";
+  return `${sign}${perDay.toLocaleString(locale === "de" ? "de-DE" : "en-US", { maximumFractionDigits: 2 })} %/${locale === "de" ? "Tag" : "day"}`;
+}
 
 function formatDate(iso: string, locale: "de" | "en") {
   return new Intl.DateTimeFormat(locale === "de" ? "de-AT" : "en-US", { day: "2-digit", month: "2-digit", timeZone: "Europe/Vienna" }).format(new Date(iso));
@@ -72,6 +79,7 @@ export function CapacityTrendChart({ points, locale }: { points: { recordedAt: s
 
   const days80 = daysToThreshold(points, 80);
   const days100 = daysToThreshold(points, 100);
+  const growth = trendGrowthPerDay(points);
 
   return (
     <div>
@@ -85,10 +93,15 @@ export function CapacityTrendChart({ points, locale }: { points: { recordedAt: s
         </button>
       </div>
 
-      {(days80 !== null || days100 !== null) && (
-        <div className="flex gap-6 mb-3">
+      {(days80 !== null || days100 !== null || growth !== null) && (
+        <div className="flex flex-wrap gap-x-6 gap-y-1 mb-3">
           {days80 !== null && <p className="text-sm font-bold text-white">{t.daysTo(days80, 80)}</p>}
           {days100 !== null && <p className="text-sm font-bold text-white">{t.daysTo(days100, 100)}</p>}
+          {growth !== null && (
+            <p className="text-sm font-bold text-white">
+              {t.growthLabel}: {formatGrowthRate(growth, locale)}
+            </p>
+          )}
         </div>
       )}
 

@@ -9,7 +9,7 @@ import {
 } from "@/lib/managed-reports/reportNarrative";
 import { formatValue } from "@/lib/managed-reports/reportFormat";
 import { formatDate } from "@/lib/utils";
-import type { ProductReportData } from "@/lib/managed-reports/pdf/ReportDocument";
+import { PRIMARY_KPI_KEYS, type ProductReportData } from "@/lib/managed-reports/pdf/ReportDocument";
 import ReportDownloadButton from "./ReportDownloadButton";
 import { CapacityTrendChart } from "./CapacityTrendChart";
 
@@ -26,13 +26,22 @@ const STATUS_STYLES: Record<MetricStatus, { dot: string; bg: string; text: strin
   neutral: { dot: "bg-gray-500", bg: "bg-gray-500/15", text: "text-gray-400", label: { de: "—", en: "—" } },
 };
 
-function StatCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "de" | "en" }) {
+const PRIMARY_GRID_COLS: Record<number, string> = { 1: "sm:grid-cols-1", 2: "sm:grid-cols-2", 3: "sm:grid-cols-3" };
+
+const STATUS_BORDER: Record<MetricStatus, string> = {
+  good: "border-l-green-400",
+  warning: "border-l-amber-400",
+  critical: "border-l-red-400",
+  neutral: "border-l-gray-600",
+};
+
+function StatCard({ entry, locale, primary = false }: { entry: QuarterSummaryEntry; locale: "de" | "en"; primary?: boolean }) {
   const status = deriveStatus(entry);
   const s = STATUS_STYLES[status];
   return (
-    <div className="bg-[#111827] border border-white/10 p-5">
+    <div className={`bg-[#111827] border border-white/10 border-l-4 ${STATUS_BORDER[status]} ${primary ? "p-6" : "p-5"}`}>
       <p className="text-xs text-gray-500 truncate">{entry.shortLabel?.[locale] ?? entry.label[locale]}</p>
-      <p className="text-2xl font-bold text-white mt-1">{formatValue(entry, locale)}</p>
+      <p className={`font-bold text-white mt-1 ${primary ? "text-3xl" : "text-2xl"}`}>{formatValue(entry, locale)}</p>
       {status !== "neutral" && (
         <span className={`inline-block mt-2 rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.bg} ${s.text}`}>{s.label[locale]}</span>
       )}
@@ -110,6 +119,10 @@ export function ReportDashboardView({
   const bannerHighlights = buildBannerHighlights(entries, locale);
 
   const headlineEntries = entries.filter((e) => e.headline);
+  const primaryKpiEntries = PRIMARY_KPI_KEYS.map((key) => headlineEntries.find((e) => e.key === key)).filter(
+    (e): e is QuarterSummaryEntry => Boolean(e)
+  );
+  const secondaryKpiEntries = headlineEntries.filter((e) => !PRIMARY_KPI_KEYS.includes(e.key));
   const hardwareFaultEntries = entries.filter((e) => e.section === "hardware" && e.format === "count");
   const usageBarEntries = entries.filter((e) => e.section === "hardware" && e.format === "percent" && e.key !== "system_availability");
   const capacityEntries = entries.filter((e) => e.section === "capacity");
@@ -228,9 +241,20 @@ export function ReportDashboardView({
             )}
           </div>
 
-          {headlineEntries.length > 0 && (
+          {primaryKpiEntries.length > 0 && (
+            // Feste Klassen statt dynamisch zusammengesetzter "sm:grid-cols-N"
+            // — Tailwinds JIT-Scanner erkennt nur wörtlich im Quelltext
+            // stehende Klassennamen, keine zur Laufzeit gebauten Strings.
+            <div className={`grid grid-cols-1 gap-4 ${PRIMARY_GRID_COLS[primaryKpiEntries.length] ?? "sm:grid-cols-3"}`}>
+              {primaryKpiEntries.map((e) => (
+                <StatCard key={e.key} entry={e} locale={locale} primary />
+              ))}
+            </div>
+          )}
+
+          {secondaryKpiEntries.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {headlineEntries.map((e) => (
+              {secondaryKpiEntries.map((e) => (
                 <StatCard key={e.key} entry={e} locale={locale} />
               ))}
             </div>

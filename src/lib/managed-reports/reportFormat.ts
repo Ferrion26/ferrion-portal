@@ -44,15 +44,23 @@ export function formatDateTime(date: Date | string, locale: "de" | "en" = "de") 
   }).format(new Date(date));
 }
 
-// Einfache lineare Projektion über die Kapazitäts-Trendpunkte (kein
-// eigener Forecast-Endpunkt am Gerät nötig) — Grundlage für die
-// "Tage bis 80 %/100 %"-Anzeige über der Trendgrafik, wie sie das
-// DataBackup-Dashboard selbst zeigt (dort serverseitig berechnet). Least-
-// Squares-Steigung über (Tag-Offset, Wert) der vorhandenen Punkte, dann ab
-// dem letzten Punkt bis zur Schwelle hochgerechnet. null, wenn die Schwelle
-// bereits erreicht ist, der Trend fällt/stagniert (Steigung <= 0), oder
-// weniger als 2 Punkte vorliegen.
-export function daysToThreshold(points: { recordedAt: string; value: number }[], threshold: number): number | null {
+// Vereinheitlicht Komponenten-Kennungen wie "PSU 0"/"PSU0" oder "BBU 1"/
+// "BBU1" auf dieselbe Schreibweise ohne Leerzeichen. Der Collector baut
+// diese Strings aus rohen Gerätefeldern zusammen (mal mit, mal ohne
+// Leerzeichen, je nach Feld) — hier statt am Collector korrigiert, damit
+// auch bereits erfasste (ältere) Daten einheitlich angezeigt werden.
+// Nur kurze GROSSBUCHSTABEN-Kürzel (2–5 Zeichen, z. B. PSU/BBU/CTE/SFP)
+// werden angefasst, damit echte mehrteilige Namen wie "Fan Module 3"
+// (gemischte Groß-/Kleinschreibung) ihr Leerzeichen behalten.
+export function normalizeComponentLabel(text: string): string {
+  return text.replace(/\b([A-Z]{2,5})\s+(\d+)/g, "$1$2");
+}
+
+// Least-Squares-Steigung (Wert-Einheit pro Tag) über die Kapazitäts-
+// Trendpunkte — gemeinsame Grundlage für daysToThreshold() und
+// trendGrowthPerDay() weiter unten. null, wenn weniger als 2 Punkte
+// vorliegen oder alle Punkte denselben Zeitstempel haben.
+function leastSquaresSlope(points: { recordedAt: string; value: number }[]): number | null {
   if (points.length < 2) return null;
   const t0 = new Date(points[0].recordedAt).getTime();
   const xs = points.map((p) => (new Date(p.recordedAt).getTime() - t0) / 86_400_000);
@@ -64,12 +72,33 @@ export function daysToThreshold(points: { recordedAt: string; value: number }[],
   const sumXX = xs.reduce((a, x) => a + x * x, 0);
   const denominator = n * sumXX - sumX * sumX;
   if (denominator === 0) return null;
-  const slope = (n * sumXY - sumX * sumY) / denominator;
-  if (slope <= 0) return null;
+  return (n * sumXY - sumX * sumY) / denominator;
+}
 
-  const lastValue = ys[n - 1];
+// Einfache lineare Projektion über die Kapazitäts-Trendpunkte (kein
+// eigener Forecast-Endpunkt am Gerät nötig) — Grundlage für die
+// "Tage bis 80 %/100 %"-Anzeige über der Trendgrafik, wie sie das
+// DataBackup-Dashboard selbst zeigt (dort serverseitig berechnet). Ab dem
+// letzten Punkt bis zur Schwelle hochgerechnet. null, wenn die Schwelle
+// bereits erreicht ist, der Trend fällt/stagniert (Steigung <= 0), oder
+// weniger als 2 Punkte vorliegen.
+export function daysToThreshold(points: { recordedAt: string; value: number }[], threshold: number): number | null {
+  const slope = leastSquaresSlope(points);
+  if (slope === null || slope <= 0) return null;
+
+  const ys = points.map((p) => p.value);
+  const lastValue = ys[ys.length - 1];
   if (lastValue >= threshold) return null;
-  const lastX = xs[n - 1];
+
+  const t0 = new Date(points[0].recordedAt).getTime();
+  const lastX = (new Date(points[points.length - 1].recordedAt).getTime() - t0) / 86_400_000;
   const thresholdX = lastX + (threshold - lastValue) / slope;
   return Math.max(0, Math.round(thresholdX - lastX));
+}
+
+// Durchschnittliche Änderung pro Tag (Wert-Einheit/Tag, z. B. Prozentpunkte/
+// Tag) — zusätzliche Kennzahl neben der Trendgrafik ("Ø Wachstum"), damit
+// die Karte nicht nur aus der Linie selbst besteht. null bei < 2 Punkten.
+export function trendGrowthPerDay(points: { recordedAt: string; value: number }[]): number | null {
+  return leastSquaresSlope(points);
 }

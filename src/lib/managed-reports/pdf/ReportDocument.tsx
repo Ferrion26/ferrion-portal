@@ -3,7 +3,7 @@ import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, Svg, Path as SvgPath, Circle, Line, Font, Link } from "@react-pdf/renderer";
 import { QuarterSummaryEntry } from "../aggregate";
 import { ReportSection } from "../metrics";
-import { formatValue, formatDateTime, daysToThreshold } from "../reportFormat";
+import { formatValue, formatDateTime, daysToThreshold, trendGrowthPerDay, normalizeComponentLabel } from "../reportFormat";
 import { deriveStatus, buildExecutiveSummary, buildRecommendations, buildBannerHighlights, MetricStatus } from "../reportNarrative";
 
 // Ohne das hier splittet react-pdf lange Wörter (Seriennummern, lange
@@ -119,9 +119,9 @@ const styles = StyleSheet.create({
   sidebarReportLabel: { fontSize: 6.5, color: GOLD, letterSpacing: 1.5, marginBottom: 4 },
   sidebarTitle: { fontSize: 14, fontFamily: "Helvetica-Bold", color: WHITE, lineHeight: 1.25, marginBottom: 16 },
   sidebarRule: { borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.1)", marginBottom: 14 },
-  sidebarField: { marginBottom: 12 },
-  sidebarFieldLabel: { fontSize: 6, color: "#8B94A3", letterSpacing: 0.8, marginBottom: 2 },
-  sidebarFieldValue: { fontSize: 9, fontFamily: "Helvetica-Bold", color: WHITE, lineHeight: 1.3 },
+  sidebarField: { marginBottom: 15 },
+  sidebarFieldLabel: { fontSize: 6.5, color: "#8B94A3", letterSpacing: 0.8, marginBottom: 3 },
+  sidebarFieldValue: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: WHITE, lineHeight: 1.35 },
   sidebarStatusCard: { backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 6, padding: 10, marginTop: 4 },
   sidebarStatusLabel: { fontSize: 6, color: "#8B94A3", letterSpacing: 0.8, marginBottom: 6 },
   sidebarFooter: { position: "absolute", bottom: 18, left: 16, right: 16 },
@@ -144,11 +144,19 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 8, marginTop: 6, borderBottomWidth: 1, borderBottomColor: GOLD, paddingBottom: 4 },
 
   headlineRow: { flexDirection: "row", gap: 9, marginBottom: 14 },
-  headlineCard: { flex: 1, backgroundColor: WHITE, borderRadius: 8, padding: 11 },
+  headlineCard: { flex: 1, backgroundColor: WHITE, borderRadius: 8, padding: 11, borderLeftWidth: 3 },
   headlineTopRow: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 6 },
   dot: { width: 6, height: 6, borderRadius: 3 },
   headlineLabel: { fontSize: 7.5, color: GRAY },
   headlineValue: { fontSize: 17, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 7 },
+
+  // Primäre KPIs (Backup-Erfolg, RPO-Einhaltung, Verfügbarkeit) deutlich
+  // größer als die übrigen Kennzahlkarten — eigene Zeile darüber, damit sie
+  // auf den ersten Blick als DIE wichtigsten Werte erkennbar sind.
+  primaryKpiRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
+  primaryKpiCard: { flex: 1, backgroundColor: WHITE, borderRadius: 8, padding: 16, borderLeftWidth: 4 },
+  primaryKpiLabel: { fontSize: 8, color: GRAY, marginBottom: 5 },
+  primaryKpiValue: { fontSize: 25, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 9 },
 
   twoColRow: { flexDirection: "row", gap: 10, marginBottom: 14 },
   leftCol: { flex: 1 },
@@ -222,16 +230,44 @@ const styles = StyleSheet.create({
   trendSub: { fontSize: 6.5, color: GRAY, marginBottom: 6 },
   trendForecast: { fontSize: 8, fontFamily: "Helvetica-Bold", color: INK },
 
-  methodologyBlock: { backgroundColor: WHITE, borderRadius: 8, padding: 12, marginBottom: 10 },
-  methodologyTitle: { fontSize: 8, fontFamily: "Helvetica-Bold", color: GRAY, marginBottom: 4 },
   methodologyLine: { fontSize: 7, color: MUTED, lineHeight: 1.4, marginBottom: 3 },
+
+  // Methodik als nach Kategorie getrennte Karten statt eines einzigen
+  // Fließtext-Blocks — pro Kategorie (Kapazität, Verfügbarkeit, …) eine
+  // eigene Karte mit Bulletpoints, größerem Zeilenabstand als der alte
+  // methodologyLine-Stil, damit lange Erklärtexte nicht wie eine Wand
+  // wirken. wrap ist hier bewusst NICHT auf dem Grid oder den Karten
+  // deaktiviert (nur auf den einzelnen Bulletpoints) — bei vielen Kennzahlen
+  // darf sich der Methodik-Bereich über zwei Seiten erstrecken, statt als
+  // starrer Block zu überlaufen (siehe die gleiche Korrektur bei
+  // AlarmCard/ComponentFaultsCard weiter oben).
+  methodologyIntro: { fontSize: 7, color: MUTED, lineHeight: 1.5, marginBottom: 10 },
+  methodologyGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  methodologyCard: { width: (MAIN_CONTENT_WIDTH - 10) / 2, backgroundColor: WHITE, borderRadius: 8, padding: 12, marginBottom: 10 },
+  methodologyCardTitle: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: GOLD, paddingBottom: 4 },
+  methodologyBullet: { flexDirection: "row", gap: 6, marginBottom: 8 },
+  methodologyBulletDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: GOLD, marginTop: 4 },
+  methodologyBulletLabel: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 2 },
+  methodologyBulletText: { fontSize: 7, color: MUTED, lineHeight: 1.55 },
 
   notesBlock: { backgroundColor: WHITE, borderRadius: 8, padding: 13, marginBottom: 10 },
   notesLabel: { fontSize: 8, color: GRAY, letterSpacing: 1, marginBottom: 6 },
   notesText: { fontSize: 9, color: INK, lineHeight: 1.5 },
 
-  footer: { position: "absolute", bottom: 18, left: SIDEBAR_WIDTH + PAGE_PADDING, right: PAGE_PADDING, borderTopWidth: 1, borderTopColor: GOLD, paddingTop: 7, textAlign: "center" },
-  footerText: { fontSize: 7, color: GRAY },
+  footer: {
+    position: "absolute",
+    bottom: 18,
+    left: SIDEBAR_WIDTH + PAGE_PADDING,
+    right: PAGE_PADDING,
+    borderTopWidth: 1,
+    borderTopColor: GOLD,
+    paddingTop: 7,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  footerText: { fontSize: 8, color: GRAY },
+  footerPage: { fontSize: 8, fontFamily: "Helvetica-Bold", color: INK },
 
   // Deckblatt: volle dunkle Fläche im selben Look wie die Sidebar der
   // Produktseiten, damit der Bericht als Ganzes konsistent wirkt.
@@ -334,9 +370,24 @@ function Donut({ percent, label }: { percent: number; label: string }) {
 }
 
 const TREND_COPY = {
-  de: { title: "Kapazitätsverlauf", sub: "Füllgrad Storage Pool über den Berichtszeitraum", daysTo: (d: number, pct: number) => `> ${d} Tage bis ${pct} %` },
-  en: { title: "Capacity Trend", sub: "Storage pool fill level over the reporting period", daysTo: (d: number, pct: number) => `> ${d} days to reach ${pct}%` },
+  de: {
+    title: "Kapazitätsverlauf",
+    sub: "Füllgrad Storage Pool über den Berichtszeitraum",
+    daysTo: (d: number, pct: number) => `> ${d} Tage bis ${pct} %`,
+    growthLabel: "Ø Wachstum",
+  },
+  en: {
+    title: "Capacity Trend",
+    sub: "Storage pool fill level over the reporting period",
+    daysTo: (d: number, pct: number) => `> ${d} days to reach ${pct}%`,
+    growthLabel: "Avg. growth",
+  },
 };
+
+function formatGrowthRate(perDay: number, locale: "de" | "en") {
+  const sign = perDay >= 0 ? "+" : "";
+  return `${sign}${perDay.toLocaleString(locale === "de" ? "de-DE" : "en-US", { maximumFractionDigits: 2 })} %/${locale === "de" ? "Tag" : "day"}`;
+}
 
 function formatTrendDate(iso: string, locale: "de" | "en") {
   return new Intl.DateTimeFormat(locale === "de" ? "de-AT" : "en-US", { day: "2-digit", month: "2-digit", timeZone: "Europe/Vienna" }).format(new Date(iso));
@@ -353,7 +404,7 @@ function CapacityTrendCard({ points, locale }: { points: { recordedAt: string; v
   if (points.length < 2) return null;
   const t = TREND_COPY[locale];
   const W = MAIN_CONTENT_WIDTH - 2 * TREND_CARD_PADDING;
-  const H = 108;
+  const H = 88;
   const PAD = { top: 6, right: 4, bottom: 15, left: 20 };
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
@@ -368,15 +419,21 @@ function CapacityTrendCard({ points, locale }: { points: { recordedAt: string; v
 
   const days80 = daysToThreshold(points, 80);
   const days100 = daysToThreshold(points, 100);
+  const growth = trendGrowthPerDay(points);
 
   return (
     <View style={styles.trendCard} wrap={false}>
       <Text style={styles.trendTitle}>{t.title}</Text>
       <Text style={styles.trendSub}>{t.sub}</Text>
-      {(days80 !== null || days100 !== null) && (
-        <View style={{ flexDirection: "row", gap: 16, marginBottom: 8 }}>
+      {(days80 !== null || days100 !== null || growth !== null) && (
+        <View style={{ flexDirection: "row", gap: 16, marginBottom: 8, flexWrap: "wrap" }}>
           {days80 !== null && <Text style={styles.trendForecast}>{t.daysTo(days80, 80)}</Text>}
           {days100 !== null && <Text style={styles.trendForecast}>{t.daysTo(days100, 100)}</Text>}
+          {growth !== null && (
+            <Text style={styles.trendForecast}>
+              {t.growthLabel}: {formatGrowthRate(growth, locale)}
+            </Text>
+          )}
         </View>
       )}
       <View style={{ width: W, height: H, position: "relative" }}>
@@ -432,7 +489,7 @@ function HeadlineCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "
   const label = entry.shortLabel?.[locale] ?? entry.label[locale];
   const tags = metricTags(entry, locale);
   return (
-    <View style={styles.headlineCard} wrap={false}>
+    <View style={{ ...styles.headlineCard, borderLeftColor: STATUS_COLORS[status].dot }} wrap={false}>
       <View style={styles.headlineTopRow}>
         <Dot status={status} />
         <Text style={styles.headlineLabel}>{label}</Text>
@@ -445,6 +502,37 @@ function HeadlineCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "
         <StatusPill status={status} text={headlinePillText(entry, status, locale)} />
         {tags && <Text style={{ ...styles.derivedTag, marginTop: 3 }}>{tags}</Text>}
       </View>
+    </View>
+  );
+}
+
+// Die drei "primären" Kennzahlen (Backup-Erfolg, RPO-Einhaltung,
+// Verfügbarkeit) — bewusst größer als HeadlineCard, damit sie sich klar von
+// den übrigen (sekundären) Kennzahlkarten absetzen. Bei OceanStor (keine
+// Backup-Software-Ebene) bleiben nur die vorhandenen Einträge übrig
+// (i. d. R. nur Verfügbarkeit) statt Lücken zu zeigen.
+export const PRIMARY_KPI_KEYS = ["backup_success_rate", "rpo_compliance_rate", "system_availability"];
+
+function PrimaryKpiCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "de" | "en" }) {
+  const status = deriveStatus(entry);
+  const label = entry.shortLabel?.[locale] ?? entry.label[locale];
+  const trend = trendInfo(entry);
+  return (
+    <View style={{ ...styles.primaryKpiCard, borderLeftColor: STATUS_COLORS[status].dot }} wrap={false}>
+      <View style={styles.headlineTopRow}>
+        <Dot status={status} />
+        <Text style={styles.primaryKpiLabel}>{label}</Text>
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}>
+        <Text style={styles.primaryKpiValue}>{formatValue(entry, locale)}</Text>
+        {trend && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 2, marginBottom: 9 }}>
+            <TrendArrow direction={trend.direction} color={trend.color} />
+            <Text style={{ fontSize: 7, color: trend.color }}>{trend.label}</Text>
+          </View>
+        )}
+      </View>
+      <StatusPill status={status} text={headlinePillText(entry, status, locale)} />
     </View>
   );
 }
@@ -601,18 +689,30 @@ function AlarmCard({ alarms, locale }: { alarms: AlarmSample[]; locale: "de" | "
 
 const MAX_COMPONENT_FAULTS_SHOWN = 20;
 
+const TABLE_COLUMN_COPY = {
+  de: { category: "Kategorie", component: "Komponente", description: "Beschreibung", status: "Status" },
+  en: { category: "Category", component: "Component", description: "Description", status: "Status" },
+};
+
 function ComponentFaultsCard({ faults, locale }: { faults: ComponentFault[]; locale: "de" | "en" }) {
   const t = COPY[locale];
+  const tc = TABLE_COLUMN_COPY[locale];
   const shown = faults.slice(0, MAX_COMPONENT_FAULTS_SHOWN);
   const overflow = faults.length - shown.length;
   return (
     <View style={styles.tableCardBlock}>
       <Text style={styles.listCardTitle}>{t.detailsTitle}</Text>
       <Text style={styles.listCardSub}>{t.detailsSub}</Text>
+      <View style={{ ...styles.tableHeaderRow, marginTop: 4 }}>
+        <Text style={{ ...styles.tableHeaderCell, width: 90 }}>{tc.category}</Text>
+        <Text style={{ ...styles.tableHeaderCell, width: 110 }}>{tc.component}</Text>
+        <Text style={{ ...styles.tableHeaderCell, flex: 1 }}>{tc.description}</Text>
+        <Text style={{ ...styles.tableHeaderCell, width: 90, textAlign: "right" }}>{tc.status}</Text>
+      </View>
       {shown.map((fault, i) => (
         <View key={i} wrap={false} style={{ ...styles.tableRow, alignItems: "flex-start", opacity: fault.status === "resolved" ? 0.55 : 1 }}>
           <Text style={{ width: 90, color: MUTED, fontSize: 7, paddingTop: 1 }}>{fault.category}</Text>
-          <Text style={{ width: 110, fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, paddingRight: 6 }}>{fault.id}</Text>
+          <Text style={{ width: 110, fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, paddingRight: 6 }}>{normalizeComponentLabel(fault.id)}</Text>
           <Text style={{ flex: 1, fontSize: 8, color: "#374151" }}>{fault.description}</Text>
           <Text style={{ width: 90, fontSize: 6.5, color: fault.status === "resolved" ? STATUS_COLORS.good.dot : STATUS_COLORS.warning.dot, textAlign: "right" }}>
             {fault.status === "resolved" && fault.resolvedAt
@@ -663,7 +763,7 @@ function groupSuccessfulChecks(ok: ComponentCheck[], locale: "de" | "en") {
         description: locale === "de" ? "Alle Normal" : "All Normal",
       });
     } else {
-      for (const item of items) rows.push({ category: item.category, id: item.id, description: item.description });
+      for (const item of items) rows.push({ category: item.category, id: normalizeComponentLabel(item.id), description: item.description });
     }
   }
   return rows;
@@ -671,6 +771,7 @@ function groupSuccessfulChecks(ok: ComponentCheck[], locale: "de" | "en") {
 
 function SuccessfulChecksCard({ checks, locale }: { checks: ComponentCheck[]; locale: "de" | "en" }) {
   const t = COPY[locale];
+  const tc = TABLE_COLUMN_COPY[locale];
   const ok = checks.filter((c) => c.ok);
   if (ok.length === 0) return null;
   const rows = groupSuccessfulChecks(ok, locale);
@@ -683,6 +784,12 @@ function SuccessfulChecksCard({ checks, locale }: { checks: ComponentCheck[]; lo
     <View style={styles.tableCardBlock}>
       <Text style={styles.listCardTitle}>{t.successTitle}</Text>
       <Text style={styles.listCardSub}>{t.successSub}</Text>
+      <View style={{ ...styles.tableHeaderRow, marginTop: 4 }}>
+        <Text style={{ ...styles.tableHeaderCell, width: 90 }}>{tc.category}</Text>
+        <Text style={{ ...styles.tableHeaderCell, width: 110 }}>{tc.component}</Text>
+        <Text style={{ ...styles.tableHeaderCell, flex: 1 }}>{tc.description}</Text>
+        <Text style={{ ...styles.tableHeaderCell, width: 40, textAlign: "right" }}>{tc.status}</Text>
+      </View>
       {shown.map((check, i) => (
         <View key={i} wrap={false} style={{ ...styles.tableRow, alignItems: "flex-start" }}>
           <Text style={{ width: 90, color: MUTED, fontSize: 7, paddingTop: 1 }}>{check.category}</Text>
@@ -761,6 +868,64 @@ function TopFailuresCards({ failures, locale }: { failures: TopJobFailures; loca
     <View style={styles.twoColRow}>
       <TopFailuresList title={t.bySlaTitle} rows={failures.bySla} locale={locale} />
       <TopFailuresList title={t.byResourceTitle} rows={failures.byResource} locale={locale} />
+    </View>
+  );
+}
+
+const METHODOLOGY_SECTION_ORDER: ReportSection[] = ["capacity", "availability", "hardware", "security", "operations"];
+
+// Methodik nach Kategorie getrennt (Kapazität/Verfügbarkeit/Hardware/
+// Sicherheit/Betrieb) statt einer langen Fließtext-Liste — jede erklärte
+// Kennzahl als eigener Bulletpoint in der passenden Kategorie-Karte.
+function MethodologySection({ entries, locale }: { entries: QuarterSummaryEntry[]; locale: "de" | "en" }) {
+  const methodologyEntries = entries.filter((e) => e.methodology);
+  const hasDerived = entries.some((e) => e.derived);
+  const hasDataBackup = entries.some((e) => e.source === "databackup");
+  if (methodologyEntries.length === 0 && !hasDerived && !hasDataBackup) return null;
+
+  const bySection = new Map<ReportSection, QuarterSummaryEntry[]>();
+  for (const e of methodologyEntries) {
+    if (!bySection.has(e.section)) bySection.set(e.section, []);
+    bySection.get(e.section)!.push(e);
+  }
+
+  return (
+    <View>
+      <Text style={styles.sectionTitle}>{locale === "de" ? "Methodik" : "Methodology"}</Text>
+      {(hasDerived || hasDataBackup) && (
+        <View wrap={false}>
+          {hasDerived && (
+            <Text style={styles.methodologyIntro}>
+              {locale === "de"
+                ? `Mit "${DERIVED_LABEL.de}" markierte Kennzahlen werden aus mehreren Rohwerten des Geräts berechnet (z. B. gemittelt oder als Quote) — kein einzelner, direkt gemeldeter Messwert.`
+                : `Metrics marked "${DERIVED_LABEL.en}" are calculated from several raw device readings (e.g. averaged or as a rate) — not a single value reported directly by the device.`}
+            </Text>
+          )}
+          {hasDataBackup && (
+            <Text style={styles.methodologyIntro}>
+              {locale === "de"
+                ? `Mit "DataBackup" markierte Kennzahlen kommen aus der separaten Backup-Software-Oberfläche, nicht aus dem DeviceManager der Storage-Appliance.`
+                : `Metrics marked "DataBackup" come from the separate backup software interface, not from the storage appliance's own DeviceManager.`}
+            </Text>
+          )}
+        </View>
+      )}
+      <View style={styles.methodologyGrid}>
+        {METHODOLOGY_SECTION_ORDER.filter((s) => bySection.has(s)).map((section) => (
+          <View key={section} style={styles.methodologyCard} wrap={false}>
+            <Text style={styles.methodologyCardTitle}>{SECTION_LABELS[section][locale]}</Text>
+            {bySection.get(section)!.map((e) => (
+              <View key={e.key} style={styles.methodologyBullet}>
+                <View style={styles.methodologyBulletDot} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.methodologyBulletLabel}>{e.label[locale]}</Text>
+                  <Text style={styles.methodologyBulletText}>{e.methodology![locale]}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -855,6 +1020,7 @@ const COPY = {
     version: "Version",
     overallStatus: "Gesamtstatus",
     createdOn: "Erstellt am",
+    page: "Seite",
     headlineTitle: "Wichtigste Kennzahlen",
     infraTitle: "Infrastrukturstatus",
     infraSub: "Auffälligkeiten sind farblich markiert.",
@@ -880,6 +1046,7 @@ const COPY = {
     version: "Version",
     overallStatus: "Overall Status",
     createdOn: "Generated on",
+    page: "Page",
     headlineTitle: "Key Metrics",
     infraTitle: "Infrastructure Status",
     infraSub: "Issues are color-coded.",
@@ -1006,13 +1173,16 @@ function ProductPage({
   const { entries } = product;
 
   const headlineEntries = entries.filter((e) => e.headline);
+  const primaryKpiEntries = PRIMARY_KPI_KEYS.map((key) => headlineEntries.find((e) => e.key === key)).filter(
+    (e): e is QuarterSummaryEntry => Boolean(e)
+  );
+  const secondaryKpiEntries = headlineEntries.filter((e) => !PRIMARY_KPI_KEYS.includes(e.key));
   const hardwareFaultEntries = entries.filter((e) => e.section === "hardware" && e.format === "count");
   const usageBarEntries = entries.filter((e) => e.section === "hardware" && e.format === "percent" && e.key !== "system_availability");
   const capacityEntries = entries.filter((e) => e.section === "capacity");
   const securityEntries = entries.filter((e) => e.section === "security");
   const operationsEntries = entries.filter((e) => e.section === "operations");
   const availabilityDetailEntries = entries.filter((e) => e.section === "availability" && !e.headline);
-  const methodologyEntries = entries.filter((e) => e.methodology);
 
   const summary = buildExecutiveSummary(entries, locale);
   const recommendations = buildRecommendations(entries, locale);
@@ -1117,11 +1287,20 @@ function ProductPage({
         {headlineEntries.length > 0 && (
           <View id={`p${index}-kennzahlen`} wrap={false}>
             <Text style={styles.sectionTitle}>{t.headlineTitle}</Text>
-            <View style={styles.headlineRow}>
-              {headlineEntries.map((e) => (
-                <HeadlineCard key={e.key} entry={e} locale={locale} />
-              ))}
-            </View>
+            {primaryKpiEntries.length > 0 && (
+              <View style={styles.primaryKpiRow}>
+                {primaryKpiEntries.map((e) => (
+                  <PrimaryKpiCard key={e.key} entry={e} locale={locale} />
+                ))}
+              </View>
+            )}
+            {secondaryKpiEntries.length > 0 && (
+              <View style={styles.headlineRow}>
+                {secondaryKpiEntries.map((e) => (
+                  <HeadlineCard key={e.key} entry={e} locale={locale} />
+                ))}
+              </View>
+            )}
           </View>
         )}
 
@@ -1192,41 +1371,9 @@ function ProductPage({
         <ListCard title={SECTION_LABELS.operations[locale]} entries={operationsEntries} locale={locale} />
         {operationsEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
 
-        {(methodologyEntries.length > 0 || entries.some((e) => e.derived) || entries.some((e) => e.source)) && (
-          // Kein wrap={false} auf dem Container: die Zahl der Methodik-
-          // Zeilen wächst mit der Anzahl der Metriken mit methodology-Text
-          // (inzwischen ~10+) — ein starr unteilbarer Block kann dann größer
-          // als eine Seite werden und den PDF-Export zum Absturz bringen
-          // (siehe die gleiche Korrektur bei AlarmCard/ComponentFaultsCard).
-          <View id={`p${index}-methodik`} style={styles.methodologyBlock}>
-            <Text style={styles.methodologyTitle}>{t.methodologyTitle.toUpperCase()}</Text>
-            {entries.some((e) => e.derived) && (
-              <View wrap={false}>
-                <Text style={styles.methodologyLine}>
-                  {locale === "de"
-                    ? `Mit "${DERIVED_LABEL.de}" markierte Kennzahlen werden von uns aus mehreren Rohwerten des Geräts berechnet (z. B. gemittelt oder als Quote) — sie sind kein einzelner, vom Gerät direkt gemeldeter Messwert.`
-                    : `Metrics marked "${DERIVED_LABEL.en}" are calculated by us from several raw device readings (e.g. averaged or as a rate) — not a single value reported directly by the device.`}
-                </Text>
-              </View>
-            )}
-            {entries.some((e) => e.source === "databackup") && (
-              <View wrap={false}>
-                <Text style={styles.methodologyLine}>
-                  {locale === "de"
-                    ? `Mit "DataBackup" markierte Kennzahlen kommen aus der separaten Backup-Software-Oberfläche (ProtectManager), nicht aus dem DeviceManager der Storage-Appliance selbst — alle anderen Kennzahlen dieses Abschnitts kommen vom Storage-Gerät.`
-                    : `Metrics marked "DataBackup" come from the separate backup software interface (ProtectManager), not from the storage appliance's own DeviceManager — every other metric in this section comes from the storage device.`}
-                </Text>
-              </View>
-            )}
-            {methodologyEntries.map((e) => (
-              <View key={e.key} wrap={false}>
-                <Text style={styles.methodologyLine}>
-                  {e.label[locale]}: {e.methodology![locale]}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
+        <View id={`p${index}-methodik`}>
+          <MethodologySection entries={entries} locale={locale} />
+        </View>
 
         {(product.componentFaults?.length ?? 0) > 0 && (
           <View id={`p${index}-auffaelligkeiten`} style={{ marginBottom: 14 }}>
@@ -1249,9 +1396,16 @@ function ProductPage({
       </View>
 
       <View style={styles.footer} fixed>
-        <Text style={styles.footerText}>
-          {t.generatedBy} · info@ferrion.at · ferrion.at · {t.createdOn} {formatDateTime(generatedAt, locale)}
-        </Text>
+        <Text style={styles.footerText}>{t.generatedBy} · info@ferrion.at · ferrion.at</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <Text style={styles.footerText}>
+            {t.createdOn} {formatDateTime(generatedAt, locale)}
+          </Text>
+          <Text
+            style={styles.footerPage}
+            render={({ pageNumber, totalPages }) => `${t.page} ${pageNumber} / ${totalPages}`}
+          />
+        </View>
       </View>
     </Page>
   );

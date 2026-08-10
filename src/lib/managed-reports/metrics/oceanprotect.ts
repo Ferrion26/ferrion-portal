@@ -27,6 +27,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     aggregation: "avg",
     section: "availability",
     trendGood: "up",
+    headline: true,
     derived: true,
     source: "databackup",
     methodology: {

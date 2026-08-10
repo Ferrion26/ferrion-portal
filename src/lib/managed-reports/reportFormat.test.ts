@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatValue, formatDateTime, daysToThreshold } from "./reportFormat";
+import { formatValue, formatDateTime, daysToThreshold, trendGrowthPerDay, normalizeComponentLabel } from "./reportFormat";
 
 describe("formatValue", () => {
   it("formats percent with one decimal and a % sign", () => {
@@ -79,5 +79,53 @@ describe("daysToThreshold", () => {
   it("returns null with fewer than 2 points", () => {
     expect(daysToThreshold([{ recordedAt: day(0), value: 10 }], 80)).toBeNull();
     expect(daysToThreshold([], 80)).toBeNull();
+  });
+});
+
+describe("trendGrowthPerDay", () => {
+  const day = (n: number) => new Date(2026, 0, 1 + n).toISOString();
+
+  it("returns the least-squares slope in value units per day", () => {
+    const points = [
+      { recordedAt: day(0), value: 10 },
+      { recordedAt: day(1), value: 20 },
+      { recordedAt: day(2), value: 30 },
+    ];
+    expect(trendGrowthPerDay(points)).toBeCloseTo(10, 5);
+  });
+
+  it("returns a negative slope for a decreasing trend", () => {
+    const points = [
+      { recordedAt: day(0), value: 50 },
+      { recordedAt: day(1), value: 40 },
+      { recordedAt: day(2), value: 30 },
+    ];
+    expect(trendGrowthPerDay(points)).toBeCloseTo(-10, 5);
+  });
+
+  it("returns null with fewer than 2 points", () => {
+    expect(trendGrowthPerDay([{ recordedAt: day(0), value: 10 }])).toBeNull();
+  });
+});
+
+describe("normalizeComponentLabel", () => {
+  it("removes the space between a short uppercase abbreviation and its number", () => {
+    expect(normalizeComponentLabel("PSU 0")).toBe("PSU0");
+    expect(normalizeComponentLabel("BBU 1")).toBe("BBU1");
+    expect(normalizeComponentLabel("CTE 0.A")).toBe("CTE0.A");
+  });
+
+  it("leaves already-tight abbreviations unchanged", () => {
+    expect(normalizeComponentLabel("PSU0")).toBe("PSU0");
+    expect(normalizeComponentLabel("P9")).toBe("P9");
+  });
+
+  it("does not touch real multi-word names with mixed case", () => {
+    expect(normalizeComponentLabel("Fan Module 3")).toBe("Fan Module 3");
+    expect(normalizeComponentLabel("Controller A")).toBe("Controller A");
+  });
+
+  it("normalizes multiple occurrences in the same string", () => {
+    expect(normalizeComponentLabel("PSU 0 / PSU 1")).toBe("PSU0 / PSU1");
   });
 });
