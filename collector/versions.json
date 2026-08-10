@@ -18,5 +18,10 @@
     "version": "1.5.0",
     "releasedAt": "2026-08-10",
     "notes": "Neue Healthchecks: DME IQ (Remote-Support-Kanal, kritisch wenn deaktiviert), Multi-Faktor-Authentifizierung (Hinweis wenn nicht eingerichtet), Dateisysteme, alle Storage Pools, Gehäuse-Inventar. Erfasst außerdem den vom Kunden vergebenen Gerätenamen (z. B. \"hwe-clu1\")."
+  },
+  {
+    "version": "1.6.0",
+    "releasedAt": "2026-08-10",
+    "notes": "OceanProtect DataBackup: neue Kennzahlen für die eigene Kapazität/Reduktionsrate (getrennt von der Storage-Pool-Reduktion), sowie die Anzahl geschützter Ressourcen (bisher nur ungeschützt gezählt)."
   }
 ]

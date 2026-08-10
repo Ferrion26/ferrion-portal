@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { daysToThreshold } from "@/lib/managed-reports/reportFormat";
 
 const GOLD = "#c9a84c";
 const WIDTH = 640;
@@ -8,8 +9,22 @@ const HEIGHT = 200;
 const PAD = { top: 14, right: 14, bottom: 26, left: 32 };
 
 const COPY = {
-  de: { title: "Kapazitätsverlauf", sub: "Füllgrad Storage Pool über den Berichtszeitraum", table: "Als Tabelle anzeigen", date: "Datum", value: "Füllgrad" },
-  en: { title: "Capacity Trend", sub: "Storage pool fill level over the reporting period", table: "Show as table", date: "Date", value: "Fill Level" },
+  de: {
+    title: "Kapazitätsverlauf",
+    sub: "Füllgrad Storage Pool über den Berichtszeitraum",
+    table: "Als Tabelle anzeigen",
+    date: "Datum",
+    value: "Füllgrad",
+    daysTo: (d: number, pct: number) => `> ${d} Tage bis ${pct} %`,
+  },
+  en: {
+    title: "Capacity Trend",
+    sub: "Storage pool fill level over the reporting period",
+    table: "Show as table",
+    date: "Date",
+    value: "Fill Level",
+    daysTo: (d: number, pct: number) => `> ${d} days to reach ${pct}%`,
+  },
 };
 
 function formatDate(iso: string, locale: "de" | "en") {
@@ -55,6 +70,9 @@ export function CapacityTrendChart({ points, locale }: { points: { recordedAt: s
   const hovered = hoverIndex !== null ? coords[hoverIndex] : null;
   const tooltipLeft = hovered ? Math.min(Math.max(hovered.x, PAD.left + 55), WIDTH - PAD.right - 55) : 0;
 
+  const days80 = daysToThreshold(points, 80);
+  const days100 = daysToThreshold(points, 100);
+
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3 mb-2">
@@ -66,6 +84,13 @@ export function CapacityTrendChart({ points, locale }: { points: { recordedAt: s
           {t.table}
         </button>
       </div>
+
+      {(days80 !== null || days100 !== null) && (
+        <div className="flex gap-6 mb-3">
+          {days80 !== null && <p className="text-sm font-bold text-white">{t.daysTo(days80, 80)}</p>}
+          {days100 !== null && <p className="text-sm font-bold text-white">{t.daysTo(days100, 100)}</p>}
+        </div>
+      )}
 
       <div className="relative">
         <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="w-full h-auto" role="img" aria-label={`${t.title}: ${t.sub}`}>

@@ -712,7 +712,7 @@ async function collectDataBackupMetrics(config, token) {
   const authHeaders = { "X-Auth-Token": token };
   const rawEndpoints = {};
 
-  const [sla, jobStatsByResource, jobStatsBySla, airgap, drills, ransomware, protection, nodeDetail] = await Promise.all([
+  const [sla, jobStatsByResource, jobStatsBySla, airgap, drills, ransomware, protection, nodeDetail, dbCapacity] = await Promise.all([
     fetchOptional(config, "SLA-Compliance", requestJson(config, joinUrl(dataBackupUrl, "/v1/protected-objects/sla-compliance"), { headers: authHeaders })),
     fetchOptional(
       config,
@@ -753,6 +753,12 @@ async function collectDataBackupMetrics(config, token) {
     // Liefert u. a. die Versionsnummer der Backup-Software selbst (getrennt
     // von der Storage-Firmware, die der DeviceManager unter PRODUCTVERSION meldet).
     fetchOptional(config, "Backup-Node-Details", requestJson(config, joinUrl(dataBackupUrl, "/v1/clusters/backup/local-node/detail"), { headers: authHeaders })),
+    // DataBackup-eigene Kapazität/Reduktionsrate (Cluster-Ebene) — unabhängig
+    // von der Storage-Kapazität aus collectStorageMetrics: dort wird der
+    // Storage Pool selbst ausgewertet (SPACEREDUCTIONRATE), hier die
+    // logische vs. physische Backup-Datenmenge auf DataBackup-Ebene
+    // (deutlich höhere Reduktionsrate wegen vieler ähnlicher Backup-Kopien).
+    fetchOptional(config, "DataBackup-Kapazität", requestJson(config, joinUrl(dataBackupUrl, "/v1/clusters/capacity"), { headers: authHeaders })),
   ]);
   captureRaw(rawEndpoints, "/v1/protected-objects/sla-compliance", sla);
   captureRaw(rawEndpoints, "/v1/report-data/jobs?type=RESOURCE", jobStatsByResource);
@@ -761,6 +767,7 @@ async function collectDataBackupMetrics(config, token) {
   captureRaw(rawEndpoints, "/v1/anti-ransomware/recovery-drill/plans/statistics", drills);
   captureRaw(rawEndpoints, "/v1/resource/protection/summary", protection);
   captureRaw(rawEndpoints, "/v1/clusters/backup/local-node/detail", nodeDetail);
+  captureRaw(rawEndpoints, "/v1/clusters/capacity", dbCapacity);
 
   const metrics = [];
   let dataBackupVersion;
@@ -839,6 +846,7 @@ async function collectDataBackupMetrics(config, token) {
     }
     if (protectedCount + unprotectedCount > 0) {
       metrics.push({ key: "resource_protection_rate", value: (protectedCount / (protectedCount + unprotectedCount)) * 100, unit: "%" });
+      metrics.push({ key: "resources_protected_count", value: protectedCount, unit: "count" });
       metrics.push({ key: "resources_unprotected_count", value: unprotectedCount, unit: "count" });
     }
     if (byType.size > 0) {
@@ -848,6 +856,18 @@ async function collectDataBackupMetrics(config, token) {
 
   if (nodeDetail?.body?.version) {
     dataBackupVersion = String(nodeDetail.body.version);
+  }
+
+  // KB -> TB: 1 TB = 1024^3 KB (writeCapacity/consumedCapacity sind laut
+  // Doku in KB angegeben, anders als bei den Storage-Kapazitätswerten oben,
+  // die in 512-Byte-Sektoren gemeldet werden).
+  if (dbCapacity) {
+    const ratio = Number(dbCapacity.body.spaceReductionRate);
+    if (Number.isFinite(ratio)) metrics.push({ key: "databackup_reduction_ratio", value: ratio, unit: "x" });
+    const logicalKB = Number(dbCapacity.body.writeCapacity);
+    if (Number.isFinite(logicalKB)) metrics.push({ key: "databackup_logical_usage_tb", value: logicalKB / 1024 ** 3, unit: "TB" });
+    const physicalKB = Number(dbCapacity.body.consumedCapacity);
+    if (Number.isFinite(physicalKB)) metrics.push({ key: "databackup_physical_usage_tb", value: physicalKB / 1024 ** 3, unit: "TB" });
   }
 
   return { metrics, dataBackupVersion, resourceBreakdown, topJobFailures, rawEndpoints };

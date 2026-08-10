@@ -49,7 +49,7 @@ function PillRow({ text, status }: { text: string; status: MetricStatus }) {
   );
 }
 
-function Donut({ percent }: { percent: number }) {
+function Donut({ percent, label = "Pool" }: { percent: number; label?: string }) {
   const clamped = Math.max(0, Math.min(100, percent));
   const r = 42;
   const circumference = 2 * Math.PI * r;
@@ -73,7 +73,7 @@ function Donut({ percent }: { percent: number }) {
         {clamped.toLocaleString("de-DE", { maximumFractionDigits: 1 })}%
       </text>
       <text x="50" y="62" textAnchor="middle" className="fill-gray-500" style={{ fontSize: 9 }}>
-        Pool
+        {label}
       </text>
     </svg>
   );
@@ -115,6 +115,10 @@ export function ReportDashboardView({
   const capacityEntries = entries.filter((e) => e.section === "capacity");
   const fillLevelEntry = capacityEntries.find((e) => e.key === "storage_pool_fill_level");
   const capacityStatCards = capacityEntries.filter((e) => e.key !== "storage_pool_fill_level");
+
+  const protectionRateEntry = entries.find((e) => e.key === "resource_protection_rate");
+  const protectedCountEntry = entries.find((e) => e.key === "resources_protected_count");
+  const unprotectedCountEntry = entries.find((e) => e.key === "resources_unprotected_count");
 
   const headlineStatus = STATUS_STYLES[summary.issueCount === 0 ? "good" : entries.some((e) => deriveStatus(e) === "critical") ? "critical" : "warning"];
 
@@ -299,6 +303,35 @@ export function ReportDashboardView({
                         <p className="text-sm font-semibold text-white">{formatValue(e, locale)}</p>
                       </div>
                     ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {protectionRateEntry && (
+              <div className="bg-[#111827] border border-white/10 p-6">
+                <h3 className="text-sm font-semibold text-white mb-4">{locale === "de" ? "Ressourcenschutz" : "Resource Protection"}</h3>
+                <div className="flex items-center gap-6 flex-wrap">
+                  <Donut percent={protectionRateEntry.value} label={locale === "de" ? "Schutz" : "Protection"} />
+                  <div className="flex gap-6">
+                    {protectedCountEntry && (
+                      <div>
+                        <p className="text-2xl font-bold text-white">{formatValue(protectedCountEntry, locale)}</p>
+                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-[#c9a84c]" />
+                          {locale === "de" ? "Geschützt" : "Protected"}
+                        </p>
+                      </div>
+                    )}
+                    {unprotectedCountEntry && (
+                      <div>
+                        <p className="text-2xl font-bold text-white">{formatValue(unprotectedCountEntry, locale)}</p>
+                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-gray-600" />
+                          {locale === "de" ? "Ungeschützt" : "Unprotected"}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

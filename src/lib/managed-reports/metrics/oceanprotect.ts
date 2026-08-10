@@ -66,6 +66,14 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     },
   },
   {
+    key: "resources_protected_count",
+    label: { de: "Geschützte Ressourcen", en: "Protected Resources" },
+    format: "count",
+    aggregation: "last",
+    section: "availability",
+    source: "databackup",
+  },
+  {
     key: "resources_unprotected_count",
     label: { de: "Ungeschützte Ressourcen", en: "Unprotected Resources" },
     format: "count",
@@ -148,6 +156,38 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
       de: "Berechnet als genutzte Kapazität × Gesamtreduktionsrate — kein eigener Rohwert des Geräts, sondern die logische Kapazität, die ohne Deduplizierung/Kompression belegt wäre (\"Pre-Savings\").",
       en: "Calculated as used capacity × overall reduction ratio — not a raw device value, but the logical capacity that would be used without deduplication/compression (\"pre-savings\").",
     },
+  },
+  {
+    // DataBackup-eigene Reduktionsrate (Cluster-Ebene, /v1/clusters/capacity)
+    // — deutlich höher als data_reduction_ratio oben, weil sie auf sich
+    // stark ähnelnden Backup-Kopien (viele Snapshots derselben Ressource)
+    // rechnet statt auf Primärdaten im Storage Pool. Getrennt benannt, damit
+    // beide Werte nicht verwechselt werden.
+    key: "databackup_reduction_ratio",
+    label: { de: "DataBackup – Reduction Ratio", en: "DataBackup – Reduction Ratio" },
+    unit: "×",
+    format: "ratio",
+    aggregation: "avg",
+    section: "capacity",
+    source: "databackup",
+  },
+  {
+    key: "databackup_logical_usage_tb",
+    label: { de: "DataBackup – Logische Nutzung", en: "DataBackup – Logical Usage" },
+    unit: "TB",
+    format: "tb",
+    aggregation: "last",
+    section: "capacity",
+    source: "databackup",
+  },
+  {
+    key: "databackup_physical_usage_tb",
+    label: { de: "DataBackup – Physische Nutzung", en: "DataBackup – Physical Usage" },
+    unit: "TB",
+    format: "tb",
+    aggregation: "last",
+    section: "capacity",
+    source: "databackup",
   },
   {
     key: "system_availability",

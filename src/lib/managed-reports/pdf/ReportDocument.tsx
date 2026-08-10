@@ -3,7 +3,7 @@ import path from "path";
 import { Document, Page, View, Text, Image, StyleSheet, Svg, Path as SvgPath, Circle, Line, Font, Link } from "@react-pdf/renderer";
 import { QuarterSummaryEntry } from "../aggregate";
 import { ReportSection } from "../metrics";
-import { formatValue, formatDateTime } from "../reportFormat";
+import { formatValue, formatDateTime, daysToThreshold } from "../reportFormat";
 import { deriveStatus, buildExecutiveSummary, buildRecommendations, buildBannerHighlights, MetricStatus } from "../reportNarrative";
 
 // Ohne das hier splittet react-pdf lange Wörter (Seriennummern, lange
@@ -220,6 +220,7 @@ const styles = StyleSheet.create({
   trendCard: { backgroundColor: WHITE, borderRadius: 8, padding: TREND_CARD_PADDING, marginTop: 10 },
   trendTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 1 },
   trendSub: { fontSize: 6.5, color: GRAY, marginBottom: 6 },
+  trendForecast: { fontSize: 8, fontFamily: "Helvetica-Bold", color: INK },
 
   methodologyBlock: { backgroundColor: WHITE, borderRadius: 8, padding: 12, marginBottom: 10 },
   methodologyTitle: { fontSize: 8, fontFamily: "Helvetica-Bold", color: GRAY, marginBottom: 4 },
@@ -333,8 +334,8 @@ function Donut({ percent, label }: { percent: number; label: string }) {
 }
 
 const TREND_COPY = {
-  de: { title: "Kapazitätsverlauf", sub: "Füllgrad Storage Pool über den Berichtszeitraum" },
-  en: { title: "Capacity Trend", sub: "Storage pool fill level over the reporting period" },
+  de: { title: "Kapazitätsverlauf", sub: "Füllgrad Storage Pool über den Berichtszeitraum", daysTo: (d: number, pct: number) => `> ${d} Tage bis ${pct} %` },
+  en: { title: "Capacity Trend", sub: "Storage pool fill level over the reporting period", daysTo: (d: number, pct: number) => `> ${d} days to reach ${pct}%` },
 };
 
 function formatTrendDate(iso: string, locale: "de" | "en") {
@@ -365,10 +366,19 @@ function CapacityTrendCard({ points, locale }: { points: { recordedAt: string; v
   const areaPath = `${linePath} L ${coords[coords.length - 1].x.toFixed(2)} ${PAD.top + plotH} L ${coords[0].x.toFixed(2)} ${PAD.top + plotH} Z`;
   const last = coords[coords.length - 1];
 
+  const days80 = daysToThreshold(points, 80);
+  const days100 = daysToThreshold(points, 100);
+
   return (
     <View style={styles.trendCard} wrap={false}>
       <Text style={styles.trendTitle}>{t.title}</Text>
       <Text style={styles.trendSub}>{t.sub}</Text>
+      {(days80 !== null || days100 !== null) && (
+        <View style={{ flexDirection: "row", gap: 16, marginBottom: 8 }}>
+          {days80 !== null && <Text style={styles.trendForecast}>{t.daysTo(days80, 80)}</Text>}
+          {days100 !== null && <Text style={styles.trendForecast}>{t.daysTo(days100, 100)}</Text>}
+        </View>
+      )}
       <View style={{ width: W, height: H, position: "relative" }}>
         <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
           {[0, 50, 100].map((g) => {
@@ -790,6 +800,47 @@ function CapacitySection({
   );
 }
 
+const PROTECTION_COPY = {
+  de: { title: "Ressourcenschutz", protected: "Geschützt", unprotected: "Ungeschützt", gaugeLabel: "Schutz" },
+  en: { title: "Resource Protection", protected: "Protected", unprotected: "Unprotected", gaugeLabel: "Protection" },
+};
+
+// Analog zu CapacitySection, aber für den Ressourcenschutz-Anteil
+// (resource_protection_rate) — zeigt dieselbe Kennzahl, die im
+// DataBackup-Dashboard als "Resource Protection"-Kreisdiagramm mit
+// Geschützt-/Ungeschützt-Zahlen darunter erscheint.
+function ProtectionSection({ entries, locale }: { entries: QuarterSummaryEntry[]; locale: "de" | "en" }) {
+  const rateEntry = entries.find((e) => e.key === "resource_protection_rate");
+  if (!rateEntry) return null;
+  const t = PROTECTION_COPY[locale];
+  const protectedEntry = entries.find((e) => e.key === "resources_protected_count");
+  const unprotectedEntry = entries.find((e) => e.key === "resources_unprotected_count");
+  return (
+    <View wrap={false}>
+      <Text style={styles.sectionTitle}>{t.title}</Text>
+      <View style={styles.capacityCard}>
+        <View style={styles.capacityBody}>
+          <Donut percent={rateEntry.value} label={t.gaugeLabel} />
+          <View style={styles.capacityTileGrid}>
+            {protectedEntry && (
+              <View style={styles.capacityTile}>
+                <Text style={styles.capacityTileLabel}>{t.protected}</Text>
+                <Text style={styles.capacityTileValue}>{formatValue(protectedEntry, locale)}</Text>
+              </View>
+            )}
+            {unprotectedEntry && (
+              <View style={styles.capacityTile}>
+                <Text style={styles.capacityTileLabel}>{t.unprotected}</Text>
+                <Text style={styles.capacityTileValue}>{formatValue(unprotectedEntry, locale)}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const COPY = {
   de: {
     title: "MANAGED SERVICE REPORT",
@@ -1103,6 +1154,10 @@ function ProductPage({
           <CapacitySection entries={capacityEntries} locale={locale} trend={product.capacityTrend} />
         </View>
 
+        <View id={`p${index}-schutz`}>
+          <ProtectionSection entries={entries} locale={locale} />
+        </View>
+
         {(product.resourceBreakdown?.length ?? 0) > 0 && (
           <View style={{ marginBottom: 14 }}>
             <ResourceBreakdownCard breakdown={product.resourceBreakdown!} locale={locale} />
@@ -1261,6 +1316,7 @@ function productTocSections(product: ProductReportData, locale: "de" | "en", ind
   const hasHeadline = entries.some((e) => e.headline);
   const hasInfra = entries.some((e) => e.section === "hardware" && (e.format === "count" || e.format === "percent"));
   const hasCapacity = entries.some((e) => e.section === "capacity");
+  const hasProtection = entries.some((e) => e.key === "resource_protection_rate");
   const hasMethodology =
     entries.some((e) => e.methodology) || entries.some((e) => e.derived) || entries.some((e) => e.source);
 
@@ -1269,6 +1325,7 @@ function productTocSections(product: ProductReportData, locale: "de" | "en", ind
     { label: t.recTitle, anchor: `p${index}-schritte` },
     hasInfra && { label: t.infraTitle, anchor: `p${index}-infra` },
     hasCapacity && { label: SECTION_LABELS.capacity[locale], anchor: `p${index}-kapazitaet` },
+    hasProtection && { label: PROTECTION_COPY[locale].title, anchor: `p${index}-schutz` },
     (product.componentFaults?.length ?? 0) > 0 && { label: t.detailsTitle, anchor: `p${index}-auffaelligkeiten` },
     (product.componentChecks?.length ?? 0) > 0 && { label: t.successTitle, anchor: `p${index}-geprueft` },
     hasMethodology && { label: t.methodologyTitle, anchor: `p${index}-methodik` },

@@ -43,3 +43,33 @@ export function formatDateTime(date: Date | string, locale: "de" | "en" = "de") 
     timeZone: "Europe/Vienna",
   }).format(new Date(date));
 }
+
+// Einfache lineare Projektion über die Kapazitäts-Trendpunkte (kein
+// eigener Forecast-Endpunkt am Gerät nötig) — Grundlage für die
+// "Tage bis 80 %/100 %"-Anzeige über der Trendgrafik, wie sie das
+// DataBackup-Dashboard selbst zeigt (dort serverseitig berechnet). Least-
+// Squares-Steigung über (Tag-Offset, Wert) der vorhandenen Punkte, dann ab
+// dem letzten Punkt bis zur Schwelle hochgerechnet. null, wenn die Schwelle
+// bereits erreicht ist, der Trend fällt/stagniert (Steigung <= 0), oder
+// weniger als 2 Punkte vorliegen.
+export function daysToThreshold(points: { recordedAt: string; value: number }[], threshold: number): number | null {
+  if (points.length < 2) return null;
+  const t0 = new Date(points[0].recordedAt).getTime();
+  const xs = points.map((p) => (new Date(p.recordedAt).getTime() - t0) / 86_400_000);
+  const ys = points.map((p) => p.value);
+  const n = xs.length;
+  const sumX = xs.reduce((a, b) => a + b, 0);
+  const sumY = ys.reduce((a, b) => a + b, 0);
+  const sumXY = xs.reduce((a, x, i) => a + x * ys[i], 0);
+  const sumXX = xs.reduce((a, x) => a + x * x, 0);
+  const denominator = n * sumXX - sumX * sumX;
+  if (denominator === 0) return null;
+  const slope = (n * sumXY - sumX * sumY) / denominator;
+  if (slope <= 0) return null;
+
+  const lastValue = ys[n - 1];
+  if (lastValue >= threshold) return null;
+  const lastX = xs[n - 1];
+  const thresholdX = lastX + (threshold - lastValue) / slope;
+  return Math.max(0, Math.round(thresholdX - lastX));
+}

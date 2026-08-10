@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatValue, formatDateTime } from "./reportFormat";
+import { formatValue, formatDateTime, daysToThreshold } from "./reportFormat";
 
 describe("formatValue", () => {
   it("formats percent with one decimal and a % sign", () => {
@@ -36,5 +36,48 @@ describe("formatDateTime", () => {
 
   it("accepts an ISO string as well as a Date", () => {
     expect(formatDateTime("2026-07-15T10:00:00.000Z", "de")).toBe("15.07.2026, 12:00");
+  });
+});
+
+describe("daysToThreshold", () => {
+  const day = (n: number) => new Date(2026, 0, 1 + n).toISOString();
+
+  it("projects forward using the least-squares slope of a linear trend", () => {
+    const points = [
+      { recordedAt: day(0), value: 10 },
+      { recordedAt: day(1), value: 20 },
+      { recordedAt: day(2), value: 30 },
+    ];
+    // Slope 10%/day, last value 30% -> 5 days to reach 80%.
+    expect(daysToThreshold(points, 80)).toBe(5);
+  });
+
+  it("returns null when the trend is flat or decreasing", () => {
+    const flat = [
+      { recordedAt: day(0), value: 40 },
+      { recordedAt: day(1), value: 40 },
+      { recordedAt: day(2), value: 40 },
+    ];
+    expect(daysToThreshold(flat, 80)).toBeNull();
+
+    const decreasing = [
+      { recordedAt: day(0), value: 50 },
+      { recordedAt: day(1), value: 40 },
+      { recordedAt: day(2), value: 30 },
+    ];
+    expect(daysToThreshold(decreasing, 80)).toBeNull();
+  });
+
+  it("returns null when the threshold is already reached", () => {
+    const points = [
+      { recordedAt: day(0), value: 70 },
+      { recordedAt: day(1), value: 90 },
+    ];
+    expect(daysToThreshold(points, 80)).toBeNull();
+  });
+
+  it("returns null with fewer than 2 points", () => {
+    expect(daysToThreshold([{ recordedAt: day(0), value: 10 }], 80)).toBeNull();
+    expect(daysToThreshold([], 80)).toBeNull();
   });
 });
