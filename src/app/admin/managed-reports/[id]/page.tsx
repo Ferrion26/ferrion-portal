@@ -15,6 +15,7 @@ import GenerateReportButton from "./GenerateReportButton";
 import PublishButton from "./PublishButton";
 import DeleteReportButton from "./DeleteReportButton";
 import ReplicationNoteForm from "./ReplicationNoteForm";
+import LocationForm from "./LocationForm";
 import RetentionForm from "./RetentionForm";
 
 export const metadata = { title: "Subscription — Managed Reports — Admin" };
@@ -78,12 +79,13 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
             </>
           )}
         </p>
-        {(subscription.deviceName || subscription.deviceModel || subscription.deviceSoftwareVersion || subscription.deviceSerialNumber) && (
+        {(subscription.deviceName || subscription.deviceModel || subscription.deviceSoftwareVersion || subscription.deviceSerialNumber || subscription.location) && (
           <p className="text-sm text-gray-500 mt-1">
             {subscription.deviceName && <>Gerätename: {subscription.deviceName} · </>}
             {subscription.deviceModel && <>Modell: {subscription.deviceModel} · </>}
             {subscription.deviceSoftwareVersion && <>Version: {subscription.deviceSoftwareVersion} · </>}
             {subscription.deviceSerialNumber && <>SN: {subscription.deviceSerialNumber}</>}
+            {subscription.location && <> · Standort: {subscription.location}</>}
           </p>
         )}
         {subscription.collectorVersion && (
@@ -153,6 +155,15 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
           </tbody>
         </table>
         {ingestions.length === 30 && <p className="text-xs text-gray-500 mt-3">Zeigt die letzten 30 Einträge.</p>}
+      </div>
+
+      <div className="bg-[#111827] border border-white/10 p-6">
+        <h2 className="font-semibold text-white mb-2">Standort</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Physischer Standort des Geräts (z. B. Rechenzentrum/Serverraum) — die REST-API meldet nur die Position einer Komponente innerhalb des Gehäuses, nicht
+          den Standort des Systems selbst. Erscheint im Bericht (PDF + Web).
+        </p>
+        <LocationForm subscriptionId={subscription.id} initialValue={subscription.location} />
       </div>
 
       <div className="bg-[#111827] border border-white/10 p-6">

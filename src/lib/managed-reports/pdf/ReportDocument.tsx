@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { Document, Page, View, Text, Image, StyleSheet, Svg, Path as SvgPath, Circle, Font, Link } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet, Svg, Path as SvgPath, Circle, Line, Font, Link } from "@react-pdf/renderer";
 import { QuarterSummaryEntry } from "../aggregate";
 import { ReportSection } from "../metrics";
 import { formatValue, formatDateTime } from "../reportFormat";
@@ -211,6 +211,10 @@ const styles = StyleSheet.create({
   capacityTileLabel: { fontSize: 6.5, color: GRAY, marginBottom: 2 },
   capacityTileValue: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: INK },
 
+  trendCard: { backgroundColor: WHITE, borderRadius: 8, padding: 13, marginTop: 10 },
+  trendTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 1 },
+  trendSub: { fontSize: 6.5, color: GRAY, marginBottom: 6 },
+
   methodologyBlock: { backgroundColor: WHITE, borderRadius: 8, padding: 12, marginBottom: 10 },
   methodologyTitle: { fontSize: 8, fontFamily: "Helvetica-Bold", color: GRAY, marginBottom: 4 },
   methodologyLine: { fontSize: 7, color: MUTED, lineHeight: 1.4, marginBottom: 3 },
@@ -317,6 +321,74 @@ function Donut({ percent, label }: { percent: number; label: string }) {
           {clamped.toLocaleString("de-DE", { maximumFractionDigits: 1 })}%
         </Text>
         <Text style={{ fontSize: 6, color: GRAY, marginTop: 1 }}>{label}</Text>
+      </View>
+    </View>
+  );
+}
+
+const TREND_COPY = {
+  de: { title: "Kapazitätsverlauf", sub: "Füllgrad Storage Pool über den Berichtszeitraum" },
+  en: { title: "Capacity Trend", sub: "Storage pool fill level over the reporting period" },
+};
+
+function formatTrendDate(iso: string, locale: "de" | "en") {
+  return new Intl.DateTimeFormat(locale === "de" ? "de-AT" : "en-US", { day: "2-digit", month: "2-digit", timeZone: "Europe/Vienna" }).format(new Date(iso));
+}
+
+// Statische Entsprechung von CapacityTrendChart.tsx (Web-Ansicht) — ohne
+// Hover/Tooltip, da ein PDF nicht interaktiv ist, aber mit identischer
+// fixer 0–100%-Y-Achse, damit Kurven über mehrere Berichte hinweg optisch
+// vergleichbar bleiben. Achsenbeschriftungen werden bewusst NICHT als
+// <Text> innerhalb von <Svg> platziert (deren fontSize-Handling in
+// react-pdfs SVG-Subset ist nicht zuverlässig dokumentiert), sondern wie
+// beim Donut oben als absolut positionierter Overlay über der Grafik.
+function CapacityTrendCard({ points, locale }: { points: { recordedAt: string; value: number }[]; locale: "de" | "en" }) {
+  if (points.length < 2) return null;
+  const t = TREND_COPY[locale];
+  const W = 415;
+  const H = 108;
+  const PAD = { top: 6, right: 4, bottom: 15, left: 20 };
+  const plotW = W - PAD.left - PAD.right;
+  const plotH = H - PAD.top - PAD.bottom;
+
+  const coords = points.map((p, i) => ({
+    x: PAD.left + (points.length === 1 ? plotW / 2 : (i / (points.length - 1)) * plotW),
+    y: PAD.top + plotH * (1 - Math.max(0, Math.min(100, p.value)) / 100),
+  }));
+  const linePath = coords.map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(2)} ${c.y.toFixed(2)}`).join(" ");
+  const areaPath = `${linePath} L ${coords[coords.length - 1].x.toFixed(2)} ${PAD.top + plotH} L ${coords[0].x.toFixed(2)} ${PAD.top + plotH} Z`;
+  const last = coords[coords.length - 1];
+
+  return (
+    <View style={styles.trendCard} wrap={false}>
+      <Text style={styles.trendTitle}>{t.title}</Text>
+      <Text style={styles.trendSub}>{t.sub}</Text>
+      <View style={{ width: W, height: H, position: "relative" }}>
+        <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+          {[0, 50, 100].map((g) => {
+            const y = PAD.top + plotH * (1 - g / 100);
+            return <Line key={g} x1={PAD.left} x2={W - PAD.right} y1={y} y2={y} stroke="#E5E7EB" strokeWidth={1} />;
+          })}
+          <SvgPath d={areaPath} fill={GOLD} opacity={0.12} />
+          <SvgPath d={linePath} fill="none" stroke={GOLD} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          <Circle cx={last.x} cy={last.y} r={2.6} fill={GOLD} />
+        </Svg>
+        <View style={{ position: "absolute", top: 0, left: 0, width: W, height: H }}>
+          {[0, 50, 100].map((g) => {
+            const y = PAD.top + plotH * (1 - g / 100);
+            return (
+              <Text key={g} style={{ position: "absolute", top: y - 3, left: 0, fontSize: 5.5, color: GRAY }}>
+                {g}%
+              </Text>
+            );
+          })}
+          <Text style={{ position: "absolute", bottom: 0, left: PAD.left, fontSize: 6, color: GRAY }}>
+            {formatTrendDate(points[0].recordedAt, locale)}
+          </Text>
+          <Text style={{ position: "absolute", bottom: 0, right: PAD.right, fontSize: 6, color: GRAY }}>
+            {formatTrendDate(points[points.length - 1].recordedAt, locale)}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -679,7 +751,15 @@ function TopFailuresCards({ failures, locale }: { failures: TopJobFailures; loca
 
 // Kapazitätskarte im Mockup-Stil: Donut für den Storage-Pool-Füllgrad links,
 // alle übrigen Kapazitäts-Kennzahlen als Kachel-Raster daneben.
-function CapacitySection({ entries, locale }: { entries: QuarterSummaryEntry[]; locale: "de" | "en" }) {
+function CapacitySection({
+  entries,
+  locale,
+  trend,
+}: {
+  entries: QuarterSummaryEntry[];
+  locale: "de" | "en";
+  trend?: { recordedAt: string; value: number }[];
+}) {
   if (entries.length === 0) return null;
   const fillEntry = entries.find((e) => e.key === "storage_pool_fill_level");
   const tileEntries = entries.filter((e) => e.key !== "storage_pool_fill_level");
@@ -699,6 +779,7 @@ function CapacitySection({ entries, locale }: { entries: QuarterSummaryEntry[]; 
           </View>
         </View>
       </View>
+      {trend && <CapacityTrendCard points={trend} locale={locale} />}
     </View>
   );
 }
@@ -713,6 +794,7 @@ const COPY = {
     package: "Servicestufe",
     sn: "SN",
     model: "Modell",
+    location: "Standort",
     version: "Version",
     overallStatus: "Gesamtstatus",
     createdOn: "Erstellt am",
@@ -737,6 +819,7 @@ const COPY = {
     package: "Service Tier",
     sn: "SN",
     model: "Model",
+    location: "Location",
     version: "Version",
     overallStatus: "Overall Status",
     createdOn: "Generated on",
@@ -808,6 +891,9 @@ export interface ProductReportData {
   // Bei OceanProtect eine zweite, unabhängige Versionsnummer (Backup-
   // Software, getrennt von der Storage-Firmware in deviceSoftwareVersion).
   dataBackupVersion?: string;
+  // Physischer Standort des Geräts (z. B. "Rechenzentrum Nonntal"), von
+  // einem Admin manuell gepflegt.
+  location?: string;
   entries: QuarterSummaryEntry[];
   recentAlarms?: AlarmSample[];
   resourceBreakdown?: ResourceBreakdownEntry[];
@@ -906,6 +992,12 @@ function ProductPage({
             <Text style={styles.sidebarFieldValue}>{product.deviceModel}</Text>
           </View>
         )}
+        {product.location && (
+          <View style={styles.sidebarField}>
+            <Text style={styles.sidebarFieldLabel}>{t.location.toUpperCase()}</Text>
+            <Text style={styles.sidebarFieldValue}>{product.location}</Text>
+          </View>
+        )}
         {product.packageLabel && (
           <View style={styles.sidebarField}>
             <Text style={styles.sidebarFieldLabel}>{t.package.toUpperCase()}</Text>
@@ -1002,7 +1094,7 @@ function ProductPage({
         )}
 
         <View id={`p${index}-kapazitaet`}>
-          <CapacitySection entries={capacityEntries} locale={locale} />
+          <CapacitySection entries={capacityEntries} locale={locale} trend={product.capacityTrend} />
         </View>
 
         {(product.resourceBreakdown?.length ?? 0) > 0 && (

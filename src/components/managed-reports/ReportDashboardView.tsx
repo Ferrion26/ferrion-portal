@@ -176,6 +176,12 @@ export function ReportDashboardView({
                 <p className="text-sm text-white font-medium">{product.deviceModel}</p>
               </div>
             )}
+            {product.location && (
+              <div>
+                <p className="text-[10px] text-gray-500 uppercase tracking-widest">{locale === "de" ? "Standort" : "Location"}</p>
+                <p className="text-sm text-white font-medium">{product.location}</p>
+              </div>
+            )}
             {product.packageLabel && (
               <div>
                 <p className="text-[10px] text-gray-500 uppercase tracking-widest">{locale === "de" ? "Servicestufe" : "Service Tier"}</p>

@@ -91,6 +91,7 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
     deviceName: subscription.deviceName ?? undefined,
     deviceSoftwareVersion: subscription.deviceSoftwareVersion ?? undefined,
     dataBackupVersion: subscription.dataBackupVersion ?? undefined,
+    location: subscription.location ?? undefined,
     entries,
     recentAlarms: recentAlarms.length > 0 ? recentAlarms : undefined,
     resourceBreakdown: (subscription.resourceBreakdown as unknown as ProductReportData["resourceBreakdown"]) ?? undefined,

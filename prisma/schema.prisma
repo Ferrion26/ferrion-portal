@@ -243,6 +243,12 @@ model ManagedServiceSubscription {
   // OceanProtect X8000 repliziert") — im Bericht als Hinweiszeile gezeigt.
   replicationNote String?
 
+  // Physischer Standort des Geräts (z. B. "Rechenzentrum Nonntal"), von
+  // einem Admin manuell gepflegt — die REST-API meldet nur die Position
+  // einer Komponente INNERHALB des Gehäuses (z. B. "CTE0.0"), nicht den
+  // Standort des Systems selbst.
+  location String?
+
   // Voreingestellter Berichtszyklus für diese Subscription (z. B. Quartal
   // bei OceanProtect, Monat bei OceanStor desselben Kunden) — steuert nur
   // die Vorauswahl im Admin-Bereich, keine automatische Erstellung.

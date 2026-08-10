@@ -10,6 +10,9 @@ const patchSchema = z.object({
   // anderen System zu dokumentieren (z. B. "Snapshots werden von
   // OceanProtect X8000 repliziert"), der im Bericht als Hinweiszeile erscheint.
   replicationNote: z.string().max(500).nullable().optional(),
+  // Physischer Standort des Geräts (z. B. "Rechenzentrum Nonntal"), von
+  // einem Admin manuell gepflegt.
+  location: z.string().max(200).nullable().optional(),
   // Wie viele Tage Rohdaten (Kennzahlen, Ingestions, behobene Findings) für
   // diese Subscription aufbewahrt werden, bevor der Cleanup-Cron sie löscht.
   // null = unbegrenzt.
@@ -32,6 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   // (Hinweis, Aufbewahrungsfrist) rufen denselben Endpunkt getrennt auf.
   const data: Record<string, unknown> = {};
   if ("replicationNote" in body) data.replicationNote = parsed.data.replicationNote;
+  if ("location" in body) data.location = parsed.data.location;
   if ("metricsRetentionDays" in body) data.metricsRetentionDays = parsed.data.metricsRetentionDays;
 
   const subscription = await prisma.managedServiceSubscription.update({
