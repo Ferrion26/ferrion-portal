@@ -47,9 +47,11 @@ export const config = {
      * - /api/cron/* (Vercel Cron triggers, authenticated via CRON_SECRET)
      * - /_next/* (static assets)
      * - /logos, /images, /favicon.ico (public files)
+     * - /.well-known/security.txt, /security.txt (RFC 9116 — must be
+     *   fetchable by anyone without a session, that's the whole point)
      * The authorized() callback above decides per-request whether a
      * session is actually required.
      */
-    "/((?!login|api/auth|api/collector|api/cron|_next/static|_next/image|logos|images|favicon\\.ico|sitemap\\.xml|robots\\.txt).*)",
+    "/((?!login|api/auth|api/collector|api/cron|_next/static|_next/image|logos|images|favicon\\.ico|sitemap\\.xml|robots\\.txt|\\.well-known/security\\.txt|security\\.txt).*)",
   ],
 };
