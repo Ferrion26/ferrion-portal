@@ -36,6 +36,12 @@ const PAGE_PADDING = 24;
 // — sicherer bei einer absolut positionierten Sidebar auf mehrseitigen,
 // automatisch umbrechenden <Page>-Inhalten.
 const PAGE_WIDTH = 595.28;
+// Tatsächlich nutzbare Breite innerhalb von `main` (nach dessen eigenem
+// paddingHorizontal) — Grundlage für Elemente wie die Trendgrafik, deren
+// react-pdf-Svg-Breite ein fester Punktwert sein muss und sich nicht wie
+// eine normale View automatisch an den Container anpasst.
+const MAIN_CONTENT_WIDTH = PAGE_WIDTH - SIDEBAR_WIDTH - 2 * PAGE_PADDING;
+const TREND_CARD_PADDING = 13;
 
 const STATUS_COLORS: Record<MetricStatus, { bg: string; text: string; dot: string }> = {
   good: { bg: "#DCFCE7", text: "#15803D", dot: "#22C55E" },
@@ -211,7 +217,7 @@ const styles = StyleSheet.create({
   capacityTileLabel: { fontSize: 6.5, color: GRAY, marginBottom: 2 },
   capacityTileValue: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: INK },
 
-  trendCard: { backgroundColor: WHITE, borderRadius: 8, padding: 13, marginTop: 10 },
+  trendCard: { backgroundColor: WHITE, borderRadius: 8, padding: TREND_CARD_PADDING, marginTop: 10 },
   trendTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 1 },
   trendSub: { fontSize: 6.5, color: GRAY, marginBottom: 6 },
 
@@ -345,7 +351,7 @@ function formatTrendDate(iso: string, locale: "de" | "en") {
 function CapacityTrendCard({ points, locale }: { points: { recordedAt: string; value: number }[]; locale: "de" | "en" }) {
   if (points.length < 2) return null;
   const t = TREND_COPY[locale];
-  const W = 415;
+  const W = MAIN_CONTENT_WIDTH - 2 * TREND_CARD_PADDING;
   const H = 108;
   const PAD = { top: 6, right: 4, bottom: 15, left: 20 };
   const plotW = W - PAD.left - PAD.right;
