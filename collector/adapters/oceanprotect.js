@@ -749,7 +749,14 @@ async function collectDataBackupMetrics(config, token) {
       requestJson(config, joinUrl(dataBackupUrl, "/v1/anti-ransomware/recovery-drill/plans/statistics"), { headers: authHeaders })
     ),
     fetchRansomwareDetectStats(config, dataBackupUrl, authHeaders, rawEndpoints),
-    fetchOptional(config, "Ressourcenschutz-Übersicht", requestJson(config, joinUrl(dataBackupUrl, "/v1/resource/protection/summary?sub_type=null"), { headers: authHeaders })),
+    // sub_type ist laut Doku optional (Filter auf bestimmte Subtypen) — die
+    // Doku-Beispiel-URL zeigt "?sub_type=null" nur als Notation für "kein
+    // Wert übergeben", nicht als buchstäblich zu sendenden Parameter. Ein
+    // Test gegen ein reales Gerät bestätigte: mit dem literalen "null" als
+    // Query-Wert lehnt das Gerät die Anfrage ab (Endpoint fehlte dadurch
+    // bisher komplett in den erfassten Rohdaten) — ganz ohne Parameter
+    // liefert derselbe Endpoint die vollständige, ungefilterte Liste.
+    fetchOptional(config, "Ressourcenschutz-Übersicht", requestJson(config, joinUrl(dataBackupUrl, "/v1/resource/protection/summary"), { headers: authHeaders })),
     // Liefert u. a. die Versionsnummer der Backup-Software selbst (getrennt
     // von der Storage-Firmware, die der DeviceManager unter PRODUCTVERSION meldet).
     fetchOptional(config, "Backup-Node-Details", requestJson(config, joinUrl(dataBackupUrl, "/v1/clusters/backup/local-node/detail"), { headers: authHeaders })),
@@ -858,13 +865,26 @@ async function collectDataBackupMetrics(config, token) {
     dataBackupVersion = String(nodeDetail.body.version);
   }
 
-  // KB -> TB: 1 TB = 1024^3 KB (writeCapacity/consumedCapacity sind laut
-  // Doku in KB angegeben, anders als bei den Storage-Kapazitätswerten oben,
-  // die in 512-Byte-Sektoren gemeldet werden).
+  // KB -> TB: 1 TB = 1024^3 KB (writeCapacity/consumedCapacity/
+  // totalCopyLogicalCapacity sind laut Doku bzw. realer Geräteantwort in KB
+  // angegeben, anders als bei den Storage-Kapazitätswerten oben, die in
+  // 512-Byte-Sektoren gemeldet werden).
+  //
+  // copySpaceReductionRate/totalCopyLogicalCapacity sind NICHT in der REST-
+  // Doku dokumentiert, werden vom realen Gerät aber zusätzlich zu den
+  // dokumentierten Feldern geliefert (bestätigt über rawEndpoints eines
+  // echten Ingests) — und sind die tatsächlich richtigen Felder für die
+  // "Data Reduction"-Kachel des DataBackup-Dashboards: writeCapacity/
+  // spaceReductionRate beschreiben die GESAMTE Cluster-Kapazität (praktisch
+  // identisch mit data_reduction_ratio oben), während copySpaceReduction­
+  // Rate/totalCopyLogicalCapacity sich nur auf die Backup-KOPIEN beziehen
+  // (viele ähnliche Sicherungsversionen -> deutlich höhere Reduktionsrate).
+  // Fällt auf die dokumentierten Cluster-Felder zurück, falls ein Gerät die
+  // Copy-Felder (noch) nicht liefert.
   if (dbCapacity) {
-    const ratio = Number(dbCapacity.body.spaceReductionRate);
+    const ratio = Number(dbCapacity.body.copySpaceReductionRate ?? dbCapacity.body.spaceReductionRate);
     if (Number.isFinite(ratio)) metrics.push({ key: "databackup_reduction_ratio", value: ratio, unit: "x" });
-    const logicalKB = Number(dbCapacity.body.writeCapacity);
+    const logicalKB = Number(dbCapacity.body.totalCopyLogicalCapacity ?? dbCapacity.body.writeCapacity);
     if (Number.isFinite(logicalKB)) metrics.push({ key: "databackup_logical_usage_tb", value: logicalKB / 1024 ** 3, unit: "TB" });
     const physicalKB = Number(dbCapacity.body.consumedCapacity);
     if (Number.isFinite(physicalKB)) metrics.push({ key: "databackup_physical_usage_tb", value: physicalKB / 1024 ** 3, unit: "TB" });

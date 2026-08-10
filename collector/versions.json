@@ -23,5 +23,10 @@
     "version": "1.6.0",
     "releasedAt": "2026-08-10",
     "notes": "OceanProtect DataBackup: neue Kennzahlen für die eigene Kapazität/Reduktionsrate (getrennt von der Storage-Pool-Reduktion), sowie die Anzahl geschützter Ressourcen (bisher nur ungeschützt gezählt)."
+  },
+  {
+    "version": "1.6.1",
+    "releasedAt": "2026-08-10",
+    "notes": "Fehlerkorrektur: Ressourcenschutz-Übersicht (/v1/resource/protection/summary) lief bisher ins Leere, weil der Query-Parameter \"sub_type=null\" wörtlich statt als Platzhalter für \"kein Filter\" gesendet wurde. Kapazitäts-Reduktionsrate von DataBackup verwendet jetzt die kopie-spezifischen Felder (copySpaceReductionRate/totalCopyLogicalCapacity) statt der allgemeinen Cluster-Kapazität, die praktisch identisch mit der Storage-Pool-Reduktionsrate war."
   }
 ]
