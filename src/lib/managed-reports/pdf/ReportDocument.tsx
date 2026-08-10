@@ -152,9 +152,15 @@ const styles = StyleSheet.create({
   listCardTitle: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 2 },
   listCardSub: { fontSize: 7.5, color: GRAY, marginBottom: 8 },
   listRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 5.5, borderBottomWidth: 1, borderBottomColor: ROW_DIVIDER },
-  listRowLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6, paddingRight: 8 },
+  // minWidth: 0 ist der Standard-Flexbox-"Trick" gegen einen flex:1-Kind mit
+  // Textinhalt: ohne das ist die implizite Mindestbreite eines Flex-Kinds
+  // sein UNGEBROCHENER Inhalt, nicht 0 — bei einem knapp zu langen Label
+  // (z. B. "Replikationspaare mit Fehlstatus") kann das dazu führen, dass
+  // der Wert rechts direkt ins Label hineinrutscht statt sauber daneben zu
+  // stehen (beobachtet mit echten Berichtsdaten).
+  listRowLeft: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 6, paddingRight: 10 },
   listRowLabel: { fontSize: 8.5, color: INK },
-  listRowRight: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 0 },
+  listRowRight: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 0, minWidth: 46 },
   listRowValue: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: INK },
   listRowTrend: { fontSize: 6.5 },
 
@@ -307,9 +313,12 @@ function HeadlineCard({ entry, locale }: { entry: QuarterSummaryEntry; locale: "
         <Text style={styles.headlineLabel}>{label}</Text>
       </View>
       <Text style={styles.headlineValue}>{formatValue(entry, locale)}</Text>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+      {/* Tag UNTER statt NEBEN der Pille: bei 4 Karten pro Zeile (schmalere
+          Spalte seit der Sidebar) reicht die Breite nicht für Pille +
+          "berechnet · DataBackup" nebeneinander — das lief ineinander. */}
+      <View>
         <StatusPill status={status} text={headlinePillText(entry, status, locale)} />
-        {tags && <Text style={styles.derivedTag}>{tags}</Text>}
+        {tags && <Text style={{ ...styles.derivedTag, marginTop: 3 }}>{tags}</Text>}
       </View>
     </View>
   );
@@ -496,17 +505,52 @@ function ComponentFaultsCard({ faults, locale }: { faults: ComponentFault[]; loc
   );
 }
 
-const MAX_SUCCESSFUL_CHECKS_SHOWN = 60;
+// Nach der Gruppierung großer Kategorien (siehe groupSuccessfulChecks) bleibt
+// die Zeilenzahl auch bei sehr großen Anlagen überschaubar — der Deckel ist
+// nur noch ein Sicherheitsnetz für den unrealistischen Fall vieler
+// unterschiedlicher, mittelgroßer Kategorien.
+const MAX_SUCCESSFUL_CHECKS_SHOWN = 150;
 
 // Letzte Sektion des Berichts: JEDE erfolgreich geprüfte Komponente (nicht
 // nur die auffälligen) mit ihrem tatsächlichen REST-API-Ergebnis als Beleg —
 // Gegenstück zu ComponentFaultsCard, das nur die Auffälligkeiten zeigt.
+// Kategorien mit vielen gleichartigen Einträgen (z. B. 232 Festplatten bei
+// einer großen Anlage) würden das Zeilenlimit allein aufbrauchen, bevor
+// andere Kategorien (Storage Pools, Dateisysteme, Gehäuse, …) überhaupt an
+// die Reihe kommen — genau deshalb hatte der Bericht "fehlende" Kategorien,
+// obwohl sie erhoben wurden. Kategorien über dem Schwellenwert werden daher
+// zu einer einzigen Zusammenfassungszeile zusammengefasst, kleinere
+// Kategorien bleiben einzeln sichtbar (z. B. Controller A/B namentlich).
+const GROUP_CATEGORY_THRESHOLD = 12;
+
+function groupSuccessfulChecks(ok: ComponentCheck[], locale: "de" | "en") {
+  const byCategory = new Map<string, ComponentCheck[]>();
+  for (const c of ok) {
+    if (!byCategory.has(c.category)) byCategory.set(c.category, []);
+    byCategory.get(c.category)!.push(c);
+  }
+  const rows: { category: string; id: string; description: string }[] = [];
+  for (const [category, items] of Array.from(byCategory.entries())) {
+    if (items.length > GROUP_CATEGORY_THRESHOLD) {
+      rows.push({
+        category,
+        id: locale === "de" ? `${items.length} geprüft` : `${items.length} checked`,
+        description: locale === "de" ? "Alle Normal" : "All Normal",
+      });
+    } else {
+      for (const item of items) rows.push({ category: item.category, id: item.id, description: item.description });
+    }
+  }
+  return rows;
+}
+
 function SuccessfulChecksCard({ checks, locale }: { checks: ComponentCheck[]; locale: "de" | "en" }) {
   const t = COPY[locale];
   const ok = checks.filter((c) => c.ok);
   if (ok.length === 0) return null;
-  const shown = ok.slice(0, MAX_SUCCESSFUL_CHECKS_SHOWN);
-  const overflow = ok.length - shown.length;
+  const rows = groupSuccessfulChecks(ok, locale);
+  const shown = rows.slice(0, MAX_SUCCESSFUL_CHECKS_SHOWN);
+  const overflow = rows.length - shown.length;
   return (
     // Kein wrap={false} auf dem Container: bis zu MAX_SUCCESSFUL_CHECKS_SHOWN
     // (60) Zeilen sprengen als starr unteilbarer Block leicht eine Seite
