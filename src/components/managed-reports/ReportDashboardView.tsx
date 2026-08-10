@@ -11,6 +11,7 @@ import { formatValue } from "@/lib/managed-reports/reportFormat";
 import { formatDate } from "@/lib/utils";
 import type { ProductReportData } from "@/lib/managed-reports/pdf/ReportDocument";
 import ReportDownloadButton from "./ReportDownloadButton";
+import { CapacityTrendChart } from "./CapacityTrendChart";
 
 // Interaktive Web-Ansicht eines Berichts — Ergänzung zum PDF-Download, nicht
 // dessen Ersatz. Nutzt dieselben reinen Auswertungsfunktionen wie das PDF
@@ -169,6 +170,12 @@ export function ReportDashboardView({
                 <p className="text-sm text-white font-medium">{product.deviceName}</p>
               </div>
             )}
+            {product.deviceModel && (
+              <div>
+                <p className="text-[10px] text-gray-500 uppercase tracking-widest">{locale === "de" ? "Modell" : "Model"}</p>
+                <p className="text-sm text-white font-medium">{product.deviceModel}</p>
+              </div>
+            )}
             {product.packageLabel && (
               <div>
                 <p className="text-[10px] text-gray-500 uppercase tracking-widest">{locale === "de" ? "Servicestufe" : "Service Tier"}</p>
@@ -288,6 +295,12 @@ export function ReportDashboardView({
                     ))}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {product.capacityTrend && product.capacityTrend.length > 1 && (
+              <div className="bg-[#111827] border border-white/10 p-6">
+                <CapacityTrendChart points={product.capacityTrend} locale={locale} />
               </div>
             )}
           </div>

@@ -34,15 +34,30 @@ async function loadFindings(subscriptionId: string, periodStart: Date, periodEnd
   });
 }
 
+// Rohe Einzelwerte (nicht der aggregierte Quartalswert) für die
+// Kapazitäts-Trendgrafik — der Collector meldet täglich, also reicht das
+// für eine glatte Linie über den Berichtszeitraum, ohne Downsampling.
+const CAPACITY_TREND_METRIC_KEY = "storage_pool_fill_level";
+
+async function loadCapacityTrend(subscriptionId: string, periodStart: Date, periodEnd: Date) {
+  const readings = await prisma.managedServiceMetric.findMany({
+    where: { subscriptionId, metricKey: CAPACITY_TREND_METRIC_KEY, recordedAt: { gte: periodStart, lt: periodEnd } },
+    orderBy: { recordedAt: "asc" },
+    select: { recordedAt: true, value: true },
+  });
+  return readings.map((r) => ({ recordedAt: r.recordedAt.toISOString(), value: r.value }));
+}
+
 async function buildProductData(subscription: SubscriptionWithCustomer, periodStart: Date, periodEnd: Date): Promise<ProductReportData> {
   const product = PRODUCTS.find((p) => p.slug === subscription.productSlug);
   const packageLabel = product?.managedServices?.packages.find(
     (p) => p.id === subscription.packageId.toLowerCase()
   )?.name;
 
-  const [entries, findings] = await Promise.all([
+  const [entries, findings, capacityTrend] = await Promise.all([
     computeQuarterSummary(subscription.id, periodStart, periodEnd),
     loadFindings(subscription.id, periodStart, periodEnd),
+    loadCapacityTrend(subscription.id, periodStart, periodEnd),
   ]);
 
   const recentAlarms: ProductReportData["recentAlarms"] = findings
@@ -83,6 +98,7 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
     componentFaults: componentFaults.length > 0 ? componentFaults : undefined,
     componentChecks: (subscription.componentChecks as unknown as ProductReportData["componentChecks"]) ?? undefined,
     replicationNote: subscription.replicationNote ?? undefined,
+    capacityTrend: capacityTrend.length > 1 ? capacityTrend : undefined,
   };
 }
 

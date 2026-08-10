@@ -819,6 +819,11 @@ export interface ProductReportData {
   // Jede geprüfte Komponente (auch die normalen) — letzte Sektion des Berichts.
   componentChecks?: ComponentCheck[];
   replicationNote?: string;
+  // Rohe Einzelwerte des Storage-Pool-Füllgrads über den Berichtszeitraum
+  // (täglich vom Collector gemeldet) — Grundlage für die Kapazitäts-
+  // Trendgrafik in der Web-Ansicht. Nur gesetzt, wenn mindestens 2 Punkte
+  // vorliegen (sonst gibt es keine Linie zu zeichnen).
+  capacityTrend?: { recordedAt: string; value: number }[];
 }
 
 export interface ReportDocumentProps {
@@ -893,6 +898,12 @@ function ProductPage({
           <View style={styles.sidebarField}>
             <Text style={styles.sidebarFieldLabel}>{(locale === "de" ? "Gerätename" : "Device Name").toUpperCase()}</Text>
             <Text style={styles.sidebarFieldValue}>{product.deviceName}</Text>
+          </View>
+        )}
+        {product.deviceModel && (
+          <View style={styles.sidebarField}>
+            <Text style={styles.sidebarFieldLabel}>{t.model.toUpperCase()}</Text>
+            <Text style={styles.sidebarFieldValue}>{product.deviceModel}</Text>
           </View>
         )}
         {product.packageLabel && (

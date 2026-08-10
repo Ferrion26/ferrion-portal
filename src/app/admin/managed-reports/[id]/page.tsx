@@ -72,7 +72,9 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
           {openFindingsCount > 0 && (
             <>
               {" · "}
-              <span className="text-amber-400">{openFindingsCount} offene Alarme/Fehler</span>
+              <Link href={`/admin/managed-reports/${subscription.id}/findings`} className="text-amber-400 hover:text-amber-300 underline decoration-dotted">
+                {openFindingsCount} offene Alarme/Fehler
+              </Link>
             </>
           )}
         </p>
