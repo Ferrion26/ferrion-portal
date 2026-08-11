@@ -88,6 +88,21 @@ export const ingestPayloadSchema = z.object({
         )
         .max(50)
         .optional(),
+      // Übersicht je Volume (NetApp) — Name/SVM/Aggregat/Zustand/Kapazität,
+      // vom letzten Ingest überschrieben, keine Historie (wie capacityBreakdown).
+      volumes: z
+        .array(
+          z.object({
+            name: z.string().min(1).max(100),
+            svm: z.string().max(100),
+            aggregate: z.string().max(200),
+            state: z.string().max(50),
+            usedTB: z.number().min(0),
+            totalTB: z.number().min(0),
+          })
+        )
+        .max(300)
+        .optional(),
       // Die am häufigsten fehlgeschlagenen Jobs, getrennt nach SLA-Richtlinie
       // und nach Ressource.
       topJobFailures: z

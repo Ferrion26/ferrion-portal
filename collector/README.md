@@ -49,7 +49,8 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    `netapp`-Block im dritten `devices`-Eintrag in `config.example.json`.
    Der Service-Account braucht mindestens **read-only** Zugriff auf
    `/api/cluster`, `/api/cluster/nodes`, `/api/storage/aggregates`,
-   `/api/storage/disks`, `/api/storage/shelves` und `/api/support/ems/events`
+   `/api/storage/disks`, `/api/storage/shelves`, `/api/storage/volumes` und
+   `/api/support/ems/events`
    (in ONTAP System Manager z. B. über die eingebaute `readonly`-Rolle, oder
    eine eigene Rolle mit `GET`-Rechten auf die genannten REST-Pfade). Quelle
    der Endpunkte: NetApps öffentliche ONTAP-REST-API-Referenz

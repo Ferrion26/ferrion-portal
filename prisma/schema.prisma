@@ -244,6 +244,12 @@ model ManagedServiceSubscription {
   // Historie.
   capacityBreakdown Json?
 
+  // Übersicht je Volume (aktuell nur NetApp) — Name/SVM/Aggregat/Zustand/
+  // Kapazität, vom letzten Ingest überschrieben, keine Historie (wie
+  // capacityBreakdown; einzelne Fehlstatus-Ereignisse landen stattdessen
+  // wie gewohnt in DeviceFinding über componentFaults).
+  volumes Json?
+
   // Freitext, den ein Admin manuell pflegt, um eine Beziehung zu einem
   // anderen System zu dokumentieren (z. B. "Snapshots werden von
   // OceanProtect X8000 repliziert") — im Bericht als Hinweiszeile gezeigt.

@@ -411,6 +411,51 @@ export function ReportDashboardView({
                 </div>
               </div>
             )}
+
+            {(product.volumes?.length ?? 0) > 0 && (
+              <div className="bg-[#111827] border border-white/10 p-6">
+                <h3 className="text-sm font-semibold text-white mb-1">{locale === "de" ? "Volumes" : "Volumes"}</h3>
+                <p className="text-xs text-gray-500 mb-4">
+                  {locale === "de"
+                    ? "Alle erfassten Volumes mit Zustand, SVM/Aggregat-Zugehörigkeit und Kapazität."
+                    : "All discovered volumes with state, SVM/aggregate membership, and capacity."}
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-gray-500 border-b border-white/10">
+                        <th className="font-medium py-2 pr-3">{locale === "de" ? "Volume" : "Volume"}</th>
+                        <th className="font-medium py-2 pr-3">SVM</th>
+                        <th className="font-medium py-2 pr-3">{locale === "de" ? "Aggregat" : "Aggregate"}</th>
+                        <th className="font-medium py-2 pr-3">{locale === "de" ? "Zustand" : "State"}</th>
+                        <th className="font-medium py-2 pr-3 text-right">{locale === "de" ? "Genutzt" : "Used"}</th>
+                        <th className="font-medium py-2 text-right">{locale === "de" ? "Gesamt" : "Total"}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...product.volumes!]
+                        .sort((a, b) => b.totalTB - a.totalTB)
+                        .map((v, i) => {
+                          const ok = v.state === "online";
+                          const s = STATUS_STYLES[ok ? "good" : "critical"];
+                          return (
+                            <tr key={v.name + i} className="border-t border-white/5">
+                              <td className="py-2 pr-3 text-white font-medium">{v.name}</td>
+                              <td className="py-2 pr-3 text-gray-400">{v.svm}</td>
+                              <td className="py-2 pr-3 text-gray-400">{v.aggregate}</td>
+                              <td className="py-2 pr-3">
+                                <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.bg} ${s.text}`}>{v.state}</span>
+                              </td>
+                              <td className="py-2 pr-3 text-right text-white">{v.usedTB.toLocaleString(locale === "de" ? "de-DE" : "en-US", { maximumFractionDigits: 1 })} TB</td>
+                              <td className="py-2 text-right text-white">{v.totalTB.toLocaleString(locale === "de" ? "de-DE" : "en-US", { maximumFractionDigits: 1 })} TB</td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="bg-black/30 border border-white/10 p-6">

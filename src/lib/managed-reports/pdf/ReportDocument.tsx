@@ -896,6 +896,78 @@ function SuccessfulChecksCard({ checks, locale }: { checks: ComponentCheck[]; lo
   );
 }
 
+const VOLUME_OVERVIEW_COPY = {
+  de: {
+    title: "Volumes",
+    sub: "Alle erfassten Volumes mit Zustand, SVM/Aggregat-Zugehörigkeit und Kapazität.",
+    name: "Volume",
+    svm: "SVM",
+    aggregate: "Aggregat",
+    state: "Zustand",
+    used: "Genutzt",
+    total: "Gesamt",
+  },
+  en: {
+    title: "Volumes",
+    sub: "All discovered volumes with state, SVM/aggregate membership, and capacity.",
+    name: "Volume",
+    svm: "SVM",
+    aggregate: "Aggregate",
+    state: "State",
+    used: "Used",
+    total: "Total",
+  },
+};
+
+// Zeilenlimit wie bei den anderen großen Listenkarten (ComponentFaultsCard/
+// SuccessfulChecksCard) — bei sehr vielen Volumes bleibt die Tabelle
+// überschaubar, die größten Volumes zuerst (für den Admin i. d. R.
+// relevanter als die kleinsten).
+const MAX_VOLUMES_SHOWN = 40;
+
+function VolumeOverviewCard({ volumes, locale }: { volumes: VolumeOverviewEntry[]; locale: "de" | "en" }) {
+  const t = VOLUME_OVERVIEW_COPY[locale];
+  const n = (v: number) => v.toLocaleString(locale === "de" ? "de-DE" : "en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const sorted = [...volumes].sort((a, b) => b.totalTB - a.totalTB);
+  const shown = sorted.slice(0, MAX_VOLUMES_SHOWN);
+  const overflow = sorted.length - shown.length;
+  return (
+    // Kein wrap={false} auf dem Container: bis zu MAX_VOLUMES_SHOWN Zeilen
+    // sprengen als starr unteilbarer Block leicht eine Seite (siehe dieselbe
+    // Korrektur bei AlarmCard/ComponentFaultsCard/SuccessfulChecksCard).
+    <View style={styles.tableCardBlock}>
+      <Text style={styles.listCardTitle}>{t.title}</Text>
+      <Text style={styles.listCardSub}>{t.sub}</Text>
+      <View style={{ ...styles.tableHeaderRow, marginTop: 4 }}>
+        <Text style={{ ...styles.tableHeaderCell, width: 90 }}>{t.name}</Text>
+        <Text style={{ ...styles.tableHeaderCell, width: 60 }}>{t.svm}</Text>
+        <Text style={{ ...styles.tableHeaderCell, flex: 1 }}>{t.aggregate}</Text>
+        <Text style={{ ...styles.tableHeaderCell, width: 45 }}>{t.state}</Text>
+        <Text style={{ ...styles.tableHeaderCell, width: 55, textAlign: "right" }}>{t.used}</Text>
+        <Text style={{ ...styles.tableHeaderCell, width: 55, textAlign: "right" }}>{t.total}</Text>
+      </View>
+      {shown.map((v, i) => {
+        const ok = v.state === "online";
+        return (
+          <View key={v.name + i} wrap={false} style={{ ...styles.tableRow, alignItems: "flex-start" }}>
+            <Text style={{ width: 90, fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, paddingRight: 6 }}>{v.name}</Text>
+            <Text style={{ width: 60, fontSize: 7.5, color: GRAY, paddingRight: 4 }}>{v.svm}</Text>
+            <Text style={{ flex: 1, fontSize: 7.5, color: GRAY, paddingRight: 6 }}>{normalizeComponentLabel(v.aggregate)}</Text>
+            <Text style={{ width: 45, fontSize: 7.5, color: ok ? STATUS_COLORS.good.dot : STATUS_COLORS.critical.dot }}>{v.state}</Text>
+            <Text style={{ width: 55, fontSize: 8, color: INK, textAlign: "right" }}>{n(v.usedTB)} TB</Text>
+            <Text style={{ width: 55, fontSize: 8, color: INK, textAlign: "right" }}>{n(v.totalTB)} TB</Text>
+          </View>
+        );
+      })}
+      {overflow > 0 && (
+        <Text style={{ ...styles.methodologyLine, marginTop: 6 }}>
+          {locale === "de" ? `+ ${overflow} weitere Volumes (nach Größe sortiert).` : `+ ${overflow} more volumes (sorted by size).`}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 const RESOURCE_BREAKDOWN_COPY = {
   de: { title: "Ressourcen nach Typ", type: "Typ", protectedCol: "Geschützt", unprotectedCol: "Ungeschützt" },
   en: { title: "Resources by Type", type: "Type", protectedCol: "Protected", unprotectedCol: "Unprotected" },
@@ -1236,6 +1308,18 @@ export interface CapacityBreakdownEntry {
   cloudTarget?: string;
 }
 
+// Übersicht je Volume (aktuell nur NetApp) — Ergänzung zu ComponentCheck/
+// ComponentFault (die nur den Status zeigen): hier zusätzlich SVM, Aggregat
+// und Kapazität je Volume, für einen echten Überblick statt nur "OK/Fehler".
+export interface VolumeOverviewEntry {
+  name: string;
+  svm: string;
+  aggregate: string;
+  state: string;
+  usedTB: number;
+  totalTB: number;
+}
+
 export interface TopJobFailures {
   bySla: { name: string; failedCount: number }[];
   byResource: { name: string; failedCount: number }[];
@@ -1307,6 +1391,8 @@ export interface ProductReportData {
   // Kapazität je Storage-Pool/Aggregat (z. B. NetApp) — siehe
   // CapacityBreakdownEntry.
   capacityBreakdown?: CapacityBreakdownEntry[];
+  // Übersicht je Volume (aktuell nur NetApp) — siehe VolumeOverviewEntry.
+  volumes?: VolumeOverviewEntry[];
 }
 
 export interface ReportDocumentProps {
@@ -1516,6 +1602,12 @@ function ProductPage({
           )}
         </View>
 
+        {(product.volumes?.length ?? 0) > 0 && (
+          <View id={`p${index}-volumes`} style={{ marginBottom: 14 }}>
+            <VolumeOverviewCard volumes={product.volumes!} locale={locale} />
+          </View>
+        )}
+
         <View id={`p${index}-schutz`}>
           <ProtectionSection entries={entries} locale={locale} />
         </View>
@@ -1658,6 +1750,7 @@ function productTocSections(product: ProductReportData, locale: "de" | "en", ind
     { label: t.recTitle, anchor: `p${index}-schritte` },
     hasInfra && { label: t.infraTitle, anchor: `p${index}-infra` },
     hasCapacity && { label: SECTION_LABELS.capacity[locale], anchor: `p${index}-kapazitaet` },
+    (product.volumes?.length ?? 0) > 0 && { label: VOLUME_OVERVIEW_COPY[locale].title, anchor: `p${index}-volumes` },
     hasProtection && { label: PROTECTION_COPY[locale].title, anchor: `p${index}-schutz` },
     (product.componentFaults?.length ?? 0) > 0 && { label: t.detailsTitle, anchor: `p${index}-auffaelligkeiten` },
     (product.componentChecks?.length ?? 0) > 0 && { label: t.successTitle, anchor: `p${index}-geprueft` },

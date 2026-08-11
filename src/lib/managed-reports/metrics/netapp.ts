@@ -155,6 +155,18 @@ export const NETAPP_METRICS: MetricDefinition[] = [
     },
   },
   {
+    key: "volumes_faulty",
+    label: { de: "Volumes mit Fehlstatus", en: "Unhealthy Volumes" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+    methodology: {
+      de: "Anzahl der Volumes mit state ungleich \"online\" (Quelle: ONTAP REST API GET /api/storage/volumes).",
+      en: "Number of volumes with state other than \"online\" (source: ONTAP REST API GET /api/storage/volumes).",
+    },
+  },
+  {
     key: "shelves_unhealthy",
     label: { de: "Disk-Shelves mit Fehlstatus", en: "Unhealthy Disk Shelves" },
     format: "count",

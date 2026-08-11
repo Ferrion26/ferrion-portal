@@ -74,7 +74,7 @@ async function collect(config) {
   const base = joinUrl(na.managementUrl, "/api");
   const authHeaders = { Authorization: `Basic ${Buffer.from(`${na.username}:${na.password}`).toString("base64")}` };
 
-  const [cluster, nodes, aggregates, disks, shelves, emsEvents] = await Promise.all([
+  const [cluster, nodes, aggregates, disks, shelves, volumes, emsEvents] = await Promise.all([
     requestJson(config, joinUrl(base, "/cluster?fields=name,uuid,version"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/cluster/nodes?fields=name,model,serial_number,version,uptime,state,ha"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/storage/aggregates?fields=uuid,name,state,space,block_storage"), { headers: authHeaders }),
@@ -87,6 +87,15 @@ async function collect(config) {
       config,
       "Shelf-Status",
       requestJson(config, joinUrl(base, "/storage/shelves?fields=name,state,model,serial_number,frus"), { headers: authHeaders })
+    ),
+    fetchOptional(
+      config,
+      "Volume-Status",
+      requestJson(
+        config,
+        joinUrl(base, "/storage/volumes?fields=name,state,style,svm,aggregates,space.size,space.used"),
+        { headers: authHeaders }
+      )
     ),
     fetchOptional(
       config,
@@ -105,6 +114,7 @@ async function collect(config) {
   captureRaw(rawEndpoints, "/storage/aggregates", aggregates);
   captureRaw(rawEndpoints, "/storage/disks", disks);
   captureRaw(rawEndpoints, "/storage/shelves", shelves);
+  captureRaw(rawEndpoints, "/storage/volumes", volumes);
   captureRaw(rawEndpoints, "/support/ems/events", emsEvents);
 
   const metrics = [];
@@ -257,6 +267,41 @@ async function collect(config) {
     metrics.push({ key: "power_modules_faulty", value: psuFaulty, unit: "count" });
   }
 
+  // --- Volumes: Status je Volume + Übersichtstabelle für den Bericht ---
+  // "state" ist bei ONTAP-Volumes online/offline/error/mixed — anders als
+  // die anderen Health-Felder hier (die durchgehend "state === 'ok'/'online'"
+  // sind) also EXPLIZIT auf "online" statt auf's Fehlen eines Fehlerworts
+  // geprüft, damit ein unbekannter/neuer State-Wert nicht fälschlich als "ok"
+  // durchrutscht.
+  const volumeList = Array.isArray(volumes?.body?.records) ? volumes.body.records : [];
+  const volumeOverview = [];
+  if (volumeList.length > 0) {
+    metrics.push({ key: "volumes_faulty", value: volumeList.filter((v) => v.state !== "online").length, unit: "count" });
+    for (const v of volumeList) {
+      const ok = v.state === "online";
+      const id = v.name || "Volume";
+      componentChecks.push({ category: "Volume", id, description: v.state ?? "unbekannt", ok });
+      if (!ok) componentFaults.push({ category: "Volume", id, description: v.state ?? "unbekannt" });
+
+      const sizeBytes = Number(v.space?.size);
+      // ONTAP liefert space.used bei Volumes (anders als bei Aggregaten, wo es
+      // ein einzelnes block_storage.used-Feld ist) als Objekt mit mehreren
+      // Unterfeldern (u. a. .total) — mit Fallback auf einen direkten
+      // Zahlenwert, falls eine ONTAP-Version das Feld doch flach liefert.
+      const usedBytes = Number(v.space?.used?.total ?? v.space?.used);
+      if (Number.isFinite(sizeBytes)) {
+        volumeOverview.push({
+          name: v.name || "Volume",
+          svm: v.svm?.name || "—",
+          aggregate: (v.aggregates ?? []).map((a) => a.name).filter(Boolean).join(", ") || "—",
+          state: v.state || "unbekannt",
+          usedTB: Number.isFinite(usedBytes) ? bytesToTB(usedBytes) : 0,
+          totalTB: bytesToTB(sizeBytes),
+        });
+      }
+    }
+  }
+
   // --- EMS-Ereignisse (Alarme) ---
   let alarmSamples;
   if (emsEvents) {
@@ -298,6 +343,7 @@ async function collect(config) {
   if (componentFaults.length > 0) meta.componentFaults = componentFaults;
   if (componentChecks.length > 0) meta.componentChecks = componentChecks;
   if (capacityBreakdown.length > 0) meta.capacityBreakdown = capacityBreakdown;
+  if (volumeOverview.length > 0) meta.volumes = volumeOverview;
   if (Object.keys(rawEndpoints).length > 0) meta.rawEndpoints = rawEndpoints;
 
   return { metrics, meta: Object.keys(meta).length > 0 ? meta : undefined };

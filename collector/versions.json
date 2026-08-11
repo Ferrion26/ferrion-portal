@@ -53,5 +53,10 @@
     "version": "1.10.0",
     "releasedAt": "2026-08-11",
     "notes": "OceanStor/OceanProtect: erfasste Komponenten (Netzteil, Lüfter, Festplatte, Netzwerk-Port, Controller, …) melden jetzt zusätzlich, in welchem physischen Gehäuse sie verbaut sind (aus dem LOCATION-Feld des Geräts abgeleitet, neues Feld \"group\") — Grundlage für die nach Gehäuse gruppierte Darstellung im Bericht (\"Erfolgreich geprüfte Komponenten\"), löst die bisherige Mehrdeutigkeit bei mehreren Gehäusen mit gleich benannten Komponenten (z. B. PSU0 in zwei unterschiedlichen Gehäusen)."
+  },
+  {
+    "version": "1.11.0",
+    "releasedAt": "2026-08-11",
+    "notes": "NetApp: neuer Healthcheck für Volumes (GET /api/storage/volumes) — neue Kennzahl volumes_faulty, jedes Volume erscheint mit Zustand im Infrastrukturstatus/den Auffälligkeiten/der \"erfolgreich geprüft\"-Referenz, sowie eine neue Übersichtstabelle \"Volumes\" (Name, SVM, Aggregat, Zustand, genutzte/gesamte Kapazität) in PDF und Web-Ansicht. Feldnamen für space.used bei Volumes noch nicht gegen ein reales Gerät verifiziert (wie der übrige NetApp-Adapter) — bei Abweichungen meta.rawEndpoints[\"/storage/volumes\"] prüfen."
   }
 ]
