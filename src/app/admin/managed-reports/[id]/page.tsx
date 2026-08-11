@@ -10,7 +10,6 @@ import { getCollectorBaseline } from "@/lib/settings";
 import { Badge } from "@/components/ui/Badge";
 import ReportDownloadButton from "@/components/managed-reports/ReportDownloadButton";
 import ApiKeyManager from "./ApiKeyManager";
-import ManualUploadForm from "./ManualUploadForm";
 import GenerateReportButton from "./GenerateReportButton";
 import PublishButton from "./PublishButton";
 import DeleteReportButton from "./DeleteReportButton";
@@ -116,13 +115,15 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
       </div>
 
       <div className="bg-[#111827] border border-white/10 p-6">
-        <h2 className="font-semibold text-white mb-4">Manueller Upload (air-gapped Standorte)</h2>
-        <ManualUploadForm subscriptionId={subscription.id} />
-      </div>
-
-      <div className="bg-[#111827] border border-white/10 p-6">
         <h2 className="font-semibold text-white mb-4">Ingestion-Verlauf</h2>
-        <p className="text-xs text-gray-500 mb-4">Welche Daten wann eingegangen sind — sowohl Live-Pushes des Collectors als auch manuelle Uploads.</p>
+        <p className="text-xs text-gray-500 mb-4">
+          Welche Daten wann eingegangen sind — sowohl Live-Pushes des Collectors als auch manuelle Uploads. Manueller Upload für air-gapped Standorte läuft
+          jetzt gebündelt über die{" "}
+          <Link href={`/admin/managed-reports/customers/${subscription.customerId}`} className="text-[#c9a84c] hover:text-[#e0bc5a]">
+            Kundenübersicht
+          </Link>
+          .
+        </p>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/10 text-left text-gray-500">

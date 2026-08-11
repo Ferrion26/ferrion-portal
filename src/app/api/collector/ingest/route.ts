@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { hashApiKey } from "@/lib/managed-reports/apiKey";
 import { ingestPayloadSchema } from "@/lib/managed-reports/ingestSchema";
 import { reconcileFindings, alarmSamplesToFindings, componentFaultsToFindings } from "@/lib/managed-reports/reconcileFindings";
+import { buildDeviceUpdate } from "@/lib/managed-reports/applyIngest";
 
 export async function POST(req: NextRequest) {
   const apiKeyHeader = req.headers.get("x-api-key");
@@ -27,18 +28,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payload", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { collectedAt, metrics, meta, collectorVersion } = parsed.data;
+  const { collectedAt, metrics, meta } = parsed.data;
   const recordedAt = new Date(collectedAt);
-  const deviceUpdate: Record<string, unknown> = {};
-  if (collectorVersion) deviceUpdate.collectorVersion = collectorVersion;
-  if (meta?.deviceSerialNumber) deviceUpdate.deviceSerialNumber = meta.deviceSerialNumber;
-  if (meta?.deviceModel) deviceUpdate.deviceModel = meta.deviceModel;
-  if (meta?.deviceName) deviceUpdate.deviceName = meta.deviceName;
-  if (meta?.deviceSoftwareVersion) deviceUpdate.deviceSoftwareVersion = meta.deviceSoftwareVersion;
-  if (meta?.dataBackupVersion) deviceUpdate.dataBackupVersion = meta.dataBackupVersion;
-  if (meta?.resourceBreakdown) deviceUpdate.resourceBreakdown = meta.resourceBreakdown;
-  if (meta?.topJobFailures) deviceUpdate.topJobFailures = meta.topJobFailures;
-  if (meta?.componentChecks) deviceUpdate.componentChecks = meta.componentChecks;
+  const deviceUpdate = buildDeviceUpdate(parsed.data);
 
   const [, ingestion] = await prisma.$transaction([
     prisma.collectorApiKey.update({

@@ -6,6 +6,7 @@ import { PRODUCTS } from "@/app/produkte/products-data";
 import { Badge } from "@/components/ui/Badge";
 import { getReportableProductSlugs } from "@/lib/managed-reports/metrics";
 import NewSubscriptionForm from "../../NewSubscriptionForm";
+import BatchUploadForm from "./BatchUploadForm";
 
 export const metadata = { title: "Kunde — Managed Reports — Admin" };
 
@@ -30,6 +31,17 @@ export default async function ManagedReportsCustomerPage({ params }: { params: {
 
   const reportableSlugs = getReportableProductSlugs();
   const managedProducts = PRODUCTS.filter((p) => reportableSlugs.includes(p.slug));
+
+  const uploadTargets = subscriptions.map((sub) => {
+    const product = PRODUCTS.find((p) => p.slug === sub.productSlug);
+    const label = [
+      `${product?.vendor ?? ""} ${product?.name ?? sub.productSlug}`.trim(),
+      sub.deviceName,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    return { id: sub.id, label, deviceSerialNumber: sub.deviceSerialNumber };
+  });
 
   return (
     <div className="space-y-8">
@@ -100,6 +112,13 @@ export default async function ManagedReportsCustomerPage({ params }: { params: {
           </tbody>
         </table>
       </div>
+
+      {subscriptions.length > 0 && (
+        <div className="bg-[#111827] border border-white/10 p-6">
+          <h2 className="font-semibold text-white mb-4">Manueller Upload (air-gapped Standorte)</h2>
+          <BatchUploadForm customerId={customer.id} subscriptions={uploadTargets} />
+        </div>
+      )}
     </div>
   );
 }
