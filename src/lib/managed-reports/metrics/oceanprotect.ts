@@ -1,4 +1,4 @@
-import { MetricDefinition } from "./types";
+import { MetricDefinition, ALERT_COUNT_METHODOLOGY } from "./types";
 
 // Kennzahlen, die der Collector-Adapter für Huawei OceanProtect meldet
 // (siehe collector/adapters/oceanprotect.ts). key muss exakt mit dem
@@ -530,6 +530,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     aggregation: "sum",
     section: "security",
     trendGood: "down",
+    methodology: ALERT_COUNT_METHODOLOGY,
   },
   {
     key: "alerts_major",
@@ -538,6 +539,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     aggregation: "sum",
     section: "security",
     trendGood: "down",
+    methodology: ALERT_COUNT_METHODOLOGY,
   },
   {
     key: "alerts_warning",
@@ -546,6 +548,7 @@ export const OCEANPROTECT_METRICS: MetricDefinition[] = [
     aggregation: "sum",
     section: "security",
     trendGood: "down",
+    methodology: ALERT_COUNT_METHODOLOGY,
   },
   {
     key: "incidents_count",

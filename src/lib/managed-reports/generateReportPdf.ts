@@ -70,6 +70,7 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
       time: f.firstSeenAt.toISOString(),
       status: (f.resolvedAt ? "resolved" : "active") as "active" | "resolved",
       resolvedAt: f.resolvedAt?.toISOString(),
+      occurrenceCount: f.occurrenceCount,
     }));
 
   const componentFaults: ProductReportData["componentFaults"] = findings
@@ -80,6 +81,7 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
       description: f.description,
       status: (f.resolvedAt ? "resolved" : "active") as "active" | "resolved",
       resolvedAt: f.resolvedAt?.toISOString(),
+      occurrenceCount: f.occurrenceCount,
     }));
 
   return {

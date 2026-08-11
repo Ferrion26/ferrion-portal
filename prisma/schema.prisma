@@ -390,6 +390,16 @@ model DeviceFinding {
   lastSeenAt  DateTime    @default(now())
   resolvedAt  DateTime?
 
+  // Wie oft dieselbe Identität (identityKey) erneut gemeldet wurde, seit
+  // dieser Eintrag zuletzt neu angelegt wurde — bei jedem erneuten Melden in
+  // reconcileFindings() um 1 erhöht, bei Neuanlage auf 1 zurückgesetzt.
+  // Grund: KPI-Kennzahlen wie "Schwerwiegende Alarme" zählen jede Erkennung
+  // bei JEDEM Collector-Lauf (aggregation "sum"), während dieser Eintrag nur
+  // EINMAL pro eindeutigem Alarm/Fehler im Bericht erscheint — ohne diesen
+  // Zähler sähe die im Bericht gezeigte Liste kürzer aus, als die KPI-Zahl
+  // vermuten lässt, ohne erkennbaren Grund.
+  occurrenceCount Int @default(1)
+
   subscriptionId String
   subscription   ManagedServiceSubscription @relation(fields: [subscriptionId], references: [id])
 

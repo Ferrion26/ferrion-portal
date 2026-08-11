@@ -1,4 +1,4 @@
-import { MetricDefinition } from "./types";
+import { MetricDefinition, ALERT_COUNT_METHODOLOGY } from "./types";
 
 // Kennzahlen, die der Collector-Adapter für NetApp AFF/ONTAP meldet (siehe
 // collector/adapters/netapp.js). key muss exakt mit dem {key}
@@ -198,8 +198,8 @@ export const NETAPP_METRICS: MetricDefinition[] = [
     section: "security",
     trendGood: "down",
     methodology: {
-      de: "EMS-Ereignisse (GET /api/support/ems/events) mit Severity \"emergency\" oder \"alert\" im Berichtszeitraum.",
-      en: "EMS events (GET /api/support/ems/events) with severity \"emergency\" or \"alert\" during the reporting period.",
+      de: `EMS-Ereignisse (GET /api/support/ems/events) mit Severity "emergency" oder "alert" im Berichtszeitraum. ${ALERT_COUNT_METHODOLOGY.de}`,
+      en: `EMS events (GET /api/support/ems/events) with severity "emergency" or "alert" during the reporting period. ${ALERT_COUNT_METHODOLOGY.en}`,
     },
   },
   {
@@ -210,8 +210,8 @@ export const NETAPP_METRICS: MetricDefinition[] = [
     section: "security",
     trendGood: "down",
     methodology: {
-      de: "EMS-Ereignisse mit Severity \"error\" im Berichtszeitraum.",
-      en: "EMS events with severity \"error\" during the reporting period.",
+      de: `EMS-Ereignisse mit Severity "error" im Berichtszeitraum. ${ALERT_COUNT_METHODOLOGY.de}`,
+      en: `EMS events with severity "error" during the reporting period. ${ALERT_COUNT_METHODOLOGY.en}`,
     },
   },
   {
@@ -222,8 +222,8 @@ export const NETAPP_METRICS: MetricDefinition[] = [
     section: "security",
     trendGood: "down",
     methodology: {
-      de: "EMS-Ereignisse mit Severity \"notice\" im Berichtszeitraum.",
-      en: "EMS events with severity \"notice\" during the reporting period.",
+      de: `EMS-Ereignisse mit Severity "notice" im Berichtszeitraum. ${ALERT_COUNT_METHODOLOGY.de}`,
+      en: `EMS events with severity "notice" during the reporting period. ${ALERT_COUNT_METHODOLOGY.en}`,
     },
   },
 ];

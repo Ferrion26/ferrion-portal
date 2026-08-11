@@ -70,6 +70,7 @@ export async function reconcileFindings(subscriptionId: string, kind: FindingKin
           suggestion: f.suggestion,
           lastSeenAt: now,
           resolvedAt: null, // erneut gemeldet → wieder offen, falls zuvor als behoben markiert
+          occurrenceCount: { increment: 1 },
         },
       })
     ),

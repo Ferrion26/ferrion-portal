@@ -53,3 +53,13 @@ export interface MetricDefinition {
   // the explicit opt-in for checks whose name doesn't naturally contain one.
   severeIfNonZero?: boolean;
 }
+
+// Geteilt von allen drei Produkten für ihre alerts_critical/major/warning-
+// Kennzahlen (identischer Sachverhalt überall: aggregation "sum" zählt jede
+// Erkennung bei jedem einzelnen Collector-Lauf, nicht die Anzahl
+// unterschiedlicher Vorfälle) — deshalb hier zentral statt drei Mal
+// wortgleich in oceanstor.ts/oceanprotect.ts/netapp.ts gepflegt.
+export const ALERT_COUNT_METHODOLOGY = {
+  de: "Zählt jede Erkennung bei JEDEM Collector-Lauf im Berichtszeitraum — ein durchgehend aktiver Alarm wird also mehrfach mitgezählt, nicht nur einmal. Die einzelnen, unterschiedlichen Alarme stehen dedupliziert im Abschnitt \"Alarme im Detail\" weiter unten, mit \"N× erkannt\"-Hinweis, falls derselbe Alarm erneut gemeldet wurde.",
+  en: "Counts every detection at EACH collector run during the reporting period — a continuously active alarm is therefore counted multiple times, not once. The individual, distinct alarms are listed deduplicated in the \"Alarms in Detail\" section below, with a \"detected N×\" note if the same alarm was reported again.",
+};

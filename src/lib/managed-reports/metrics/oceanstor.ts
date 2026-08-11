@@ -1,4 +1,4 @@
-import { MetricDefinition } from "./types";
+import { MetricDefinition, ALERT_COUNT_METHODOLOGY } from "./types";
 
 // Kennzahlen, die der Collector-Adapter für Huawei OceanStor meldet (siehe
 // collector/adapters/oceanstor.js). key muss exakt mit dem {key}
@@ -315,6 +315,7 @@ export const OCEANSTOR_METRICS: MetricDefinition[] = [
     aggregation: "sum",
     section: "security",
     trendGood: "down",
+    methodology: ALERT_COUNT_METHODOLOGY,
   },
   {
     key: "alerts_major",
@@ -323,6 +324,7 @@ export const OCEANSTOR_METRICS: MetricDefinition[] = [
     aggregation: "sum",
     section: "security",
     trendGood: "down",
+    methodology: ALERT_COUNT_METHODOLOGY,
   },
   {
     key: "alerts_warning",
@@ -331,5 +333,6 @@ export const OCEANSTOR_METRICS: MetricDefinition[] = [
     aggregation: "sum",
     section: "security",
     trendGood: "down",
+    methodology: ALERT_COUNT_METHODOLOGY,
   },
 ];

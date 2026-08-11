@@ -208,6 +208,9 @@ const styles = StyleSheet.create({
   alarmTime: { fontSize: 6.5, color: MUTED },
   alarmDesc: { fontSize: 7.5, color: "#374151", lineHeight: 1.35 },
   alarmSuggestion: { fontSize: 7, color: MUTED, marginTop: 2, lineHeight: 1.3 },
+  // "N× erkannt"-Hinweis bei Alarmen/Auffälligkeiten, die mehrfach erneut
+  // gemeldet wurden (siehe AlarmSample/ComponentFault.occurrenceCount).
+  occurrenceTag: { fontSize: 6.5, color: MUTED, fontFamily: "Helvetica-Oblique" },
 
   recLineRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginBottom: 8 },
   recNumber: { width: 14, height: 14, borderRadius: 7, alignItems: "center", justifyContent: "center", marginTop: 1 },
@@ -679,6 +682,7 @@ function decodeHtmlEntities(text: string): string {
 function AlarmCard({ alarms, locale }: { alarms: AlarmSample[]; locale: "de" | "en" }) {
   const t = ALARM_CARD_COPY[locale];
   const shown = alarms.slice(0, MAX_ALARM_SAMPLES_SHOWN);
+  const overflow = alarms.length - shown.length;
   return (
     <View style={styles.alarmCard}>
       <Text style={styles.listCardTitle}>{t.title}</Text>
@@ -689,6 +693,11 @@ function AlarmCard({ alarms, locale }: { alarms: AlarmSample[]; locale: "de" | "
             <View style={styles.alarmTitleGroup}>
               <Dot status={alarm.status === "resolved" ? "good" : ALARM_SEVERITY_TO_STATUS[alarm.severity]} />
               <Text style={styles.alarmName}>{decodeHtmlEntities(alarm.name)}</Text>
+              {alarm.occurrenceCount !== undefined && alarm.occurrenceCount > 1 && (
+                <Text style={styles.occurrenceTag}>
+                  {locale === "de" ? `${alarm.occurrenceCount}× erkannt` : `detected ${alarm.occurrenceCount}×`}
+                </Text>
+              )}
               {alarm.status === "resolved" && alarm.resolvedAt ? (
                 <StatusPill status="good" text={t.resolvedOn(formatDateTime(alarm.resolvedAt, locale))} />
               ) : (
@@ -705,6 +714,11 @@ function AlarmCard({ alarms, locale }: { alarms: AlarmSample[]; locale: "de" | "
           )}
         </View>
       ))}
+      {overflow > 0 && (
+        <Text style={{ ...styles.methodologyLine, marginTop: 6 }}>
+          {locale === "de" ? `+ ${overflow} weitere Alarme (siehe Kennzahl oben für die Gesamtzahl).` : `+ ${overflow} more alarms (see the KPI above for the total count).`}
+        </Text>
+      )}
     </View>
   );
 }
@@ -735,7 +749,12 @@ function ComponentFaultsCard({ faults, locale }: { faults: ComponentFault[]; loc
         <View key={i} wrap={false} style={{ ...styles.tableRow, alignItems: "flex-start", opacity: fault.status === "resolved" ? 0.55 : 1 }}>
           <Text style={{ width: 90, color: MUTED, fontSize: 7, paddingTop: 1 }}>{fault.category}</Text>
           <Text style={{ width: 110, fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, paddingRight: 6 }}>{normalizeComponentLabel(fault.id)}</Text>
-          <Text style={{ flex: 1, fontSize: 8, color: "#374151" }}>{fault.description}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 8, color: "#374151" }}>{fault.description}</Text>
+            {fault.occurrenceCount !== undefined && fault.occurrenceCount > 1 && (
+              <Text style={styles.occurrenceTag}>{locale === "de" ? `${fault.occurrenceCount}× erkannt` : `detected ${fault.occurrenceCount}×`}</Text>
+            )}
+          </View>
           <Text style={{ width: 90, fontSize: 6.5, color: fault.status === "resolved" ? STATUS_COLORS.good.dot : STATUS_COLORS.warning.dot, textAlign: "right" }}>
             {fault.status === "resolved" && fault.resolvedAt
               ? (locale === "de" ? `Behoben ${formatDateTime(fault.resolvedAt, locale)}` : `Resolved ${formatDateTime(fault.resolvedAt, locale)}`)
@@ -1289,6 +1308,11 @@ export interface AlarmSample {
   // ist oder im Berichtszeitraum wieder verschwunden (behoben) ist.
   status: "active" | "resolved";
   resolvedAt?: string;
+  // Wie oft dieselbe Alarm-Identität erneut gemeldet wurde (siehe
+  // DeviceFinding.occurrenceCount) — die KPI-Kennzahl oben zählt jede
+  // Erkennung pro Collector-Lauf, diese Liste nur einmal pro Alarm; ohne
+  // diesen Wert wirkt die Liste kürzer, als die KPI-Zahl vermuten lässt.
+  occurrenceCount?: number;
 }
 
 export interface ResourceBreakdownEntry {
@@ -1337,6 +1361,9 @@ export interface ComponentFault {
   // direkt auf dem Ingest-Payload), aber schon Teil des Typs, damit eine
   // spätere Erweiterung (siehe SuccessfulChecksCard) keinen Bruch braucht.
   group?: string;
+  // Wie oft dieselbe Fehler-Identität erneut gemeldet wurde — siehe
+  // AlarmSample.occurrenceCount, derselbe Hintergrund gilt hier.
+  occurrenceCount?: number;
 }
 
 // JEDE geprüfte Komponente (normal UND fehlerhaft) — anders als
