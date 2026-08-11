@@ -127,7 +127,7 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/5 mt-12 border border-white/5 max-w-2xl backdrop-blur-sm">
               {product.facts.map((f, i) => (
                 <div key={i} className="bg-[#0d1117]/80 px-5 py-4 text-center">
-                  <p className="text-xl font-bold text-[#c9a84c]">{f.value[locale]}</p>
+                  <p className="text-xl font-bold text-[#c9a84c] break-words">{f.value[locale]}</p>
                   <p className="text-gray-400 text-[10px] mt-1 leading-snug">{f.label[locale]}</p>
                 </div>
               ))}

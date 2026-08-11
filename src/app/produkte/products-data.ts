@@ -535,7 +535,7 @@ export const PRODUCTS: Product[] = [
     ],
     highlights: [
       {
-        icon: "🖥",
+        icon: "/Icons/Workload.png",
         title: { de: "Compute & Virtualisierung — FusionCompute", en: "Compute & Virtualisation — FusionCompute" },
         desc: {
           de: "Server und Hypervisor-Schicht für konsolidierte Workloads — von der Ressourcenzuteilung bis zum Disaster-Recovery-Flow.",
@@ -543,7 +543,7 @@ export const PRODUCTS: Product[] = [
         },
       },
       {
-        icon: "🗄️",
+        icon: "/Icons/integration.png",
         title: { de: "Läuft auf OceanStor Dorado", en: "Runs on OceanStor Dorado" },
         desc: {
           de: "Abgestimmt auf Huaweis All-Flash-Storage für geschäftskritische Datenbanken und KI-Workloads.",
@@ -551,7 +551,7 @@ export const PRODUCTS: Product[] = [
         },
       },
       {
-        icon: "🛡️",
+        icon: "/Icons/Physische-logische-Isolation.png",
         title: { de: "Abgesichert mit OceanProtect", en: "Protected by OceanProtect" },
         desc: {
           de: "Cyber-resiliente Backup-Appliances mit Air-Gap-Isolation und KI-gestützter Bedrohungserkennung, DCIG-ausgezeichnet.",
@@ -559,7 +559,7 @@ export const PRODUCTS: Product[] = [
         },
       },
     ],
-    relatedArticleSlugs: ["fusioncompute-8-9-8-10", "huawei-dorado-v7", "oceanprotect-dcig-top5"],
+    relatedArticleSlugs: ["fusioncompute-8-9-8-10", "vmware-kosten-2026", "vmware-migration-huawei-dcs"],
     managedServices: {
       eyebrow: { de: "Managed Services", en: "Managed Services" },
       headline: { de: "Huawei DCS im Betrieb — drei Stufen, eine Umgebung", en: "Huawei DCS in Operation — Three Tiers, One Environment" },

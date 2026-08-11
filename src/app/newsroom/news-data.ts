@@ -11,6 +11,30 @@ export type NewsArticle = {
 // Single source of truth for all newsroom articles.
 export const NEWS: NewsArticle[] = [
   {
+    slug: "vmware-migration-huawei-dcs",
+    href: "/newsroom/vmware-migration-huawei-dcs",
+    iso: "2026-06-09",
+    date: { de: "9. Juni 2026", en: "June 9, 2026" },
+    tag: "Virtualisierung",
+    title: { de: "Von VMware zu Huawei DCS: Wie eine Migration wirklich abläuft — Woche für Woche", en: "From VMware to Huawei DCS: How a Migration Really Goes — Week by Week" },
+    excerpt: {
+      de: "Der ehrliche Ablaufplan für eine Mittelstands-Migration: von der Aufnahme in Woche 0 bis zum Rückbau in Woche 9 — inklusive der sechs Stellen, an denen es unangenehm wird.",
+      en: "The honest week-by-week plan for a mid-market migration — from discovery in week 0 to decommissioning in week 9, including the six places where it gets uncomfortable.",
+    },
+  },
+  {
+    slug: "vmware-kosten-2026",
+    href: "/newsroom/vmware-kosten-2026",
+    iso: "2026-05-12",
+    date: { de: "12. Mai 2026", en: "May 12, 2026" },
+    tag: "Virtualisierung",
+    title: { de: "VMware-Kosten 2026: Was der Broadcom-Wechsel den österreichischen Mittelstand wirklich kostet", en: "VMware Costs 2026: What the Broadcom Transition Really Costs Austrian Mid-Market Companies" },
+    excerpt: {
+      de: "Dokumentierte Preissteigerungen von 300 bis 1.500 Prozent, ein Lizenzmodell ohne Restwert — und ein zweites Datum neben dem Renewal, das die meisten Unternehmen noch nicht auf dem Schirm haben.",
+      en: "Documented price increases of 300 to 1,500 percent, a licensing model with no residual value — and a second date beyond your renewal that most companies haven't factored in yet.",
+    },
+  },
+  {
     slug: "vmware-vmsa-2026-0006",
     href: "/newsroom/vmware-vmsa-2026-0006",
     iso: "2026-07-30",
