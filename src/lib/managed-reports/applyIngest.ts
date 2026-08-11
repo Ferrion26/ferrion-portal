@@ -18,6 +18,7 @@ export function buildDeviceUpdate(payload: Pick<IngestPayload, "collectorVersion
   if (meta?.resourceBreakdown) deviceUpdate.resourceBreakdown = meta.resourceBreakdown;
   if (meta?.topJobFailures) deviceUpdate.topJobFailures = meta.topJobFailures;
   if (meta?.componentChecks) deviceUpdate.componentChecks = meta.componentChecks;
+  if (meta?.capacityBreakdown) deviceUpdate.capacityBreakdown = meta.capacityBreakdown;
   return deviceUpdate;
 }
 

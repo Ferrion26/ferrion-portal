@@ -72,6 +72,22 @@ export const ingestPayloadSchema = z.object({
         )
         .max(50)
         .optional(),
+      // Kapazität je Storage-Pool/Aggregat (nicht nur der Cluster-weite
+      // Summenwert aus den metrics) — bei Systemen mit Cloud-Tiering (z. B.
+      // NetApp FabricPool) zusätzlich, wie viel davon in einen angebundenen
+      // Cloud-Speicher ausgelagert ist.
+      capacityBreakdown: z
+        .array(
+          z.object({
+            name: z.string().min(1).max(100),
+            localUsedTB: z.number().min(0),
+            localTotalTB: z.number().min(0),
+            cloudUsedTB: z.number().min(0).optional(),
+            cloudTarget: z.string().max(100).optional(),
+          })
+        )
+        .max(50)
+        .optional(),
       // Die am häufigsten fehlgeschlagenen Jobs, getrennt nach SLA-Richtlinie
       // und nach Ressource.
       topJobFailures: z

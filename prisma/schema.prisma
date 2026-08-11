@@ -238,6 +238,12 @@ model ManagedServiceSubscription {
   // den abschließenden "erfolgreich geprüft"-Referenzabschnitt im Bericht.
   componentChecks Json?
 
+  // Kapazität je Storage-Pool/Aggregat statt nur der Cluster-weiten Summe
+  // (z. B. bei NetApp: jedes Aggregat einzeln, inkl. daran angebundenem
+  // Cloud-Tier über FabricPool) — vom letzten Ingest überschrieben, keine
+  // Historie.
+  capacityBreakdown Json?
+
   // Freitext, den ein Admin manuell pflegt, um eine Beziehung zu einem
   // anderen System zu dokumentieren (z. B. "Snapshots werden von
   // OceanProtect X8000 repliziert") — im Bericht als Hinweiszeile gezeigt.

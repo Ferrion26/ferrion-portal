@@ -836,6 +836,63 @@ function ResourceBreakdownCard({ breakdown, locale }: { breakdown: ResourceBreak
   );
 }
 
+const CAPACITY_BREAKDOWN_COPY = {
+  de: {
+    title: "Kapazität je Aggregat",
+    sub: "Lokale Kapazität je Storage-Pool/Aggregat, inkl. daran angebundenem Cloud-Tier (FabricPool).",
+    name: "Aggregat",
+    localUsed: "Lokal genutzt",
+    localTotal: "Lokal gesamt",
+    cloudUsed: "Cloud genutzt",
+    cloudTarget: "Cloud-Ziel",
+  },
+  en: {
+    title: "Capacity by Aggregate",
+    sub: "Local capacity per storage pool/aggregate, including any attached cloud tier (FabricPool).",
+    name: "Aggregate",
+    localUsed: "Local Used",
+    localTotal: "Local Total",
+    cloudUsed: "Cloud Used",
+    cloudTarget: "Cloud Target",
+  },
+};
+
+function CapacityBreakdownCard({ breakdown, locale }: { breakdown: CapacityBreakdownEntry[]; locale: "de" | "en" }) {
+  const t = CAPACITY_BREAKDOWN_COPY[locale];
+  const hasCloud = breakdown.some((b) => b.cloudUsedTB !== undefined);
+  const n = (v: number) => v.toLocaleString(locale === "de" ? "de-DE" : "en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return (
+    <View style={styles.tableCardBlock} wrap={false}>
+      <Text style={styles.listCardTitle}>{t.title}</Text>
+      <Text style={styles.listCardSub}>{t.sub}</Text>
+      <View style={{ ...styles.tableHeaderRow, marginTop: 4 }}>
+        <Text style={{ ...styles.tableHeaderCell, flex: 1 }}>{t.name}</Text>
+        <Text style={{ ...styles.tableHeaderCell, width: 70, textAlign: "right" }}>{t.localUsed}</Text>
+        <Text style={{ ...styles.tableHeaderCell, width: 70, textAlign: "right" }}>{t.localTotal}</Text>
+        {hasCloud && (
+          <>
+            <Text style={{ ...styles.tableHeaderCell, width: 70, textAlign: "right" }}>{t.cloudUsed}</Text>
+            <Text style={{ ...styles.tableHeaderCell, width: 90, textAlign: "right" }}>{t.cloudTarget}</Text>
+          </>
+        )}
+      </View>
+      {breakdown.map((row, i) => (
+        <View key={row.name + i} style={styles.tableRow}>
+          <Text style={styles.tableCellName}>{normalizeComponentLabel(row.name)}</Text>
+          <Text style={styles.tableCellNum}>{n(row.localUsedTB)} TB</Text>
+          <Text style={styles.tableCellNum}>{n(row.localTotalTB)} TB</Text>
+          {hasCloud && (
+            <>
+              <Text style={styles.tableCellNum}>{row.cloudUsedTB !== undefined ? `${n(row.cloudUsedTB)} TB` : "—"}</Text>
+              <Text style={{ fontSize: 8, color: GRAY, width: 90, textAlign: "right" }}>{row.cloudTarget ?? "—"}</Text>
+            </>
+          )}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const TOP_FAILURES_COPY = {
   de: { bySlaTitle: "Meiste Fehlschläge: SLA-Richtlinie", byResourceTitle: "Meiste Fehlschläge: Ressource", count: "Fehlschläge" },
   en: { bySlaTitle: "Top Failures: SLA Policy", byResourceTitle: "Top Failures: Resource", count: "Failures" },
@@ -1079,6 +1136,17 @@ export interface ResourceBreakdownEntry {
   unprotectedCount: number;
 }
 
+// Kapazität je Storage-Pool/Aggregat statt nur der Cluster-weiten Summe —
+// bei Systemen mit Cloud-Tiering (z. B. NetApp FabricPool) zusätzlich, wie
+// viel davon in einen angebundenen Cloud-Speicher ausgelagert ist.
+export interface CapacityBreakdownEntry {
+  name: string;
+  localUsedTB: number;
+  localTotalTB: number;
+  cloudUsedTB?: number;
+  cloudTarget?: string;
+}
+
 export interface TopJobFailures {
   bySla: { name: string; failedCount: number }[];
   byResource: { name: string; failedCount: number }[];
@@ -1134,6 +1202,9 @@ export interface ProductReportData {
   // Trendgrafik in der Web-Ansicht. Nur gesetzt, wenn mindestens 2 Punkte
   // vorliegen (sonst gibt es keine Linie zu zeichnen).
   capacityTrend?: { recordedAt: string; value: number }[];
+  // Kapazität je Storage-Pool/Aggregat (z. B. NetApp) — siehe
+  // CapacityBreakdownEntry.
+  capacityBreakdown?: CapacityBreakdownEntry[];
 }
 
 export interface ReportDocumentProps {
@@ -1331,6 +1402,11 @@ function ProductPage({
 
         <View id={`p${index}-kapazitaet`}>
           <CapacitySection entries={capacityEntries} locale={locale} trend={product.capacityTrend} />
+          {(product.capacityBreakdown?.length ?? 0) > 0 && (
+            <View style={{ marginTop: 10 }}>
+              <CapacityBreakdownCard breakdown={product.capacityBreakdown!} locale={locale} />
+            </View>
+          )}
         </View>
 
         <View id={`p${index}-schutz`}>

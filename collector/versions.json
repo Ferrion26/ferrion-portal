@@ -38,5 +38,10 @@
     "version": "1.7.0",
     "releasedAt": "2026-08-11",
     "notes": "Neuer Healthcheck für NetApp AFF/ONTAP (adapters/netapp.js): Cluster-/Node-Status, HA-Failover, Aggregat-Kapazität und -Effizienz, Disk-/Shelf-/Netzteil-Status, EMS-Alarme. Endpunkte über NetApps öffentliche ONTAP-REST-API-Referenz recherchiert (keine kundenspezifische Doku wie bei Huawei) — noch nicht gegen ein reales Gerät verifiziert, siehe README."
+  },
+  {
+    "version": "1.8.0",
+    "releasedAt": "2026-08-11",
+    "notes": "NetApp: Kapazität jetzt zusätzlich je einzelnem Aggregat aufgeschlüsselt (nicht nur als Cluster-Summe), inkl. daran angebundenem FabricPool-Cloud-Tier (Cloud-Ziel-Name, genutzte Cloud-Kapazität) — neue Kennzahl cloud_tier_used_tb, neue Berichtstabelle \"Kapazität je Aggregat\" in PDF und Web-Ansicht."
   }
 ]

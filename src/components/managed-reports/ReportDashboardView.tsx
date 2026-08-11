@@ -366,6 +366,51 @@ export function ReportDashboardView({
                 <CapacityTrendChart points={product.capacityTrend} locale={locale} />
               </div>
             )}
+
+            {(product.capacityBreakdown?.length ?? 0) > 0 && (
+              <div className="bg-[#111827] border border-white/10 p-6">
+                <h3 className="text-sm font-semibold text-white mb-1">{locale === "de" ? "Kapazität je Aggregat" : "Capacity by Aggregate"}</h3>
+                <p className="text-xs text-gray-500 mb-4">
+                  {locale === "de"
+                    ? "Lokale Kapazität je Storage-Pool/Aggregat, inkl. daran angebundenem Cloud-Tier (FabricPool)."
+                    : "Local capacity per storage pool/aggregate, including any attached cloud tier (FabricPool)."}
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-gray-500 border-b border-white/10">
+                        <th className="font-medium py-2 pr-3">{locale === "de" ? "Aggregat" : "Aggregate"}</th>
+                        <th className="font-medium py-2 pr-3 text-right">{locale === "de" ? "Lokal genutzt" : "Local Used"}</th>
+                        <th className="font-medium py-2 pr-3 text-right">{locale === "de" ? "Lokal gesamt" : "Local Total"}</th>
+                        {product.capacityBreakdown!.some((b) => b.cloudUsedTB !== undefined) && (
+                          <>
+                            <th className="font-medium py-2 pr-3 text-right">{locale === "de" ? "Cloud genutzt" : "Cloud Used"}</th>
+                            <th className="font-medium py-2 text-right">{locale === "de" ? "Cloud-Ziel" : "Cloud Target"}</th>
+                          </>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {product.capacityBreakdown!.map((row, i) => (
+                        <tr key={row.name + i} className="border-t border-white/5">
+                          <td className="py-2 pr-3 text-gray-300">{row.name}</td>
+                          <td className="py-2 pr-3 text-right text-white">{row.localUsedTB.toLocaleString(locale === "de" ? "de-DE" : "en-US", { maximumFractionDigits: 1 })} TB</td>
+                          <td className="py-2 pr-3 text-right text-white">{row.localTotalTB.toLocaleString(locale === "de" ? "de-DE" : "en-US", { maximumFractionDigits: 1 })} TB</td>
+                          {product.capacityBreakdown!.some((b) => b.cloudUsedTB !== undefined) && (
+                            <>
+                              <td className="py-2 pr-3 text-right text-white">
+                                {row.cloudUsedTB !== undefined ? `${row.cloudUsedTB.toLocaleString(locale === "de" ? "de-DE" : "en-US", { maximumFractionDigits: 1 })} TB` : "—"}
+                              </td>
+                              <td className="py-2 text-right text-gray-400">{row.cloudTarget ?? "—"}</td>
+                            </>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="bg-black/30 border border-white/10 p-6">

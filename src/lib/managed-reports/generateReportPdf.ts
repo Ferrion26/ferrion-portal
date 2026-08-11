@@ -100,6 +100,7 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
     componentChecks: (subscription.componentChecks as unknown as ProductReportData["componentChecks"]) ?? undefined,
     replicationNote: subscription.replicationNote ?? undefined,
     capacityTrend: capacityTrend.length > 1 ? capacityTrend : undefined,
+    capacityBreakdown: (subscription.capacityBreakdown as unknown as ProductReportData["capacityBreakdown"]) ?? undefined,
   };
 }
 

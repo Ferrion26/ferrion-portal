@@ -77,7 +77,7 @@ async function collect(config) {
   const [cluster, nodes, aggregates, disks, shelves, emsEvents] = await Promise.all([
     requestJson(config, joinUrl(base, "/cluster?fields=name,uuid,version"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/cluster/nodes?fields=name,model,serial_number,version,uptime,state,ha"), { headers: authHeaders }),
-    requestJson(config, joinUrl(base, "/storage/aggregates?fields=name,state,space,block_storage"), { headers: authHeaders }),
+    requestJson(config, joinUrl(base, "/storage/aggregates?fields=uuid,name,state,space,block_storage"), { headers: authHeaders }),
     fetchOptional(
       config,
       "Disk-Status",
@@ -150,9 +150,36 @@ async function collect(config) {
 
   // --- Aggregate: Kapazität + Zustand ---
   const aggregateList = Array.isArray(aggregates.body.records) ? aggregates.body.records : [];
+
+  // Pro Aggregat den angebundenen Cloud-Tier abfragen (FabricPool) — eigener
+  // Request je Aggregat, da cloud-stores ein Unter-Endpunkt des jeweiligen
+  // Aggregats ist (GET /storage/aggregates/{uuid}/cloud-stores), keine
+  // Cluster-weite Liste. Die meisten Aggregate haben KEINEN Cloud-Tier
+  // angebunden — fetchOptional lässt diesen Fall (404/leer) ohne Warnung
+  // durchlaufen.
+  const cloudStoresByAggregate = new Map();
+  await Promise.all(
+    aggregateList
+      .filter((a) => a.uuid)
+      .map(async (a) => {
+        const result = await fetchOptional(
+          config,
+          `Cloud-Tier (${a.name || a.uuid})`,
+          requestJson(config, joinUrl(base, `/storage/aggregates/${a.uuid}/cloud-stores?fields=used,target,availability`), {
+            headers: authHeaders,
+          })
+        );
+        const records = Array.isArray(result?.body?.records) ? result.body.records : [];
+        if (records.length > 0) cloudStoresByAggregate.set(a.uuid, records);
+        if (result) rawEndpoints[`/storage/aggregates/${a.name || a.uuid}/cloud-stores`] = records;
+      })
+  );
+
   let totalBytes = 0;
   let usedBytes = 0;
+  let cloudUsedBytesTotal = 0;
   const ratios = [];
+  const capacityBreakdown = [];
   for (const a of aggregateList) {
     const size = Number(a.space?.block_storage?.size);
     const used = Number(a.space?.block_storage?.used);
@@ -160,6 +187,20 @@ async function collect(config) {
     if (Number.isFinite(used)) usedBytes += used;
     const ratio = Number(a.space?.efficiency?.ratio);
     if (Number.isFinite(ratio)) ratios.push(ratio);
+
+    const cloudStores = cloudStoresByAggregate.get(a.uuid) ?? [];
+    const cloudUsedBytes = cloudStores.reduce((sum, cs) => sum + (Number(cs.used) || 0), 0);
+    const cloudTargetNames = [...new Set(cloudStores.map((cs) => cs.target?.name).filter(Boolean))];
+    if (cloudStores.length > 0) cloudUsedBytesTotal += cloudUsedBytes;
+
+    if (Number.isFinite(size)) {
+      capacityBreakdown.push({
+        name: a.name || "Aggregat",
+        localUsedTB: Number.isFinite(used) ? bytesToTB(used) : 0,
+        localTotalTB: bytesToTB(size),
+        ...(cloudStores.length > 0 ? { cloudUsedTB: bytesToTB(cloudUsedBytes), cloudTarget: cloudTargetNames.join(", ") || undefined } : {}),
+      });
+    }
   }
   if (totalBytes > 0) {
     metrics.push({ key: "total_capacity_tb", value: bytesToTB(totalBytes), unit: "TB" });
@@ -168,6 +209,9 @@ async function collect(config) {
   }
   if (ratios.length > 0) {
     metrics.push({ key: "data_reduction_ratio", value: ratios.reduce((a, b) => a + b, 0) / ratios.length, unit: "x" });
+  }
+  if (cloudUsedBytesTotal > 0) {
+    metrics.push({ key: "cloud_tier_used_tb", value: bytesToTB(cloudUsedBytesTotal), unit: "TB" });
   }
   if (aggregateList.length > 0) {
     metrics.push({ key: "storage_pools_unhealthy", value: aggregateList.filter((a) => a.state !== "online").length, unit: "count" });
@@ -253,6 +297,7 @@ async function collect(config) {
   if (alarmSamples !== undefined) meta.alarmSamples = alarmSamples;
   if (componentFaults.length > 0) meta.componentFaults = componentFaults;
   if (componentChecks.length > 0) meta.componentChecks = componentChecks;
+  if (capacityBreakdown.length > 0) meta.capacityBreakdown = capacityBreakdown;
   if (Object.keys(rawEndpoints).length > 0) meta.rawEndpoints = rawEndpoints;
 
   return { metrics, meta: Object.keys(meta).length > 0 ? meta : undefined };

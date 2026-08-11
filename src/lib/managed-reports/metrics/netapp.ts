@@ -75,6 +75,22 @@ export const NETAPP_METRICS: MetricDefinition[] = [
     },
   },
   {
+    // Nur vorhanden, wenn mindestens ein Aggregat per FabricPool an einen
+    // Cloud-Speicher (S3, Azure Blob, StorageGRID, …) angebunden ist — siehe
+    // capacityBreakdown für die Aufschlüsselung je Aggregat/Cloud-Ziel.
+    key: "cloud_tier_used_tb",
+    label: { de: "Cloud-Tier – genutzt", en: "Cloud Tier – Used" },
+    unit: "TB",
+    format: "tb",
+    aggregation: "last",
+    section: "capacity",
+    derived: true,
+    methodology: {
+      de: "Summe aus dem \"used\"-Feld aller an Aggregate angebundenen Cloud-Speicher-Ziele (FabricPool, Quelle: GET /api/storage/aggregates/{uuid}/cloud-stores).",
+      en: "Sum of the \"used\" field across all cloud storage targets attached to aggregates (FabricPool, source: GET /api/storage/aggregates/{uuid}/cloud-stores).",
+    },
+  },
+  {
     key: "system_availability",
     label: { de: "Systemverfügbarkeit", en: "System Availability" },
     shortLabel: { de: "System", en: "System" },
