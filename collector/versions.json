@@ -28,5 +28,10 @@
     "version": "1.6.1",
     "releasedAt": "2026-08-10",
     "notes": "Fehlerkorrektur: Ressourcenschutz-Übersicht (/v1/resource/protection/summary) lief bisher ins Leere, weil der Query-Parameter \"sub_type=null\" wörtlich statt als Platzhalter für \"kein Filter\" gesendet wurde. Kapazitäts-Reduktionsrate von DataBackup verwendet jetzt die kopie-spezifischen Felder (copySpaceReductionRate/totalCopyLogicalCapacity) statt der allgemeinen Cluster-Kapazität, die praktisch identisch mit der Storage-Pool-Reduktionsrate war."
+  },
+  {
+    "version": "1.6.2",
+    "releasedAt": "2026-08-11",
+    "notes": "Fehlerkorrektur: Backup-Erfolgsquote wurde fälschlich als 0 % gemeldet. Ursache: /v1/report-data/jobs?dataQueryTypeEnum=RESOURCE liefert laut echter Geräteantwort ausschließlich fehlgeschlagene Jobs (keine SUCCESS-Einträge) — geeignet für \"welche Ressourcen fallen am häufigsten auf\", aber nicht für eine Gesamt-Erfolgsquote. Backup-Erfolgsquote und Anzahl fehlgeschlagener Jobs kommen jetzt von /v1/multi-clusters/job/summary (total/success/fail über alle Jobs)."
   }
 ]

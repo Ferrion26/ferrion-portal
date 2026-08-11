@@ -712,7 +712,7 @@ async function collectDataBackupMetrics(config, token) {
   const authHeaders = { "X-Auth-Token": token };
   const rawEndpoints = {};
 
-  const [sla, jobStatsByResource, jobStatsBySla, airgap, drills, ransomware, protection, nodeDetail, dbCapacity] = await Promise.all([
+  const [sla, jobStatsByResource, jobStatsBySla, jobSummary, airgap, drills, ransomware, protection, nodeDetail, dbCapacity] = await Promise.all([
     fetchOptional(config, "SLA-Compliance", requestJson(config, joinUrl(dataBackupUrl, "/v1/protected-objects/sla-compliance"), { headers: authHeaders })),
     fetchOptional(
       config,
@@ -731,6 +731,16 @@ async function collectDataBackupMetrics(config, token) {
         headers: authHeaders,
         body: JSON.stringify({ timeRange: JOB_STATS_TIME_RANGE, dataQueryTypeEnum: "SLA" }),
       })
+    ),
+    // Liefert total/success/fail/… über ALLE Jobs — anders als
+    // /v1/report-data/jobs?dataQueryTypeEnum=RESOURCE, das laut Live-Antwort
+    // nur Einträge mit Fehlerstatus zurückgibt (Bestätigung: reale Antwort
+    // enthielt ausschließlich status="FAIL", keine SUCCESS-Zeilen — die
+    // Erfolgsquote wurde dadurch fälschlich als 0 % berechnet, siehe unten).
+    fetchOptional(
+      config,
+      "Job-Gesamtstatistik",
+      requestJson(config, joinUrl(dataBackupUrl, "/v1/multi-clusters/job/summary?jobPeriod=lastWeek"), { headers: authHeaders })
     ),
     fetchOptional(
       config,
@@ -770,6 +780,7 @@ async function collectDataBackupMetrics(config, token) {
   captureRaw(rawEndpoints, "/v1/protected-objects/sla-compliance", sla);
   captureRaw(rawEndpoints, "/v1/report-data/jobs?type=RESOURCE", jobStatsByResource);
   captureRaw(rawEndpoints, "/v1/report-data/jobs?type=SLA", jobStatsBySla);
+  captureRaw(rawEndpoints, "/v1/multi-clusters/job/summary", jobSummary);
   captureRaw(rawEndpoints, "/v1/anti-ransomware/airgap/job/isolation", airgap);
   captureRaw(rawEndpoints, "/v1/anti-ransomware/recovery-drill/plans/statistics", drills);
   captureRaw(rawEndpoints, "/v1/resource/protection/summary", protection);
@@ -796,27 +807,29 @@ async function collectDataBackupMetrics(config, token) {
   }
 
   if (jobStatsByResource) {
-    // Die Doku listet für ResourceTaskSummary.status keine feste Werteliste
-    // — hier wird case-insensitive auf "success" gematcht. Bei Abweichungen
-    // im realen Antwortformat ggf. anpassen (Log-Ausgabe der Rohdaten prüfen).
+    // NUR für "welche Ressourcen fallen am häufigsten auf" (Top-Fehlschläge-
+    // Widget) verwendet — die reale Geräteantwort enthält hier ausschließlich
+    // Einträge mit status="FAIL", keine SUCCESS-Zeilen (bestätigt über
+    // rawEndpoints eines echten Ingests). Eine Erfolgsquote lässt sich aus
+    // dieser Liste NICHT berechnen (siehe jobSummary unten für den
+    // korrekten Gesamtstatus über alle Jobs).
     const summary = jobStatsByResource.body.resourceTaskSummary ?? [];
-    let successCount = 0;
-    let totalCount = 0;
-    for (const entry of summary) {
-      const count = Number(entry.count) || 0;
-      totalCount += count;
-      if (/success/i.test(entry.status ?? "")) successCount += count;
-    }
-    if (totalCount > 0) {
-      metrics.push({ key: "backup_success_rate", value: (successCount / totalCount) * 100, unit: "%" });
-      metrics.push({ key: "backup_failed_jobs_count", value: totalCount - successCount, unit: "count" });
-    }
     topJobFailures = { bySla: [], byResource: topFailuresFrom(summary, "resourceName") };
   }
 
   if (jobStatsBySla) {
     const summary = jobStatsBySla.body.slaTaskSummary ?? [];
     topJobFailures = { bySla: topFailuresFrom(summary, "slaName"), byResource: topJobFailures?.byResource ?? [] };
+  }
+
+  if (jobSummary) {
+    const total = Number(jobSummary.body.total) || 0;
+    const success = Number(jobSummary.body.success) || 0;
+    const fail = Number(jobSummary.body.fail) || 0;
+    if (total > 0) {
+      metrics.push({ key: "backup_success_rate", value: (success / total) * 100, unit: "%" });
+      metrics.push({ key: "backup_failed_jobs_count", value: fail, unit: "count" });
+    }
   }
 
   if (airgap) {
