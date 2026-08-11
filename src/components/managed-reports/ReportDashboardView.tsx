@@ -52,8 +52,8 @@ function StatCard({ entry, locale, primary = false }: { entry: QuarterSummaryEnt
 function PillRow({ text, status }: { text: string; status: MetricStatus }) {
   const s = STATUS_STYLES[status];
   return (
-    <div className={`flex items-center justify-between gap-3 px-3 py-2 text-xs font-medium ${s.bg} ${s.text}`}>
-      <span className="truncate">{text}</span>
+    <div className={`px-3 py-2 text-xs font-medium ${s.bg} ${s.text}`}>
+      <span>{text}</span>
     </div>
   );
 }

@@ -68,7 +68,10 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
           {subscription.customer.company ?? subscription.customer.name ?? subscription.customer.email}
         </h1>
         <p className="text-sm text-gray-500">
-          {subscription._count.metrics} Kennzahlen empfangen · Subscription seit {formatDate(subscription.startDate)}
+          <Link href={`/admin/managed-reports/${subscription.id}/data`} className="text-[#c9a84c] hover:text-[#e0bc5a] underline decoration-dotted">
+            {subscription._count.metrics} Kennzahlen empfangen
+          </Link>{" "}
+          · Subscription seit {formatDate(subscription.startDate)}
           {openFindingsCount > 0 && (
             <>
               {" · "}

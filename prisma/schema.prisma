@@ -334,7 +334,35 @@ model ManagedServiceMetric {
   ingestionId String
   ingestion   CollectorIngestion @relation(fields: [ingestionId], references: [id])
 
+  // Gesetzt, sobald ein Admin diesen Wert im Daten-Browser korrigiert hat —
+  // reine Anzeige-Bequemlichkeit für ein "bearbeitet"-Badge ohne Join auf
+  // die Edit-Historie.
+  edited       Boolean   @default(false)
+  lastEditedAt DateTime?
+
+  edits ManagedServiceMetricEdit[]
+
   @@index([subscriptionId, metricKey, recordedAt])
+}
+
+// Prüfpfad für manuelle Korrekturen eines Werts im Daten-Browser
+// ("entsperren" → editieren, siehe /admin/managed-reports/[id]/data). Der
+// ursprünglich vom Collector gemeldete Wert bleibt über den ersten Eintrag
+// hier nachvollziehbar, auch nachdem ManagedServiceMetric.value überschrieben
+// wurde. onDelete: Cascade ist nötig, damit cleanupOldData.ts beim Löschen
+// alter Metriken nicht an einer verwaisten Fremdschlüssel-Referenz scheitert.
+model ManagedServiceMetricEdit {
+  id            String   @id @default(cuid())
+  previousValue Float
+  newValue      Float
+  reason        String
+  editedByEmail String
+  editedAt      DateTime @default(now())
+
+  metricId String
+  metric   ManagedServiceMetric @relation(fields: [metricId], references: [id], onDelete: Cascade)
+
+  @@index([metricId])
 }
 
 // Alarme (vom Storage-Gerät gemeldet) und Component Faults (vom Collector

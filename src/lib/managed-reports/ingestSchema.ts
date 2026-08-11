@@ -105,6 +105,12 @@ export const ingestPayloadSchema = z.object({
             category: z.string().min(1).max(100),
             id: z.string().min(1).max(200),
             description: z.string().min(1).max(300),
+            // Physisches Gehäuse, in dem die Komponente steckt (z. B. "CTE0"
+            // für eine PSU/einen Lüfter darin) — aus dem LOCATION-Feld des
+            // Geräts abgeleitet, wo vorhanden. Fehlt bei Komponenten ohne
+            // sinnvolle Gehäusezuordnung (Lizenz, Zertifikat, …) und bei
+            // älteren, vor Einführung dieses Felds erfassten Daten.
+            group: z.string().max(100).optional(),
           })
         )
         .max(50)
@@ -121,6 +127,7 @@ export const ingestPayloadSchema = z.object({
             id: z.string().min(1).max(200),
             description: z.string().min(1).max(300),
             ok: z.boolean(),
+            group: z.string().max(100).optional(),
           })
         )
         .max(300)

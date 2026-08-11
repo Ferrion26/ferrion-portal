@@ -20,7 +20,6 @@ const MUTED = "#9CA3AF";
 const WHITE = "#FFFFFF";
 const PAGE_BG = "#F3F4F6";
 const DARK = "#0D1117";
-const SIDEBAR_BG = "#111827";
 const ROW_DIVIDER = "#F3F4F6";
 
 // Layout-Grundmaß des Dashboard-Mockups: dunkle Sidebar links (Kunde/
@@ -102,31 +101,50 @@ const styles = StyleSheet.create({
   // und weiß nichts vom fixed-positionierten Footer. Ohne dieses Padding
   // hier hält react-pdf eine Zeile für "passt noch", obwohl sie den fixed
   // Footer überlappt, statt sie auf die nächste Seite zu schieben.
-  page: { fontFamily: "Helvetica", color: INK, fontSize: 9, backgroundColor: PAGE_BG, paddingBottom: 48 },
+  // paddingTop hier statt (nur) auf `main`: Padding auf `page` selbst wird
+  // von react-pdf garantiert auf JEDER physischen Seite neu angewendet,
+  // die aus überlaufendem Inhalt entsteht — ein kleiner, aber verlässlicher
+  // Abstand zum oberen Rand, auch auf Folgeseiten desselben Produkts, statt
+  // dass der Inhalt dort ggf. direkt am Seitenrand beginnt.
+  page: { fontFamily: "Helvetica", color: INK, fontSize: 9, backgroundColor: PAGE_BG, paddingTop: 10, paddingBottom: 48 },
 
+  // Helle Sidebar statt vollflächig dunkel (Druckfreundlichkeit — eine
+  // volle Höhe dunkler Fläche auf jeder Produktseite verbraucht beim Drucken
+  // erheblich mehr Toner/Tinte als nötig). Von PAGE_BG (Hauptfläche) durch
+  // eine dünne rechte Trennlinie statt einer Farbfläche abgesetzt.
+  // Kein `bottom: 0` (mehr): eine bis zum Seitenende gestreckte, absolut
+  // positionierte Box mit einem WIEDERUM absolut positionierten Footer
+  // darin (bottom: 18) führte dazu, dass react-pdf bei mehrseitigem
+  // Produktinhalt genau diesen inneren Footer isoliert auf einer sonst
+  // leeren Folgeseite erneut platzierte, obwohl die Sidebar selbst (siehe
+  // unten, kein `fixed`) korrekt nur einmal erschien. Ohne `bottom: 0`
+  // richtet sich die Höhe der Sidebar nach ihrem eigenen Inhalt (gehört
+  // eindeutig zur ersten physischen Seite) und der Footer steht als
+  // normaler Fließinhalt am Ende, statt an den Seitenrand gepinnt zu sein.
   sidebar: {
     position: "absolute",
     top: 0,
     left: 0,
-    bottom: 0,
     width: SIDEBAR_WIDTH,
-    backgroundColor: SIDEBAR_BG,
+    backgroundColor: WHITE,
+    borderRightWidth: 1,
+    borderRightColor: ROW_DIVIDER,
     paddingHorizontal: 16,
     paddingTop: 22,
     paddingBottom: 18,
   },
   sidebarLogo: { width: 46, height: 24, objectFit: "contain", marginBottom: 14 },
-  sidebarReportLabel: { fontSize: 6.5, color: GOLD, letterSpacing: 1.5, marginBottom: 4 },
-  sidebarTitle: { fontSize: 14, fontFamily: "Helvetica-Bold", color: WHITE, lineHeight: 1.25, marginBottom: 16 },
-  sidebarRule: { borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.1)", marginBottom: 14 },
+  sidebarReportLabel: { fontSize: 6.5, color: GOLD_DARK, letterSpacing: 1.5, marginBottom: 4 },
+  sidebarTitle: { fontSize: 14, fontFamily: "Helvetica-Bold", color: INK, lineHeight: 1.25, marginBottom: 16 },
+  sidebarRule: { borderBottomWidth: 1, borderBottomColor: ROW_DIVIDER, marginBottom: 14 },
   sidebarField: { marginBottom: 15 },
-  sidebarFieldLabel: { fontSize: 6.5, color: "#8B94A3", letterSpacing: 0.8, marginBottom: 3 },
-  sidebarFieldValue: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: WHITE, lineHeight: 1.35 },
-  sidebarStatusCard: { backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 6, padding: 10, marginTop: 4 },
-  sidebarStatusLabel: { fontSize: 6, color: "#8B94A3", letterSpacing: 0.8, marginBottom: 6 },
-  sidebarFooter: { position: "absolute", bottom: 18, left: 16, right: 16 },
-  sidebarFooterTagline: { fontSize: 6.5, color: GOLD, letterSpacing: 1 },
-  sidebarFooterUrl: { fontSize: 6, color: "#6B7280", marginTop: 2 },
+  sidebarFieldLabel: { fontSize: 6.5, color: GRAY, letterSpacing: 0.8, marginBottom: 3 },
+  sidebarFieldValue: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: INK, lineHeight: 1.35 },
+  sidebarStatusCard: { backgroundColor: "#F9FAFB", borderRadius: 6, borderWidth: 1, borderColor: ROW_DIVIDER, padding: 10, marginTop: 4 },
+  sidebarStatusLabel: { fontSize: 6, color: GRAY, letterSpacing: 0.8, marginBottom: 6 },
+  sidebarFooter: { marginTop: 18 },
+  sidebarFooterTagline: { fontSize: 6.5, color: GOLD_DARK, letterSpacing: 1 },
+  sidebarFooterUrl: { fontSize: 6, color: GRAY, marginTop: 2 },
 
   main: { marginLeft: SIDEBAR_WIDTH, width: PAGE_WIDTH - SIDEBAR_WIDTH, paddingHorizontal: PAGE_PADDING, paddingTop: PAGE_PADDING },
 
@@ -202,6 +220,8 @@ const styles = StyleSheet.create({
   tableRow: { flexDirection: "row", alignItems: "center", paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: ROW_DIVIDER },
   tableCellName: { fontSize: 8, color: INK, flex: 1, paddingRight: 6 },
   tableCellNum: { fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, width: 56, textAlign: "right" },
+  // Gehäuse-Unterüberschrift in SuccessfulChecksCard (siehe groupSuccessfulChecks).
+  checksGroupHeading: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: GOLD_DARK, letterSpacing: 0.3, marginBottom: 4 },
 
   barCard: { backgroundColor: WHITE, borderRadius: 8, padding: 13, flex: 1 },
   barCardTitle: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 8 },
@@ -269,28 +289,30 @@ const styles = StyleSheet.create({
   footerText: { fontSize: 8, color: GRAY },
   footerPage: { fontSize: 8, fontFamily: "Helvetica-Bold", color: INK },
 
-  // Deckblatt: volle dunkle Fläche im selben Look wie die Sidebar der
-  // Produktseiten, damit der Bericht als Ganzes konsistent wirkt.
+  // Deckblatt: helle Fläche wie die übrigen Berichtsseiten statt einer
+  // vollflächig dunklen Startseite (Druckfreundlichkeit — eine ganzseitige
+  // dunkle Fläche verbraucht beim Drucken unnötig viel Toner/Tinte). Gold
+  // bleibt als Markenakzent (Regeln, Rahmen), Text wird dunkel auf hell.
   coverPage: {
     fontFamily: "Helvetica",
-    backgroundColor: DARK,
-    color: WHITE,
+    backgroundColor: PAGE_BG,
+    color: INK,
     paddingHorizontal: 56,
     paddingVertical: 64,
     justifyContent: "space-between",
   },
   coverLogo: { width: 84, height: 44, objectFit: "contain", marginBottom: 40 },
-  coverKicker: { fontSize: 9, color: GOLD, letterSpacing: 2.5, marginBottom: 10 },
-  coverTitle: { fontSize: 30, fontFamily: "Helvetica-Bold", color: WHITE, marginBottom: 18 },
-  coverRule: { borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.15)", marginBottom: 18 },
-  coverCustomer: { fontSize: 15, fontFamily: "Helvetica-Bold", color: WHITE, marginBottom: 22 },
+  coverKicker: { fontSize: 9, color: GOLD_DARK, letterSpacing: 2.5, marginBottom: 10 },
+  coverTitle: { fontSize: 30, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 18 },
+  coverRule: { borderBottomWidth: 1, borderBottomColor: GOLD, marginBottom: 18 },
+  coverCustomer: { fontSize: 15, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 22 },
   coverProductList: { gap: 10 },
   coverProductRow: { borderLeftWidth: 2, borderLeftColor: GOLD, paddingLeft: 10 },
-  coverProductName: { fontSize: 11, fontFamily: "Helvetica-Bold", color: WHITE },
-  coverProductMeta: { fontSize: 8, color: "#8B94A3", marginTop: 1 },
-  coverFooterLine: { fontSize: 8.5, color: "#C3C2B7", marginTop: 4, marginBottom: 4 },
-  coverFooterTagline: { fontSize: 8, color: GOLD, letterSpacing: 1.5, marginBottom: 6 },
-  coverFooterUrl: { fontSize: 7, color: "#6B7280" },
+  coverProductName: { fontSize: 11, fontFamily: "Helvetica-Bold", color: INK },
+  coverProductMeta: { fontSize: 8, color: GRAY, marginTop: 1 },
+  coverFooterLine: { fontSize: 8.5, color: "#374151", marginTop: 4, marginBottom: 4 },
+  coverFooterTagline: { fontSize: 8, color: GOLD_DARK, letterSpacing: 1.5, marginBottom: 6 },
+  coverFooterUrl: { fontSize: 7, color: GRAY },
 
   // Inhaltsverzeichnis: helle Seite wie die übrigen Inhaltsseiten, damit
   // sie sich als Navigationshilfe zum Bericht zugehörig, aber nicht wie
@@ -748,25 +770,73 @@ const MAX_SUCCESSFUL_CHECKS_SHOWN = 150;
 // Kategorien bleiben einzeln sichtbar (z. B. Controller A/B namentlich).
 const GROUP_CATEGORY_THRESHOLD = 12;
 
-function groupSuccessfulChecks(ok: ComponentCheck[], locale: "de" | "en") {
+function groupSuccessfulChecksRows(items: ComponentCheck[], locale: "de" | "en") {
   const byCategory = new Map<string, ComponentCheck[]>();
-  for (const c of ok) {
+  for (const c of items) {
     if (!byCategory.has(c.category)) byCategory.set(c.category, []);
     byCategory.get(c.category)!.push(c);
   }
   const rows: { category: string; id: string; description: string }[] = [];
-  for (const [category, items] of Array.from(byCategory.entries())) {
-    if (items.length > GROUP_CATEGORY_THRESHOLD) {
+  for (const [category, catItems] of Array.from(byCategory.entries())) {
+    if (catItems.length > GROUP_CATEGORY_THRESHOLD) {
       rows.push({
         category,
-        id: locale === "de" ? `${items.length} geprüft` : `${items.length} checked`,
+        id: locale === "de" ? `${catItems.length} geprüft` : `${catItems.length} checked`,
         description: locale === "de" ? "Alle Normal" : "All Normal",
       });
     } else {
-      for (const item of items) rows.push({ category: item.category, id: normalizeComponentLabel(item.id), description: item.description });
+      for (const item of catItems) rows.push({ category: item.category, id: normalizeComponentLabel(item.id), description: item.description });
     }
   }
   return rows;
+}
+
+interface ChecksSection {
+  heading: string | null;
+  rows: { category: string; id: string; description: string }[];
+}
+
+// Viele Komponenten (Netzteil, Lüfter, Festplatte, …) sind physisch in einem
+// Gehäuse verbaut — eine rein nach Kategorie sortierte Liste zeigt das nicht,
+// obwohl z. B. "PSU0" ohne Kontext, WELCHES Gehäuse gemeint ist, bei mehreren
+// Gehäusen (Controller-Enclosure + Disk-Enclosures) mehrdeutig ist (beide
+// melden eigene PSU0/FAN0 usw.). Komponenten mit bekannter Gehäusezuordnung
+// (ComponentCheck.group, vom Collector aus dem LOCATION-Feld abgeleitet)
+// werden daher zuerst je Gehäuse gruppiert; Komponenten ohne sinnvolle
+// Gehäusezuordnung (Lizenz, Zertifikat, Storage Pool, …) bleiben als eigener
+// Abschnitt am Ende — identisch zur bisherigen flachen Darstellung, falls
+// gar keine Gehäusezuordnung vorliegt (ältere, vor Einführung dieses Felds
+// erfasste Daten).
+function groupSuccessfulChecks(ok: ComponentCheck[], locale: "de" | "en"): ChecksSection[] {
+  const byGroup = new Map<string, ComponentCheck[]>();
+  const ungrouped: ComponentCheck[] = [];
+  for (const c of ok) {
+    if (c.group) {
+      if (!byGroup.has(c.group)) byGroup.set(c.group, []);
+      byGroup.get(c.group)!.push(c);
+    } else {
+      ungrouped.push(c);
+    }
+  }
+
+  const sections: ChecksSection[] = Array.from(byGroup.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([group, items]) => ({
+      heading: (locale === "de" ? "Gehäuse " : "Enclosure ") + normalizeComponentLabel(group),
+      rows: groupSuccessfulChecksRows(items, locale),
+    }));
+
+  if (ungrouped.length > 0) {
+    sections.push({
+      // Nur eine Überschrift, wenn es auch gruppierte Abschnitte gibt — bei
+      // Produkten/Daten ganz ohne Gehäusezuordnung (z. B. noch nicht
+      // aktualisierter Collector) bleibt die Darstellung dann exakt die
+      // bisherige flache Liste ohne zusätzliche Überschrift.
+      heading: sections.length > 0 ? (locale === "de" ? "Weitere Komponenten" : "Other Components") : null,
+      rows: groupSuccessfulChecksRows(ungrouped, locale),
+    });
+  }
+  return sections;
 }
 
 function SuccessfulChecksCard({ checks, locale }: { checks: ComponentCheck[]; locale: "de" | "en" }) {
@@ -774,28 +844,47 @@ function SuccessfulChecksCard({ checks, locale }: { checks: ComponentCheck[]; lo
   const tc = TABLE_COLUMN_COPY[locale];
   const ok = checks.filter((c) => c.ok);
   if (ok.length === 0) return null;
-  const rows = groupSuccessfulChecks(ok, locale);
-  const shown = rows.slice(0, MAX_SUCCESSFUL_CHECKS_SHOWN);
-  const overflow = rows.length - shown.length;
+  const sections = groupSuccessfulChecks(ok, locale);
+  const totalRows = sections.reduce((n, s) => n + s.rows.length, 0);
+  const overflow = Math.max(0, totalRows - MAX_SUCCESSFUL_CHECKS_SHOWN);
+
+  // Zeilenlimit gilt über alle Abschnitte hinweg (nicht pro Gehäuse) — bei
+  // Erreichen werden die letzten Abschnitte gekappt, der Rest zählt in die
+  // "+ N weitere"-Fußzeile.
+  let remaining = MAX_SUCCESSFUL_CHECKS_SHOWN;
+  const shownSections = sections
+    .map((s) => {
+      if (remaining <= 0) return null;
+      const rows = s.rows.slice(0, remaining);
+      remaining -= rows.length;
+      return { ...s, rows };
+    })
+    .filter((s): s is ChecksSection => s !== null && s.rows.length > 0);
+
   return (
-    // Kein wrap={false} auf dem Container: bis zu MAX_SUCCESSFUL_CHECKS_SHOWN
-    // (60) Zeilen sprengen als starr unteilbarer Block leicht eine Seite
-    // (siehe dieselbe Korrektur bei AlarmCard/ComponentFaultsCard/ListCard).
+    // Kein wrap={false} auf dem Container: viele Zeilen sprengen als starr
+    // unteilbarer Block leicht eine Seite (siehe dieselbe Korrektur bei
+    // AlarmCard/ComponentFaultsCard/ListCard).
     <View style={styles.tableCardBlock}>
       <Text style={styles.listCardTitle}>{t.successTitle}</Text>
       <Text style={styles.listCardSub}>{t.successSub}</Text>
-      <View style={{ ...styles.tableHeaderRow, marginTop: 4 }}>
-        <Text style={{ ...styles.tableHeaderCell, width: 90 }}>{tc.category}</Text>
-        <Text style={{ ...styles.tableHeaderCell, width: 110 }}>{tc.component}</Text>
-        <Text style={{ ...styles.tableHeaderCell, flex: 1 }}>{tc.description}</Text>
-        <Text style={{ ...styles.tableHeaderCell, width: 40, textAlign: "right" }}>{tc.status}</Text>
-      </View>
-      {shown.map((check, i) => (
-        <View key={i} wrap={false} style={{ ...styles.tableRow, alignItems: "flex-start" }}>
-          <Text style={{ width: 90, color: MUTED, fontSize: 7, paddingTop: 1 }}>{check.category}</Text>
-          <Text style={{ width: 110, fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, paddingRight: 6 }}>{check.id}</Text>
-          <Text style={{ flex: 1, fontSize: 8, color: "#374151" }}>{check.description}</Text>
-          <Text style={{ width: 40, fontSize: 6.5, color: STATUS_COLORS.good.dot, textAlign: "right" }}>OK</Text>
+      {shownSections.map((section, si) => (
+        <View key={si}>
+          {section.heading && <Text style={{ ...styles.checksGroupHeading, marginTop: si === 0 ? 4 : 10 }}>{section.heading}</Text>}
+          <View style={{ ...styles.tableHeaderRow, marginTop: section.heading ? 3 : 4 }}>
+            <Text style={{ ...styles.tableHeaderCell, width: 90 }}>{tc.category}</Text>
+            <Text style={{ ...styles.tableHeaderCell, width: 110 }}>{tc.component}</Text>
+            <Text style={{ ...styles.tableHeaderCell, flex: 1 }}>{tc.description}</Text>
+            <Text style={{ ...styles.tableHeaderCell, width: 40, textAlign: "right" }}>{tc.status}</Text>
+          </View>
+          {section.rows.map((check, i) => (
+            <View key={i} wrap={false} style={{ ...styles.tableRow, alignItems: "flex-start" }}>
+              <Text style={{ width: 90, color: MUTED, fontSize: 7, paddingTop: 1 }}>{check.category}</Text>
+              <Text style={{ width: 110, fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, paddingRight: 6 }}>{check.id}</Text>
+              <Text style={{ flex: 1, fontSize: 8, color: "#374151" }}>{check.description}</Text>
+              <Text style={{ width: 40, fontSize: 6.5, color: STATUS_COLORS.good.dot, textAlign: "right" }}>OK</Text>
+            </View>
+          ))}
         </View>
       ))}
       {overflow > 0 && (
@@ -1158,6 +1247,12 @@ export interface ComponentFault {
   description: string;
   status: "active" | "resolved";
   resolvedAt?: string;
+  // Physisches Gehäuse, in dem die Komponente steckt (z. B. "CTE0") — siehe
+  // ComponentCheck.group. Wird aktuell nicht bis hierher durchgereicht (der
+  // Auffälligkeiten-Abschnitt baut auf der DeviceFinding-Historie auf, nicht
+  // direkt auf dem Ingest-Payload), aber schon Teil des Typs, damit eine
+  // spätere Erweiterung (siehe SuccessfulChecksCard) keinen Bruch braucht.
+  group?: string;
 }
 
 // JEDE geprüfte Komponente (normal UND fehlerhaft) — anders als
@@ -1168,6 +1263,13 @@ export interface ComponentCheck {
   id: string;
   description: string;
   ok: boolean;
+  // Physisches Gehäuse, in dem die Komponente steckt (z. B. "CTE0" für eine
+  // darin verbaute PSU/einen Lüfter) — vom Collector aus dem LOCATION-Feld
+  // des Geräts abgeleitet (siehe collector/adapters/shared.js). Fehlt bei
+  // Komponenten ohne sinnvolle Gehäusezuordnung (Lizenz, Zertifikat, …) und
+  // bei älteren, vor Einführung dieses Felds erfassten Daten — die Anzeige
+  // fällt dafür auf die alte flache Liste zurück (siehe groupSuccessfulChecks).
+  group?: string;
 }
 
 export interface ProductReportData {
@@ -1262,7 +1364,12 @@ function ProductPage({
 
   return (
     <Page id={`product-${index}`} size="A4" style={styles.page}>
-      <View style={styles.sidebar} fixed>
+      {/* Nicht `fixed`: soll nur auf der ERSTEN physischen Seite dieses
+          Produkts erscheinen, nicht auf jeder Folgeseite bei umfangreichem
+          Inhalt — erst das nächste Produkt (neue <Page>) bekommt wieder
+          seine eigene Sidebar. `fixed` würde sie (wie zuvor) auf jeder aus
+          diesem <Page>-Inhalt entstehenden physischen Seite wiederholen. */}
+      <View style={styles.sidebar}>
         <Image style={styles.sidebarLogo} src={LOGO_DATA_URI} />
         <Text style={styles.sidebarReportLabel}>{t.reportLabel}</Text>
         <Text style={styles.sidebarTitle}>{periodLabel}</Text>
@@ -1431,13 +1538,6 @@ function ProductPage({
           </View>
         )}
 
-        {product.replicationNote && (
-          <View style={styles.notesBlock} wrap={false}>
-            <Text style={styles.notesLabel}>{(locale === "de" ? "Hinweis" : "Note").toUpperCase()}</Text>
-            <Text style={styles.notesText}>{product.replicationNote}</Text>
-          </View>
-        )}
-
         <ListCard title={SECTION_LABELS.availability[locale]} entries={availabilityDetailEntries} locale={locale} />
         {availabilityDetailEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
 
@@ -1446,10 +1546,6 @@ function ProductPage({
 
         <ListCard title={SECTION_LABELS.operations[locale]} entries={operationsEntries} locale={locale} />
         {operationsEntries.length > 0 && <View style={{ marginBottom: 14 }} />}
-
-        <View id={`p${index}-methodik`}>
-          <MethodologySection entries={entries} locale={locale} />
-        </View>
 
         {(product.componentFaults?.length ?? 0) > 0 && (
           <View id={`p${index}-auffaelligkeiten`} style={{ marginBottom: 14 }}>
@@ -1467,6 +1563,16 @@ function ProductPage({
         {(product.componentChecks?.length ?? 0) > 0 && (
           <View id={`p${index}-geprueft`}>
             <SuccessfulChecksCard checks={product.componentChecks!} locale={locale} />
+          </View>
+        )}
+
+        {/* Ganz am Schluss dieses Produktabschnitts statt weiter oben — der
+            manuell gepflegte Hinweis fungiert als eine Art Management
+            Summary für dieses Gerät, nachdem alle Detaildaten gezeigt wurden. */}
+        {product.replicationNote && (
+          <View style={styles.notesBlock} wrap={false}>
+            <Text style={styles.notesLabel}>{(locale === "de" ? "Hinweis" : "Note").toUpperCase()}</Text>
+            <Text style={styles.notesText}>{product.replicationNote}</Text>
           </View>
         )}
       </View>
@@ -1547,9 +1653,6 @@ function productTocSections(product: ProductReportData, locale: "de" | "en", ind
   const hasInfra = entries.some((e) => e.section === "hardware" && (e.format === "count" || e.format === "percent"));
   const hasCapacity = entries.some((e) => e.section === "capacity");
   const hasProtection = entries.some((e) => e.key === "resource_protection_rate");
-  const hasMethodology =
-    entries.some((e) => e.methodology) || entries.some((e) => e.derived) || entries.some((e) => e.source);
-
   return [
     hasHeadline && { label: t.headlineTitle, anchor: `p${index}-kennzahlen` },
     { label: t.recTitle, anchor: `p${index}-schritte` },
@@ -1558,14 +1661,46 @@ function productTocSections(product: ProductReportData, locale: "de" | "en", ind
     hasProtection && { label: PROTECTION_COPY[locale].title, anchor: `p${index}-schutz` },
     (product.componentFaults?.length ?? 0) > 0 && { label: t.detailsTitle, anchor: `p${index}-auffaelligkeiten` },
     (product.componentChecks?.length ?? 0) > 0 && { label: t.successTitle, anchor: `p${index}-geprueft` },
-    hasMethodology && { label: t.methodologyTitle, anchor: `p${index}-methodik` },
   ].filter((s): s is { label: string; anchor: string } => Boolean(s));
+}
+
+// Methodik gilt für den gesamten Bericht (nicht nur ein Produkt) und stand
+// bisher pro Produkt wiederholt im Bericht — jetzt eine einzige Stelle ganz
+// am Ende, die über alle Produkte hinweg dedupliziert (dieselbe Kennzahl,
+// z. B. Systemverfügbarkeit, taucht bei kombinierten Berichten sonst doppelt auf).
+function mergeMethodologyEntries(products: ProductReportData[]): QuarterSummaryEntry[] {
+  const byKey = new Map<string, QuarterSummaryEntry>();
+  for (const product of products) {
+    for (const entry of product.entries) {
+      if (!byKey.has(entry.key)) byKey.set(entry.key, entry);
+    }
+  }
+  return Array.from(byKey.values());
+}
+
+function hasAnyMethodology(products: ProductReportData[]): boolean {
+  return products.some((p) => p.entries.some((e) => e.methodology || e.derived || e.source));
+}
+
+function MethodologyPage({ locale, products }: { locale: "de" | "en"; products: ProductReportData[] }) {
+  const t = COPY[locale];
+  if (!hasAnyMethodology(products)) return null;
+  const entries = mergeMethodologyEntries(products);
+  return (
+    <Page id="methodology" size="A4" style={styles.tocPage}>
+      <Image style={styles.tocLogo} src={LOGO_DATA_URI} />
+      <Text style={styles.tocTitle}>{t.methodologyTitle}</Text>
+      <View style={styles.tocRule} />
+      <MethodologySection entries={entries} locale={locale} />
+    </Page>
+  );
 }
 
 const TOC_COPY = { de: { title: "Inhaltsverzeichnis" }, en: { title: "Table of Contents" } };
 
 function TocPage({ locale, products }: { locale: "de" | "en"; products: ProductReportData[] }) {
   const tt = TOC_COPY[locale];
+  const t = COPY[locale];
   return (
     <Page size="A4" style={styles.tocPage}>
       <Image style={styles.tocLogo} src={LOGO_DATA_URI} />
@@ -1591,6 +1726,15 @@ function TocPage({ locale, products }: { locale: "de" | "en"; products: ProductR
           ))}
         </View>
       ))}
+
+      {hasAnyMethodology(products) && (
+        <Link src="#methodology" style={styles.tocLinkReset}>
+          <View style={styles.tocEntryRow}>
+            <Text style={styles.tocEntryNumber}>{String(products.length + 1).padStart(2, "0")}</Text>
+            <Text style={styles.tocEntryTitle}>{t.methodologyTitle}</Text>
+          </View>
+        </Link>
+      )}
     </Page>
   );
 }
@@ -1616,6 +1760,7 @@ export function ReportDocument({ locale, customerCompany, periodLabel, products,
           adminNotes={i === products.length - 1 ? adminNotes : undefined}
         />
       ))}
+      <MethodologyPage locale={locale} products={products} />
     </Document>
   );
 }

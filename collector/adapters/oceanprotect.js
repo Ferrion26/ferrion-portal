@@ -19,6 +19,7 @@
 // metricKeys müssen exakt zu den Definitionen in
 // src/lib/managed-reports/metrics/oceanprotect.ts passen.
 const { requestJson, joinUrl } = require("../httpClient");
+const { componentGroup } = require("./shared");
 
 async function loginStorage(config) {
   const { deviceManagerUrl, deviceManagerUsername, deviceManagerPassword } = config.oceanprotect;
@@ -379,8 +380,9 @@ async function collectHardwareMetrics(config, session) {
   metrics.push({ key: "eth_ports_down", value: downPorts.length, unit: "count" });
   for (const p of activePorts) {
     const down = Number(p.RUNNINGSTATUS) === 11;
-    componentChecks.push({ category: "Netzwerk-Port", id: componentDisplayName(p), description: down ? "Offline" : "Online", ok: !down });
-    if (down) componentFaults.push({ category: "Netzwerk-Port", id: componentDisplayName(p), description: "Offline" });
+    const group = componentGroup(p);
+    componentChecks.push({ category: "Netzwerk-Port", id: componentDisplayName(p), description: down ? "Offline" : "Online", ok: !down, ...(group ? { group } : {}) });
+    if (down) componentFaults.push({ category: "Netzwerk-Port", id: componentDisplayName(p), description: "Offline", ...(group ? { group } : {}) });
   }
 
   // Optical-Module-HEALTHSTATUS: 0 = nicht erkannt (laut Inspector-Kriterium
@@ -653,14 +655,16 @@ function collectFaultDetails(componentFaults, componentChecks, category, list, i
   for (const item of list) {
     const status = Number(item.HEALTHSTATUS ?? item.healthStatus);
     const ok = isOk(status);
+    const group = componentGroup(item);
     if (componentChecks) {
-      componentChecks.push({ category, id: componentDisplayName(item), description: describeHealthStatus(status), ok });
+      componentChecks.push({ category, id: componentDisplayName(item), description: describeHealthStatus(status), ok, ...(group ? { group } : {}) });
     }
     if (ok) continue;
     componentFaults.push({
       category,
       id: componentDisplayName(item),
       description: describeHealthStatus(status),
+      ...(group ? { group } : {}),
     });
   }
 }
