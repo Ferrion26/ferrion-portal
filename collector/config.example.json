@@ -25,6 +25,15 @@
         "username": "collector-readonly",
         "password": "…"
       }
+    },
+    {
+      "productSlug": "netapp-aff",
+      "apiKey": "fcs_… (Subscription 3 — im Admin-Bereich unter Managed Reports > NetApp-Subscription > API-Keys erzeugen)",
+      "netapp": {
+        "managementUrl": "https://<netapp-aff-cluster-mgmt-ip>",
+        "username": "collector-readonly",
+        "password": "…"
+      }
     }
   ],
   "_comment_single_device": "Nur ein Gerät am Standort? Das 'devices'-Array weglassen und productSlug/apiKey/den passenden Zugangsdaten-Block (z. B. 'oceanprotect') direkt auf oberster Ebene setzen — funktioniert weiterhin genauso."

@@ -132,6 +132,39 @@ export const PRODUCTS: Product[] = [
     relatedArticleSlugs: [],
   },
   {
+    slug: "netapp-aff",
+    status: "available",
+    categoryIds: ["data-storage"],
+    subgroup: { de: "All-Flash Storage", en: "All-Flash Storage" },
+    vendor: "NetApp",
+    icon: "🗄️",
+    eyebrow: { de: "Produkt · Beispiel-Content", en: "Product · Example content" },
+    // Kein "NetApp"-Präfix hier — product.vendor wird im Bericht/Katalog
+    // davorgesetzt ("{vendor} {name}"), sonst würde "NetApp NetApp AFF"
+    // entstehen (analog zu "OceanStor Hybrid Flash Storage" ohne "Huawei").
+    name: "AFF All-Flash Storage",
+    tagline: {
+      de: "Beispiel-Content: All-Flash-Storage mit ONTAP — unified SAN & NAS für konsolidierte Workloads.",
+      en: "Example content: All-flash storage with ONTAP — unified SAN & NAS for consolidated workloads.",
+    },
+    intro: {
+      de: "Beispiel-Content: Die AFF-Serie (All Flash FAS) ist NetApps All-Flash-Plattform auf Basis von ONTAP. Ein System bedient Block- (FC/iSCSI) und File-Protokolle (NFS/SMB) gleichzeitig, HA-Controller-Paare sichern den Betrieb bei einem Node-Ausfall ab, und Snapshot-basierter Datenschutz sowie SnapMirror-Replikation bilden die Grundlage für Backup- und DR-Konzepte. Details zu Ferrions konkretem Angebot rund um NetApp folgen.",
+      en: "Example content: The AFF (All Flash FAS) series is NetApp's all-flash platform built on ONTAP. A single system serves block (FC/iSCSI) and file (NFS/SMB) protocols simultaneously, HA controller pairs keep operations running through a node failure, and snapshot-based data protection plus SnapMirror replication form the basis for backup and DR concepts. Details on Ferrion's concrete NetApp offering will follow.",
+    },
+    facts: [
+      { value: { de: "SAN & NAS", en: "SAN & NAS" }, label: { de: "Unterstützte Protokolle", en: "Supported protocols" } },
+      { value: { de: "HA-Paar", en: "HA pair" }, label: { de: "Hochverfügbarkeit", en: "High availability" } },
+      { value: { de: "ONTAP", en: "ONTAP" }, label: { de: "Betriebssystem", en: "Operating system" } },
+      { value: { de: "n/a", en: "n/a" }, label: { de: "Kennzahl folgt", en: "Metric to follow" } },
+    ],
+    highlights: [
+      { icon: "🗄️", title: { de: "Unified SAN & NAS", en: "Unified SAN & NAS" }, desc: { de: "Ein System für Block- und File-Workloads statt getrennter Plattformen.", en: "One system for block and file workloads instead of separate platforms." } },
+      { icon: "🔁", title: { de: "HA-Controller-Paare", en: "HA controller pairs" }, desc: { de: "Failover ohne Unterbrechung bei Ausfall eines Controllers.", en: "Failover without interruption if a controller fails." } },
+      { icon: "🛟", title: { de: "Snapshot & SnapMirror", en: "Snapshot & SnapMirror" }, desc: { de: "Platzsparende Snapshots und Replikation als Grundlage für Backup und Disaster Recovery.", en: "Space-efficient snapshots and replication as the basis for backup and disaster recovery." } },
+    ],
+    relatedArticleSlugs: [],
+  },
+  {
     slug: "everpure-storage-platform",
     status: "available",
     categoryIds: ["data-storage", "ai-data-platform"],

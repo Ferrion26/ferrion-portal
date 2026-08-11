@@ -1,6 +1,7 @@
 import { MetricDefinition } from "./types";
 import { OCEANPROTECT_METRICS } from "./oceanprotect";
 import { OCEANSTOR_METRICS } from "./oceanstor";
+import { NETAPP_METRICS } from "./netapp";
 
 export * from "./types";
 
@@ -11,6 +12,7 @@ export * from "./types";
 const METRIC_DEFINITIONS: Record<string, MetricDefinition[]> = {
   oceanprotect: OCEANPROTECT_METRICS,
   "oceanstor-hybrid-flash": OCEANSTOR_METRICS,
+  "netapp-aff": NETAPP_METRICS,
 };
 
 export function getMetricDefinitions(productSlug: string): MetricDefinition[] {

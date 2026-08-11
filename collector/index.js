@@ -32,6 +32,7 @@ const { FULL: COLLECTOR_VERSION } = require("./version");
 const ADAPTERS = {
   oceanprotect: require("./adapters/oceanprotect"),
   "oceanstor-hybrid-flash": require("./adapters/oceanstor"),
+  "netapp-aff": require("./adapters/netapp"),
 };
 
 function parseArgs(argv) {

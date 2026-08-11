@@ -1,0 +1,261 @@
+// Adapter für NetApp AFF/ONTAP: liest Kennzahlen über die ONTAP REST API
+// (https://<cluster-mgmt-ip>/api/...) aus.
+//
+// Quelle: NetApps öffentliche ONTAP-REST-API-Referenz (docs.netapp.com/
+// us-en/ontap-restapi/) — anders als bei Huawei lag keine kundenspezifische
+// PDF-Doku vor. Endpunkte und Feldnamen wurden über die inhaltsgleichen
+// Python-Client-Spiegelseiten (library.netapp.com/ecmdocs/…/resources/
+// {cluster,node,aggregate,disk,shelf,ems_event}.html) verifiziert, die
+// dasselbe REST-Schema dokumentieren. Diese Datei ist NOCH NICHT gegen ein
+// echtes Gerät verifiziert (anders als die Huawei-Adapter, die alle gegen
+// reale Uni-Salzburg-Geräte liefen) — beim ersten echten Ingest bitte
+// meta.rawEndpoints prüfen und diese Datei bei Abweichungen anpassen, genau
+// wie es bei OceanProtect mit der Ressourcenschutz-Übersicht und der
+// Backup-Erfolgsquote nötig war.
+//
+// Auth: HTTP Basic (Authorization-Header pro Request) — anders als Huaweis
+// Session-Login/iBaseToken-Verfahren gibt es kein Login/Logout.
+//
+// GET-Collection-Endpunkte liefern standardmäßig NUR die Identitätsfelder
+// (name/uuid) zurück — jeder Aufruf hier fragt die benötigten Felder daher
+// explizit über ?fields=... an (ONTAP-REST-Konvention, siehe "Getting
+// started with the ONTAP REST API").
+//
+// metricKeys müssen exakt zu den Definitionen in
+// src/lib/managed-reports/metrics/netapp.ts passen.
+const { requestJson, joinUrl } = require("../httpClient");
+
+function captureRaw(rawEndpoints, key, result) {
+  if (!result) return;
+  rawEndpoints[key] = result.body?.records !== undefined ? result.body.records : result.body;
+}
+
+async function fetchOptional(config, label, promise) {
+  try {
+    return await promise;
+  } catch (err) {
+    config.logger?.warn(`${label} konnte nicht abgerufen werden (übersprungen): ${err.message}`);
+    return null;
+  }
+}
+
+// ONTAP-EMS-Severities (emergency > alert > error > notice > informational >
+// debug) auf unser dreistufiges Schema gemappt — informational/debug sind
+// keine Alarme und werden ignoriert.
+const EMS_SEVERITY_MAP = {
+  emergency: "critical",
+  alert: "critical",
+  error: "major",
+  notice: "warning",
+};
+
+// Wie viele UNTERSCHIEDLICHE Ereignisnamen pro Schweregrad im Bericht gezeigt
+// werden. EMS_FETCH_LIMIT ist bewusst deutlich größer als die Sample-Größe —
+// sonst könnte ein einzelner, oft wiederkehrender Ereignistyp (z. B.
+// dieselbe Meldung alle paar Minuten) allein durch seine vielen jüngsten
+// Instanzen alle anderen, ebenso aktiven Ereignistypen aus dem nach Zeit
+// sortierten Sample verdrängen (derselbe Fehler wurde beim OceanProtect-/
+// OceanStor-Alarm-Sampling bereits einmal gemacht und dort behoben).
+const ALARM_SAMPLE_SIZE = 5;
+const EMS_FETCH_LIMIT = 200;
+
+function bytesToTB(bytes) {
+  return bytes / 1024 ** 4;
+}
+
+async function collect(config) {
+  const na = config.netapp ?? {};
+  const required = ["managementUrl", "username", "password"];
+  const missing = required.filter((k) => !na[k]);
+  if (missing.length > 0) {
+    throw new Error(`collector/adapters/netapp.js: config.netapp fehlt: ${missing.join(", ")}`);
+  }
+
+  const base = joinUrl(na.managementUrl, "/api");
+  const authHeaders = { Authorization: `Basic ${Buffer.from(`${na.username}:${na.password}`).toString("base64")}` };
+
+  const [cluster, nodes, aggregates, disks, shelves, emsEvents] = await Promise.all([
+    requestJson(config, joinUrl(base, "/cluster?fields=name,uuid,version"), { headers: authHeaders }),
+    requestJson(config, joinUrl(base, "/cluster/nodes?fields=name,model,serial_number,version,uptime,state,ha"), { headers: authHeaders }),
+    requestJson(config, joinUrl(base, "/storage/aggregates?fields=name,state,space,block_storage"), { headers: authHeaders }),
+    fetchOptional(
+      config,
+      "Disk-Status",
+      requestJson(config, joinUrl(base, "/storage/disks?fields=name,state,container_type,model"), { headers: authHeaders })
+    ),
+    fetchOptional(
+      config,
+      "Shelf-Status",
+      requestJson(config, joinUrl(base, "/storage/shelves?fields=name,state,model,serial_number,frus"), { headers: authHeaders })
+    ),
+    fetchOptional(
+      config,
+      "EMS-Ereignisse",
+      requestJson(
+        config,
+        joinUrl(base, `/support/ems/events?fields=time,message,log_message,node&max_records=${EMS_FETCH_LIMIT}&order_by=time desc`),
+        { headers: authHeaders }
+      )
+    ),
+  ]);
+
+  const rawEndpoints = {};
+  captureRaw(rawEndpoints, "/cluster", cluster);
+  captureRaw(rawEndpoints, "/cluster/nodes", nodes);
+  captureRaw(rawEndpoints, "/storage/aggregates", aggregates);
+  captureRaw(rawEndpoints, "/storage/disks", disks);
+  captureRaw(rawEndpoints, "/storage/shelves", shelves);
+  captureRaw(rawEndpoints, "/support/ems/events", emsEvents);
+
+  const metrics = [];
+  const componentFaults = [];
+  // Jede geprüfte Komponente (normal UND fehlerhaft) — Grundlage für den
+  // abschließenden "erfolgreich geprüft"-Referenzabschnitt im Bericht.
+  const componentChecks = [];
+
+  // --- Cluster-/Gerätestammdaten ---
+  const clusterData = cluster.body;
+  const nodeList = Array.isArray(nodes.body.records) ? nodes.body.records : [];
+  const deviceInfo = {
+    // Cluster-Name (z. B. "netapp-clu1", wie oben links im System Manager
+    // gezeigt) — das ONTAP-Äquivalent zu Huaweis vom Kunden vergebenem NAME.
+    name: clusterData.name || null,
+    softwareVersion: clusterData.version?.full || null,
+    // Modell/Seriennummer werden pro NODE gemeldet, nicht pro Cluster — bei
+    // einem HA-Paar wird hier bewusst der erste Node abgegriffen (der
+    // Bericht zeigt damit Modell/SN eines der beiden Nodes, nicht beider).
+    model: nodeList[0]?.model || null,
+    serialNumber: nodeList[0]?.serial_number || null,
+  };
+
+  // --- Nodes: Betriebszustand + HA-Failover ---
+  if (nodeList.length > 0) {
+    const nodesUp = nodeList.filter((n) => n.state === "up").length;
+    metrics.push({ key: "system_availability", value: (nodesUp / nodeList.length) * 100, unit: "%" });
+    metrics.push({ key: "nodes_down", value: nodeList.length - nodesUp, unit: "count" });
+    metrics.push({ key: "ha_disabled", value: nodeList.filter((n) => n.ha?.enabled === false).length, unit: "count" });
+  }
+  for (const n of nodeList) {
+    const up = n.state === "up";
+    const id = n.name || "Node";
+    componentChecks.push({ category: "Node", id, description: n.state ?? "unbekannt", ok: up });
+    if (!up) componentFaults.push({ category: "Node", id, description: n.state ?? "unbekannt" });
+    if (n.ha?.enabled === false) {
+      componentChecks.push({ category: "HA-Failover", id, description: "deaktiviert", ok: false });
+      componentFaults.push({ category: "HA-Failover", id, description: "Storage-Failover deaktiviert" });
+    } else if (n.ha) {
+      componentChecks.push({ category: "HA-Failover", id, description: "aktiviert", ok: true });
+    }
+  }
+
+  // --- Aggregate: Kapazität + Zustand ---
+  const aggregateList = Array.isArray(aggregates.body.records) ? aggregates.body.records : [];
+  let totalBytes = 0;
+  let usedBytes = 0;
+  const ratios = [];
+  for (const a of aggregateList) {
+    const size = Number(a.space?.block_storage?.size);
+    const used = Number(a.space?.block_storage?.used);
+    if (Number.isFinite(size)) totalBytes += size;
+    if (Number.isFinite(used)) usedBytes += used;
+    const ratio = Number(a.space?.efficiency?.ratio);
+    if (Number.isFinite(ratio)) ratios.push(ratio);
+  }
+  if (totalBytes > 0) {
+    metrics.push({ key: "total_capacity_tb", value: bytesToTB(totalBytes), unit: "TB" });
+    metrics.push({ key: "used_capacity_tb", value: bytesToTB(usedBytes), unit: "TB" });
+    metrics.push({ key: "storage_pool_fill_level", value: (usedBytes / totalBytes) * 100, unit: "%" });
+  }
+  if (ratios.length > 0) {
+    metrics.push({ key: "data_reduction_ratio", value: ratios.reduce((a, b) => a + b, 0) / ratios.length, unit: "x" });
+  }
+  if (aggregateList.length > 0) {
+    metrics.push({ key: "storage_pools_unhealthy", value: aggregateList.filter((a) => a.state !== "online").length, unit: "count" });
+    for (const a of aggregateList) {
+      const ok = a.state === "online";
+      componentChecks.push({ category: "Aggregat", id: a.name || "Aggregat", description: a.state ?? "unbekannt", ok });
+      if (!ok) componentFaults.push({ category: "Aggregat", id: a.name || "Aggregat", description: a.state ?? "unbekannt" });
+    }
+  }
+
+  // --- Disks ---
+  const diskList = Array.isArray(disks?.body?.records) ? disks.body.records : [];
+  if (diskList.length > 0) {
+    metrics.push({ key: "disks_faulty", value: diskList.filter((d) => d.state === "broken").length, unit: "count" });
+    for (const d of diskList) {
+      const ok = d.state !== "broken";
+      componentChecks.push({ category: "Festplatte", id: d.name || "Disk", description: d.state ?? "unbekannt", ok });
+      if (!ok) componentFaults.push({ category: "Festplatte", id: d.name || "Disk", description: d.state ?? "unbekannt" });
+    }
+  }
+
+  // --- Shelves + Netzteile (frus[].type === "psu") ---
+  const shelfList = Array.isArray(shelves?.body?.records) ? shelves.body.records : [];
+  if (shelfList.length > 0) {
+    metrics.push({ key: "shelves_unhealthy", value: shelfList.filter((s) => s.state !== "ok").length, unit: "count" });
+    let psuFaulty = 0;
+    for (const s of shelfList) {
+      const ok = s.state === "ok";
+      const shelfId = s.name || "Shelf";
+      componentChecks.push({ category: "Disk-Shelf", id: shelfId, description: s.state ?? "unbekannt", ok });
+      if (!ok) componentFaults.push({ category: "Disk-Shelf", id: shelfId, description: s.state ?? "unbekannt" });
+      for (const fru of s.frus ?? []) {
+        if (fru.type !== "psu") continue;
+        const fruOk = !fru.state || /ok|normal/i.test(String(fru.state));
+        const fruId = `${shelfId} ${fru.id ?? ""}`.trim();
+        componentChecks.push({ category: "Netzteil", id: fruId, description: fru.state ?? "unbekannt", ok: fruOk });
+        if (!fruOk) {
+          psuFaulty += 1;
+          componentFaults.push({ category: "Netzteil", id: fruId, description: fru.state ?? "unbekannt" });
+        }
+      }
+    }
+    metrics.push({ key: "power_modules_faulty", value: psuFaulty, unit: "count" });
+  }
+
+  // --- EMS-Ereignisse (Alarme) ---
+  let alarmSamples;
+  if (emsEvents) {
+    const events = Array.isArray(emsEvents.body.records) ? emsEvents.body.records : [];
+    const counts = { critical: 0, major: 0, warning: 0 };
+    const seenBySeverity = { critical: new Set(), major: new Set(), warning: new Set() };
+    alarmSamples = [];
+    for (const e of events) {
+      const severity = EMS_SEVERITY_MAP[String(e.message?.severity ?? "").toLowerCase()];
+      if (!severity) continue;
+      counts[severity] += 1;
+      const name = String(e.message?.name ?? "Ereignis");
+      const seen = seenBySeverity[severity];
+      if (seen.size < ALARM_SAMPLE_SIZE && !seen.has(name)) {
+        seen.add(name);
+        alarmSamples.push({
+          severity,
+          name: name.slice(0, 200),
+          description: String(e.log_message ?? "—").slice(0, 500),
+          time: e.time ?? undefined,
+        });
+      }
+    }
+    metrics.push({ key: "alerts_critical", value: counts.critical, unit: "count" });
+    metrics.push({ key: "alerts_major", value: counts.major, unit: "count" });
+    metrics.push({ key: "alerts_warning", value: counts.warning, unit: "count" });
+  }
+
+  if (metrics.length === 0) {
+    throw new Error("Keine Kennzahlen konnten erhoben werden.");
+  }
+
+  const meta = {};
+  if (deviceInfo.serialNumber) meta.deviceSerialNumber = deviceInfo.serialNumber;
+  if (deviceInfo.model) meta.deviceModel = deviceInfo.model;
+  if (deviceInfo.name) meta.deviceName = deviceInfo.name;
+  if (deviceInfo.softwareVersion) meta.deviceSoftwareVersion = deviceInfo.softwareVersion;
+  if (alarmSamples !== undefined) meta.alarmSamples = alarmSamples;
+  if (componentFaults.length > 0) meta.componentFaults = componentFaults;
+  if (componentChecks.length > 0) meta.componentChecks = componentChecks;
+  if (Object.keys(rawEndpoints).length > 0) meta.rawEndpoints = rawEndpoints;
+
+  return { metrics, meta: Object.keys(meta).length > 0 ? meta : undefined };
+}
+
+module.exports = { collect };

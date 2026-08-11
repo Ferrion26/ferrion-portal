@@ -43,6 +43,24 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    `config.example.json`. Kein DataBackup-Teil, da OceanStor reiner
    Primärspeicher ist. Quelle: `docs/Rest/OceanStor V700R001C30 REST
    Interface Reference` (im Repo, nicht öffentlich).
+3c. Für NetApp AFF/ONTAP (z. B. A400) braucht `adapters/netapp.js` nur die
+   **ONTAP REST API** des Clusters selbst (kein separater Login/Session-Token
+   nötig — HTTP Basic Auth pro Request), Standard-HTTPS-Port 443, siehe den
+   `netapp`-Block im dritten `devices`-Eintrag in `config.example.json`.
+   Der Service-Account braucht mindestens **read-only** Zugriff auf
+   `/api/cluster`, `/api/cluster/nodes`, `/api/storage/aggregates`,
+   `/api/storage/disks`, `/api/storage/shelves` und `/api/support/ems/events`
+   (in ONTAP System Manager z. B. über die eingebaute `readonly`-Rolle, oder
+   eine eigene Rolle mit `GET`-Rechten auf die genannten REST-Pfade). Quelle
+   der Endpunkte: NetApps öffentliche ONTAP-REST-API-Referenz
+   (docs.netapp.com/us-en/ontap-restapi/) — anders als bei Huawei online
+   recherchiert statt aus kundenspezifischer PDF-Doku, da NetApp die
+   REST-API-Referenz öffentlich zugänglich macht. **Noch nicht gegen ein
+   reales Gerät verifiziert** — beim ersten echten Ingest `meta.rawEndpoints`
+   im Admin-Bereich prüfen und `adapters/netapp.js` bei Abweichungen im
+   tatsächlichen Antwortformat anpassen.
+   Läuft der Cluster mit einem selbstsignierten Zertifikat im internen Netz,
+   auch hier `allowInsecureTls: true` setzen (siehe oben).
 4. Node.js 18+ auf dem Collector-Host voraussetzen (nutzt das eingebaute
    `fetch`), keine weiteren Abhängigkeiten nötig.
 5. Testlauf: `node index.js config.json`
