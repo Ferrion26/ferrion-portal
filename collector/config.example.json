@@ -36,5 +36,6 @@
       }
     }
   ],
-  "_comment_single_device": "Nur ein Gerät am Standort? Das 'devices'-Array weglassen und productSlug/apiKey/den passenden Zugangsdaten-Block (z. B. 'oceanprotect') direkt auf oberster Ebene setzen — funktioniert weiterhin genauso."
+  "_comment_single_device": "Nur ein Gerät am Standort? Das 'devices'-Array weglassen und productSlug/apiKey/den passenden Zugangsdaten-Block (z. B. 'oceanprotect') direkt auf oberster Ebene setzen — funktioniert weiterhin genauso.",
+  "_comment_passwords": "Alle *Password-Felder hier im Klartext eintragen (z. B. beim erstmaligen Einrichten) — der Collector erkennt das beim ersten Lauf automatisch und verschlüsselt sie an Ort und Stelle in config.json. Siehe README.md, Abschnitt 'Passwörter in config.json'."
 }

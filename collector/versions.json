@@ -43,5 +43,10 @@
     "version": "1.8.0",
     "releasedAt": "2026-08-11",
     "notes": "NetApp: Kapazität jetzt zusätzlich je einzelnem Aggregat aufgeschlüsselt (nicht nur als Cluster-Summe), inkl. daran angebundenem FabricPool-Cloud-Tier (Cloud-Ziel-Name, genutzte Cloud-Kapazität) — neue Kennzahl cloud_tier_used_tb, neue Berichtstabelle \"Kapazität je Aggregat\" in PDF und Web-Ansicht."
+  },
+  {
+    "version": "1.9.0",
+    "releasedAt": "2026-08-11",
+    "notes": "Passwörter in config.json werden nicht mehr im Klartext gespeichert: der Collector erkennt beim Start automatisch noch unverschlüsselte Passwort-Felder (jedes Feld mit \"password\" im Namen, egal welcher Adapter) und verschlüsselt sie an Ort und Stelle (Windows: DPAPI; sonst: AES-256-GCM mit lokalem Schlüssel neben config.json). Entschlüsselt wird nur für die Dauer eines Laufs im Speicher. Bestehende config.json-Dateien mit Klartext-Passwörtern werden beim nächsten Lauf automatisch migriert, keine manuelle Aktion nötig."
   }
 ]

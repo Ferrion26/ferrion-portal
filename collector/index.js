@@ -28,6 +28,7 @@ const path = require("path");
 const { pushMetrics } = require("./push");
 const { createLogger } = require("./logger");
 const { FULL: COLLECTOR_VERSION } = require("./version");
+const { ensureSecretsEncrypted, decryptSecretsForRuntime } = require("./configSecrets");
 
 const ADAPTERS = {
   oceanprotect: require("./adapters/oceanprotect"),
@@ -118,17 +119,25 @@ async function main() {
   const config = loadConfig(configPath);
   // config.debug in der Datei wirkt wie --debug auf der Kommandozeile.
   const log = createLogger({ debug: debug || config.debug === true });
-  config.logger = log;
 
   log.info(`Log-Datei: ${log.logFile}`);
   log.info(`Collector-Version: ${COLLECTOR_VERSION}`);
 
-  const devices = normalizeDevices(config);
+  // Verschlüsselt eventuell noch im Klartext stehende Passwörter in
+  // config.json auf der Platte (idempotent), BEVOR config.logger gesetzt
+  // wird (der Logger ist nicht JSON-serialisierbar). Für den eigentlichen
+  // Lauf wird danach eine reine Speicher-Kopie mit entschlüsselten
+  // Passwörtern verwendet — nie die auf der Platte liegende Fassung.
+  ensureSecretsEncrypted(configPath, config, log);
+  const runtimeConfig = decryptSecretsForRuntime(config, configPath);
+  runtimeConfig.logger = log;
+
+  const devices = normalizeDevices(runtimeConfig);
   if (exportDir) {
     log.info('Diese Datei(en) regelmäßig aus der isolierten Umgebung mitnehmen und im Admin-Bereich unter der jeweiligen Subscription ("Manueller Upload") hochladen.');
   }
 
-  const results = await Promise.allSettled(devices.map((device) => collectDevice(config, device, log, exportDir)));
+  const results = await Promise.allSettled(devices.map((device) => collectDevice(runtimeConfig, device, log, exportDir)));
 
   const failed = results.filter((r) => r.status === "rejected");
   for (const r of failed) {

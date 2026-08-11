@@ -22,6 +22,8 @@ fs.mkdirSync(stageDir, { recursive: true });
 
 for (const entry of fs.readdirSync(collectorDir, { withFileTypes: true })) {
   if (entry.name === "config.json") continue; // enthält echte Zugangsdaten, nicht weitergeben
+  if (entry.name === ".collector.key") continue; // schützt Passwörter EINER Installation, nicht weitergeben
+  if (entry.name === "logs") continue; // lokale Logdateien, nicht Teil der Vorlage
   const src = path.join(collectorDir, entry.name);
   const dest = path.join(stageDir, entry.name);
   fs.cpSync(src, dest, { recursive: true });

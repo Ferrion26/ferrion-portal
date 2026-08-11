@@ -96,6 +96,60 @@ Abschnitt **"Manueller Upload"**) hochgeladen — die Datei gehört anhand ihres
 gleichzeitig innerhalb derselben Subscription sind möglich, kein API-Key
 nötig (die Admin-Anmeldung übernimmt die Authentifizierung).
 
+## Passwörter in config.json
+
+Passwort-Felder in `config.json` (jedes Feld, dessen Name "password" enthält,
+z. B. `deviceManagerPassword`, `password`) werden **nicht** im Klartext
+gespeichert. Beim Start prüft der Collector automatisch, ob noch
+Klartext-Passwörter in der Datei stehen — falls ja, werden sie sofort
+verschlüsselt und die Datei wird mit den verschlüsselten Werten
+überschrieben. Das passiert transparent und ohne manuellen Schritt: eine
+frisch aus `config.example.json` befüllte Datei wird beim allerersten Lauf
+automatisch migriert. Entschlüsselt wird nur für die Dauer eines einzelnen
+Laufs im Arbeitsspeicher, nie erneut auf die Platte geschrieben.
+
+Verfahren:
+
+- **Windows:** Windows Data Protection API (DPAPI), Scope `LocalMachine` — der
+  Klartext verlässt den Prozess nie über die Kommandozeile (dort in der
+  Prozessliste einsehbar), sondern wird ausschließlich per stdin/stdout an
+  PowerShell übergeben. `LocalMachine` statt `CurrentUser`, damit die
+  Entschlüsselung unabhängig davon funktioniert, unter welchem Konto der Task
+  Scheduler den Collector tatsächlich ausführt — das bedeutet aber auch: **jedes
+  Benutzerkonto auf derselben Maschine könnte grundsätzlich entschlüsseln**, und
+  die Verschlüsselung ist **nicht auf eine andere Maschine übertragbar** (eine
+  kopierte `config.json` lässt sich dort nicht mehr entschlüsseln — muss neu mit
+  dem Klartext-Passwort befüllt werden, wird dann dort automatisch neu
+  verschlüsselt).
+- **Linux/macOS (und Windows-Fallback, falls PowerShell/DPAPI nicht verfügbar
+  ist):** AES-256-GCM mit einem zufällig erzeugten, 256-Bit-Schlüssel in einer
+  Datei `.collector.key` neben `config.json` (Zugriffsrechte `600`, nicht Teil
+  von Git, siehe `.gitignore`). Wird diese Schlüsseldatei verloren oder
+  gelöscht, lassen sich die verschlüsselten Passwörter nicht mehr entschlüsseln
+  — Passwörter dann im Klartext neu eintragen, werden beim nächsten Lauf wieder
+  automatisch verschlüsselt.
+
+**Was das schützt und was nicht:** Das Verfahren schützt gegen die
+realistischsten Risiken bei einer lokal am Kundenstandort abgelegten
+Config-Datei — eine versehentlich geteilte Datei-/Bildschirmkopie, ein
+Backup-Job, der `config.json` unverändert mitsichert, ein anderes
+Benutzerkonto auf derselben Maschine (bei der AES-Variante), ein
+versehentliches `git add -A`. Es schützt **nicht** gegen einen Angreifer mit
+vollem Zugriff auf genau das Konto/die Maschine, unter der der Collector
+selbst läuft — das kann kein rein lokales, ohne menschliche Passworteingabe
+automatisiert laufendes Verfahren (Task Scheduler/cron) leisten.
+
+Weitere bereits umgesetzte Absicherungen: Passwörter werden nie als
+Kommandozeilenargument übergeben (siehe oben), `config.json` und
+`.collector.key` erhalten beim Schreiben Zugriffsrechte `600`, Debug-Logs
+redigieren Passwort-/Token-/Cookie-Felder automatisch (siehe `logger.js`), und
+für alle Geräte wird ein dedizierter **read-only Service-Account** empfohlen
+statt Admin-Zugangsdaten (siehe oben) — ein kompromittiertes Passwort erlaubt
+damit ohnehin nur Lesezugriff. **Bewusst nicht umgesetzt:** Verschleierung
+(Obfuscation) des Collector-Quellcodes selbst — das wäre Security-Theater
+gegen einen Angreifer mit Maschinenzugriff, würde aber Ferrions eigene
+Wartung des Collectors dauerhaft erschweren.
+
 ## Logging & Fehlersuche
 
 Jeder Lauf schreibt zusätzlich zur Konsole eine Tages-Logdatei nach

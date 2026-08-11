@@ -17,6 +17,9 @@
 # collector — real config holds a customer API key + device credentials
 collector/config.json
 collector/logs/
+# AES key protecting encrypted passwords in a local config.json (see
+# secretStore.js) — never shared, one per installation.
+collector/.collector.key
 
 # vendor REST API reference docs (confidential Huawei partner docs — keep local only)
 docs/Rest/
