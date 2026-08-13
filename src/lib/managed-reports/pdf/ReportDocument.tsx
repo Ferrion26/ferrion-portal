@@ -644,12 +644,16 @@ const ALARM_CARD_COPY = {
     title: "Alarme im Detail",
     sub: "Ereignisse aus dem Ereignisprotokoll des Geräts, die im Berichtszeitraum aktiv waren.",
     resolvedOn: (date: string) => `Behoben am ${date}`,
+    acknowledgedOn: (date: string) => `Kontrolliert bestätigt am ${date}`,
+    commentPrefix: "Kommentar: ",
     active: "Aktiv",
   },
   en: {
     title: "Alarms in Detail",
     sub: "Events from the device's event log that were active during the reporting period.",
     resolvedOn: (date: string) => `Resolved on ${date}`,
+    acknowledgedOn: (date: string) => `Reviewed and confirmed on ${date}`,
+    commentPrefix: "Comment: ",
     active: "Active",
   },
 };
@@ -688,10 +692,10 @@ function AlarmCard({ alarms, locale }: { alarms: AlarmSample[]; locale: "de" | "
       <Text style={styles.listCardTitle}>{t.title}</Text>
       <Text style={styles.listCardSub}>{t.sub}</Text>
       {shown.map((alarm, i) => (
-        <View key={i} wrap={false} style={{ ...styles.alarmRow, opacity: alarm.status === "resolved" ? 0.55 : 1 }}>
+        <View key={i} wrap={false} style={{ ...styles.alarmRow, opacity: alarm.status !== "active" ? 0.55 : 1 }}>
           <View style={styles.alarmTopRow}>
             <View style={styles.alarmTitleGroup}>
-              <Dot status={alarm.status === "resolved" ? "good" : ALARM_SEVERITY_TO_STATUS[alarm.severity]} />
+              <Dot status={alarm.status !== "active" ? "good" : ALARM_SEVERITY_TO_STATUS[alarm.severity]} />
               <Text style={styles.alarmName}>{decodeHtmlEntities(alarm.name)}</Text>
               {alarm.occurrenceCount !== undefined && alarm.occurrenceCount > 1 && (
                 <Text style={styles.occurrenceTag}>
@@ -700,6 +704,8 @@ function AlarmCard({ alarms, locale }: { alarms: AlarmSample[]; locale: "de" | "
               )}
               {alarm.status === "resolved" && alarm.resolvedAt ? (
                 <StatusPill status="good" text={t.resolvedOn(formatDateTime(alarm.resolvedAt, locale))} />
+              ) : alarm.status === "acknowledged" && alarm.acknowledgedAt ? (
+                <StatusPill status="good" text={t.acknowledgedOn(formatDateTime(alarm.acknowledgedAt, locale))} />
               ) : (
                 <StatusPill status={ALARM_SEVERITY_TO_STATUS[alarm.severity]} text={ALARM_SEVERITY_LABEL[locale][alarm.severity]} />
               )}
@@ -711,6 +717,9 @@ function AlarmCard({ alarms, locale }: { alarms: AlarmSample[]; locale: "de" | "
             <Text style={styles.alarmSuggestion}>
               {(locale === "de" ? "Empfehlung: " : "Suggestion: ") + decodeHtmlEntities(alarm.suggestion)}
             </Text>
+          )}
+          {alarm.status === "acknowledged" && alarm.acknowledgedComment && (
+            <Text style={styles.alarmSuggestion}>{t.commentPrefix + decodeHtmlEntities(alarm.acknowledgedComment)}</Text>
           )}
         </View>
       ))}
@@ -746,7 +755,7 @@ function ComponentFaultsCard({ faults, locale }: { faults: ComponentFault[]; loc
         <Text style={{ ...styles.tableHeaderCell, width: 90, textAlign: "right" }}>{tc.status}</Text>
       </View>
       {shown.map((fault, i) => (
-        <View key={i} wrap={false} style={{ ...styles.tableRow, alignItems: "flex-start", opacity: fault.status === "resolved" ? 0.55 : 1 }}>
+        <View key={i} wrap={false} style={{ ...styles.tableRow, alignItems: "flex-start", opacity: fault.status !== "active" ? 0.55 : 1 }}>
           <Text style={{ width: 90, color: MUTED, fontSize: 7, paddingTop: 1 }}>{fault.category}</Text>
           <Text style={{ width: 110, fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, paddingRight: 6 }}>{normalizeComponentLabel(fault.id)}</Text>
           <View style={{ flex: 1 }}>
@@ -754,10 +763,15 @@ function ComponentFaultsCard({ faults, locale }: { faults: ComponentFault[]; loc
             {fault.occurrenceCount !== undefined && fault.occurrenceCount > 1 && (
               <Text style={styles.occurrenceTag}>{locale === "de" ? `${fault.occurrenceCount}× erkannt` : `detected ${fault.occurrenceCount}×`}</Text>
             )}
+            {fault.status === "acknowledged" && fault.acknowledgedComment && (
+              <Text style={styles.alarmSuggestion}>{ALARM_CARD_COPY[locale].commentPrefix + fault.acknowledgedComment}</Text>
+            )}
           </View>
           <Text style={{ width: 90, fontSize: 6.5, color: fault.status === "resolved" ? STATUS_COLORS.good.dot : STATUS_COLORS.warning.dot, textAlign: "right" }}>
             {fault.status === "resolved" && fault.resolvedAt
               ? (locale === "de" ? `Behoben ${formatDateTime(fault.resolvedAt, locale)}` : `Resolved ${formatDateTime(fault.resolvedAt, locale)}`)
+              : fault.status === "acknowledged" && fault.acknowledgedAt
+              ? (locale === "de" ? `Bestätigt ${formatDateTime(fault.acknowledgedAt, locale)}` : `Confirmed ${formatDateTime(fault.acknowledgedAt, locale)}`)
               : locale === "de" ? "Aktiv" : "Active"}
           </Text>
         </View>
@@ -1305,9 +1319,14 @@ export interface AlarmSample {
   suggestion?: string;
   time?: string;
   // Aus der Findings-Historie: ob der Alarm zum Erstellzeitpunkt noch aktiv
-  // ist oder im Berichtszeitraum wieder verschwunden (behoben) ist.
-  status: "active" | "resolved";
+  // ist, im Berichtszeitraum wieder verschwunden (behoben) ist, oder von
+  // einem Admin geprüft und bestätigt wurde ("Kontrolliert geschlossen" —
+  // das Gerät meldet ihn weiterhin, ein Admin hat ihn aber akzeptiert).
+  status: "active" | "resolved" | "acknowledged";
   resolvedAt?: string;
+  acknowledgedAt?: string;
+  acknowledgedByEmail?: string;
+  acknowledgedComment?: string;
   // Wie oft dieselbe Alarm-Identität erneut gemeldet wurde (siehe
   // DeviceFinding.occurrenceCount) — die KPI-Kennzahl oben zählt jede
   // Erkennung pro Collector-Lauf, diese Liste nur einmal pro Alarm; ohne
@@ -1353,8 +1372,11 @@ export interface ComponentFault {
   category: string;
   id: string;
   description: string;
-  status: "active" | "resolved";
+  status: "active" | "resolved" | "acknowledged";
   resolvedAt?: string;
+  acknowledgedAt?: string;
+  acknowledgedByEmail?: string;
+  acknowledgedComment?: string;
   // Physisches Gehäuse, in dem die Komponente steckt (z. B. "CTE0") — siehe
   // ComponentCheck.group. Wird aktuell nicht bis hierher durchgereicht (der
   // Auffälligkeiten-Abschnitt baut auf der DeviceFinding-Historie auf, nicht
@@ -1400,6 +1422,10 @@ export interface ProductReportData {
   // einem Admin manuell gepflegt.
   location?: string;
   entries: QuarterSummaryEntry[];
+  // Aktive, unbestätigte kritische Alarme — degradiert den Overall-Status
+  // (buildExecutiveSummary) zusätzlich zu den Kennzahl-Schwellwerten, bis
+  // ein Admin sie unter .../findings bestätigt.
+  unacknowledgedCriticalFindingsCount?: number;
   recentAlarms?: AlarmSample[];
   resourceBreakdown?: ResourceBreakdownEntry[];
   topJobFailures?: TopJobFailures;
@@ -1470,10 +1496,16 @@ function ProductPage({
   const operationsEntries = entries.filter((e) => e.section === "operations");
   const availabilityDetailEntries = entries.filter((e) => e.section === "availability" && !e.headline);
 
-  const summary = buildExecutiveSummary(entries, locale);
+  const unacknowledgedCriticalFindings = product.unacknowledgedCriticalFindingsCount ?? 0;
+  const summary = buildExecutiveSummary(entries, locale, unacknowledgedCriticalFindings);
   const recommendations = buildRecommendations(entries, locale);
   const bannerHighlights = buildBannerHighlights(entries, locale);
-  const overallStatus: MetricStatus = summary.issueCount === 0 ? "good" : entries.some((e) => deriveStatus(e) === "critical") ? "critical" : "warning";
+  const overallStatus: MetricStatus =
+    summary.issueCount === 0
+      ? "good"
+      : entries.some((e) => deriveStatus(e) === "critical") || unacknowledgedCriticalFindings > 0
+      ? "critical"
+      : "warning";
 
   return (
     <Page id={`product-${index}`} size="A4" style={styles.page}>

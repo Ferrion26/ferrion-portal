@@ -87,13 +87,24 @@ export interface ExecutiveSummary {
 // A short, deterministic (never AI-generated-prose) status sentence for the
 // report's top banner — composed from a handful of headline facts, not a
 // free-form summary, so it stays predictable and auditable.
-export function buildExecutiveSummary(entries: QuarterSummaryEntry[], locale: "de" | "en"): ExecutiveSummary {
+//
+// unacknowledgedCriticalFindings: count of currently active, not-yet-
+// confirmed critical alarms (DeviceFinding, see generateReportPdf.ts) —
+// findings play no role in deriveStatus() itself (that's metric-only), but
+// an unconfirmed critical alarm degrades the headline just like a critical
+// metric would, until an admin reviews and confirms it under
+// .../findings ("Kontrolliert geschlossen").
+export function buildExecutiveSummary(
+  entries: QuarterSummaryEntry[],
+  locale: "de" | "en",
+  unacknowledgedCriticalFindings = 0
+): ExecutiveSummary {
   const t = COPY[locale];
   const statuses = entries.map(deriveStatus);
   const criticalCount = statuses.filter((s) => s === "critical").length;
-  const issueCount = statuses.filter((s) => s === "critical" || s === "warning").length;
+  const issueCount = statuses.filter((s) => s === "critical" || s === "warning").length + unacknowledgedCriticalFindings;
 
-  const headline = criticalCount > 0 ? t.degraded : t.stable;
+  const headline = criticalCount > 0 || unacknowledgedCriticalFindings > 0 ? t.degraded : t.stable;
   const availability = entries.find((e) => e.key === "system_availability");
 
   const parts = [headline];

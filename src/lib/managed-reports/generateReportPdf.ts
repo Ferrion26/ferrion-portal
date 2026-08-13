@@ -60,6 +60,24 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
     loadCapacityTrend(subscription.id, periodStart, periodEnd),
   ]);
 
+  // Nur unbestätigte KRITISCHE Alarme degradieren den Overall-Status
+  // (buildExecutiveSummary) — dieselbe Schwelle wie bei Kennzahlen (nur
+  // "critical", nie "warning"). Component-Faults und niedrigere Alarm-
+  // Schweregrade bleiben im Web View bestätigbar, lösen aber für sich
+  // genommen keine Degradierung aus.
+  const unacknowledgedCriticalFindingsCount = findings.filter(
+    (f) => f.kind === "ALARM" && f.category === "critical" && !f.resolvedAt && !f.acknowledgedAt
+  ).length;
+
+  // "Behoben" hat Vorrang vor "Bestätigt" in der Anzeige — ein inzwischen
+  // vom Gerät nicht mehr gemeldeter Punkt ist wichtiger als eine ältere
+  // Bestätigung.
+  function findingStatus(f: (typeof findings)[number]): "active" | "resolved" | "acknowledged" {
+    if (f.resolvedAt) return "resolved";
+    if (f.acknowledgedAt) return "acknowledged";
+    return "active";
+  }
+
   const recentAlarms: ProductReportData["recentAlarms"] = findings
     .filter((f) => f.kind === "ALARM")
     .map((f) => ({
@@ -68,8 +86,11 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
       description: f.description,
       suggestion: f.suggestion ?? undefined,
       time: f.firstSeenAt.toISOString(),
-      status: (f.resolvedAt ? "resolved" : "active") as "active" | "resolved",
+      status: findingStatus(f),
       resolvedAt: f.resolvedAt?.toISOString(),
+      acknowledgedAt: f.acknowledgedAt?.toISOString(),
+      acknowledgedByEmail: f.acknowledgedByEmail ?? undefined,
+      acknowledgedComment: f.acknowledgedComment ?? undefined,
       occurrenceCount: f.occurrenceCount,
     }));
 
@@ -79,8 +100,11 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
       category: f.category,
       id: f.title,
       description: f.description,
-      status: (f.resolvedAt ? "resolved" : "active") as "active" | "resolved",
+      status: findingStatus(f),
       resolvedAt: f.resolvedAt?.toISOString(),
+      acknowledgedAt: f.acknowledgedAt?.toISOString(),
+      acknowledgedByEmail: f.acknowledgedByEmail ?? undefined,
+      acknowledgedComment: f.acknowledgedComment ?? undefined,
       occurrenceCount: f.occurrenceCount,
     }));
 
@@ -95,6 +119,7 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
     dataBackupVersion: subscription.dataBackupVersion ?? undefined,
     location: subscription.location ?? undefined,
     entries,
+    unacknowledgedCriticalFindingsCount,
     recentAlarms: recentAlarms.length > 0 ? recentAlarms : undefined,
     resourceBreakdown: (subscription.resourceBreakdown as unknown as ProductReportData["resourceBreakdown"]) ?? undefined,
     topJobFailures: (subscription.topJobFailures as unknown as ProductReportData["topJobFailures"]) ?? undefined,

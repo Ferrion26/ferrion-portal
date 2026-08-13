@@ -113,8 +113,9 @@ export function ReportDashboardView({
 }: ReportDashboardViewProps) {
   const product = products[activeIndex] ?? products[0];
   const entries = product.entries;
+  const unacknowledgedCriticalFindings = product.unacknowledgedCriticalFindingsCount ?? 0;
 
-  const summary = buildExecutiveSummary(entries, locale);
+  const summary = buildExecutiveSummary(entries, locale, unacknowledgedCriticalFindings);
   const recommendations = buildRecommendations(entries, locale);
   const bannerHighlights = buildBannerHighlights(entries, locale);
 
@@ -133,7 +134,14 @@ export function ReportDashboardView({
   const protectedCountEntry = entries.find((e) => e.key === "resources_protected_count");
   const unprotectedCountEntry = entries.find((e) => e.key === "resources_unprotected_count");
 
-  const headlineStatus = STATUS_STYLES[summary.issueCount === 0 ? "good" : entries.some((e) => deriveStatus(e) === "critical") ? "critical" : "warning"];
+  const headlineStatus =
+    STATUS_STYLES[
+      summary.issueCount === 0
+        ? "good"
+        : entries.some((e) => deriveStatus(e) === "critical") || unacknowledgedCriticalFindings > 0
+        ? "critical"
+        : "warning"
+    ];
 
   return (
     <div className="space-y-6">

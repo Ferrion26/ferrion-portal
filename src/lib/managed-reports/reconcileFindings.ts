@@ -48,6 +48,22 @@ export async function reconcileFindings(subscriptionId: string, kind: FindingKin
   const now = new Date();
   const incomingKeys = incoming.map((f) => f.identityKey);
 
+  // Wer von den eingehenden Punkten zuvor als behoben galt, braucht beim
+  // Wiederauftauchen eine frische Bestätigung — ein durchgehend aktiver
+  // Punkt (nie behoben) behält seine Bestätigung dagegen automatisch, weil
+  // der Upsert unten sie einfach nicht anfasst.
+  const previouslyResolved =
+    incomingKeys.length > 0
+      ? new Set(
+          (
+            await prisma.deviceFinding.findMany({
+              where: { subscriptionId, kind, identityKey: { in: incomingKeys }, resolvedAt: { not: null } },
+              select: { identityKey: true },
+            })
+          ).map((f) => f.identityKey)
+        )
+      : new Set<string>();
+
   await prisma.$transaction([
     ...incoming.map((f) =>
       prisma.deviceFinding.upsert({
@@ -71,6 +87,9 @@ export async function reconcileFindings(subscriptionId: string, kind: FindingKin
           lastSeenAt: now,
           resolvedAt: null, // erneut gemeldet → wieder offen, falls zuvor als behoben markiert
           occurrenceCount: { increment: 1 },
+          ...(previouslyResolved.has(f.identityKey)
+            ? { acknowledgedAt: null, acknowledgedByEmail: null, acknowledgedComment: null }
+            : {}),
         },
       })
     ),

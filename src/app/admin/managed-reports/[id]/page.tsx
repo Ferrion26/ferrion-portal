@@ -28,7 +28,7 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
   });
   if (!subscription) notFound();
 
-  const [ingestions, openFindingsCount, collectorBaseline] = await Promise.all([
+  const [ingestions, openFindingsCount, unreviewedFindingsCount, collectorBaseline] = await Promise.all([
     prisma.collectorIngestion.findMany({
       where: { subscriptionId: params.id },
       orderBy: { receivedAt: "desc" },
@@ -36,6 +36,7 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
       include: { _count: { select: { metrics: true } } },
     }),
     prisma.deviceFinding.count({ where: { subscriptionId: params.id, resolvedAt: null } }),
+    prisma.deviceFinding.count({ where: { subscriptionId: params.id, resolvedAt: null, acknowledgedAt: null } }),
     getCollectorBaseline(),
   ]);
   const collectorOutdated = isCollectorOutdated(subscription.collectorVersion, collectorBaseline);
@@ -74,6 +75,7 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
               {" · "}
               <Link href={`/admin/managed-reports/${subscription.id}/findings`} className="text-amber-400 hover:text-amber-300 underline decoration-dotted">
                 {openFindingsCount} offene Alarme/Fehler
+                {unreviewedFindingsCount > 0 && ` (${unreviewedFindingsCount} noch zu prüfen)`}
               </Link>
             </>
           )}

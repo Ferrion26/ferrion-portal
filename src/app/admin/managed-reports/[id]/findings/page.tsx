@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatDateTime } from "@/lib/managed-reports/reportFormat";
 import { PRODUCTS } from "@/app/produkte/products-data";
-import { Badge } from "@/components/ui/Badge";
+import FindingsTable from "./FindingsTable";
 
 export const metadata = { title: "Alarme & Fehler — Managed Reports — Admin" };
 
-const KIND_LABEL: Record<string, string> = {
-  ALARM: "Alarm",
-  COMPONENT_FAULT: "Komponentenfehler",
+type ShowFilter = "review" | "acknowledged" | "all";
+
+const FILTER_WHERE: Record<ShowFilter, object> = {
+  review: { resolvedAt: null, acknowledgedAt: null },
+  acknowledged: { resolvedAt: null, acknowledgedAt: { not: null } },
+  all: {},
 };
 
 export default async function FindingsPage({
@@ -25,9 +27,11 @@ export default async function FindingsPage({
   });
   if (!subscription) notFound();
 
-  const showAll = searchParams.show === "all";
+  // "Nur zu prüfen" ist der Default — genau die Sicht, die vor einer
+  // Bericht-Erstellung durchgegangen werden soll.
+  const show: ShowFilter = searchParams.show === "acknowledged" ? "acknowledged" : searchParams.show === "all" ? "all" : "review";
   const findings = await prisma.deviceFinding.findMany({
-    where: { subscriptionId: params.id, ...(showAll ? {} : { resolvedAt: null }) },
+    where: { subscriptionId: params.id, ...FILTER_WHERE[show] },
     orderBy: [{ resolvedAt: "asc" }, { lastSeenAt: "desc" }],
   });
 
@@ -50,15 +54,23 @@ export default async function FindingsPage({
         <Link
           href={`/admin/managed-reports/${subscription.id}/findings`}
           className={`px-3 py-1.5 text-xs font-medium border ${
-            !showAll ? "bg-[#c9a84c] text-black border-[#c9a84c]" : "border-white/10 text-gray-400 hover:text-white"
+            show === "review" ? "bg-[#c9a84c] text-black border-[#c9a84c]" : "border-white/10 text-gray-400 hover:text-white"
           }`}
         >
-          Nur aktive
+          Nur zu prüfen
+        </Link>
+        <Link
+          href={`/admin/managed-reports/${subscription.id}/findings?show=acknowledged`}
+          className={`px-3 py-1.5 text-xs font-medium border ${
+            show === "acknowledged" ? "bg-[#c9a84c] text-black border-[#c9a84c]" : "border-white/10 text-gray-400 hover:text-white"
+          }`}
+        >
+          Bestätigt
         </Link>
         <Link
           href={`/admin/managed-reports/${subscription.id}/findings?show=all`}
           className={`px-3 py-1.5 text-xs font-medium border ${
-            showAll ? "bg-[#c9a84c] text-black border-[#c9a84c]" : "border-white/10 text-gray-400 hover:text-white"
+            show === "all" ? "bg-[#c9a84c] text-black border-[#c9a84c]" : "border-white/10 text-gray-400 hover:text-white"
           }`}
         >
           Alle (inkl. behoben)
@@ -66,48 +78,23 @@ export default async function FindingsPage({
       </div>
 
       <div className="bg-[#111827] border border-white/10 p-6">
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-white/10 text-left text-gray-500">
-              <th className="py-2 font-medium">Status</th>
-              <th className="py-2 font-medium">Art</th>
-              <th className="py-2 font-medium">Kategorie</th>
-              <th className="py-2 font-medium">Titel</th>
-              <th className="py-2 font-medium">Beschreibung</th>
-              <th className="py-2 font-medium">Zuerst gesehen</th>
-              <th className="py-2 font-medium">Zuletzt gesehen</th>
-              <th className="py-2 font-medium">Behoben am</th>
-            </tr>
-          </thead>
-          <tbody>
-            {findings.map((f) => (
-              <tr key={f.id} className="border-b border-white/5 align-top">
-                <td className="py-2">
-                  {f.resolvedAt ? <Badge variant="green">Behoben</Badge> : <Badge variant="yellow">Aktiv</Badge>}
-                </td>
-                <td className="py-2 text-gray-400">{KIND_LABEL[f.kind] ?? f.kind}</td>
-                <td className="py-2 text-gray-400">{f.category}</td>
-                <td className="py-2 text-white font-medium">{f.title}</td>
-                <td className="py-2 text-gray-400 max-w-sm">
-                  {f.description}
-                  {f.suggestion && <p className="text-gray-500 text-xs mt-1">{f.suggestion}</p>}
-                </td>
-                <td className="py-2 text-gray-400 whitespace-nowrap">{formatDateTime(f.firstSeenAt)}</td>
-                <td className="py-2 text-gray-400 whitespace-nowrap">{formatDateTime(f.lastSeenAt)}</td>
-                <td className="py-2 text-gray-400 whitespace-nowrap">{f.resolvedAt ? formatDateTime(f.resolvedAt) : "—"}</td>
-              </tr>
-            ))}
-            {findings.length === 0 && (
-              <tr>
-                <td colSpan={8} className="py-6 text-center text-gray-500">
-                  {showAll ? "Keine Alarme/Fehler erfasst." : "Keine aktiven Alarme/Fehler."}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-        </div>
+        <FindingsTable
+          subscriptionId={subscription.id}
+          findings={findings.map((f) => ({
+            id: f.id,
+            kind: f.kind,
+            category: f.category,
+            title: f.title,
+            description: f.description,
+            suggestion: f.suggestion,
+            firstSeenAt: f.firstSeenAt.toISOString(),
+            lastSeenAt: f.lastSeenAt.toISOString(),
+            resolvedAt: f.resolvedAt?.toISOString() ?? null,
+            acknowledgedAt: f.acknowledgedAt?.toISOString() ?? null,
+            acknowledgedByEmail: f.acknowledgedByEmail,
+            acknowledgedComment: f.acknowledgedComment,
+          }))}
+        />
       </div>
     </div>
   );

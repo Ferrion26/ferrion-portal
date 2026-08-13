@@ -403,6 +403,18 @@ model DeviceFinding {
   // vermuten lässt, ohne erkennbaren Grund.
   occurrenceCount Int @default(1)
 
+  // Gesetzt, wenn ein Admin diesen Punkt geprüft und bewusst akzeptiert hat
+  // (im Web View unter .../findings), obwohl das Gerät ihn weiterhin
+  // meldet — unabhängig von resolvedAt (das nur "Collector meldet ihn nicht
+  // mehr" bedeutet). Bleibt über weitere Collector-Läufe hinweg bestehen,
+  // solange derselbe Punkt durchgehend gemeldet wird (reconcileFindings()
+  // lässt diese Felder beim Re-Ingest unangetastet); wird nur zurückgesetzt,
+  // wenn der Punkt zwischenzeitlich als behoben galt und danach erneut
+  // auftritt (siehe reconcileFindings.ts).
+  acknowledgedAt      DateTime?
+  acknowledgedByEmail String?
+  acknowledgedComment String?
+
   subscriptionId String
   subscription   ManagedServiceSubscription @relation(fields: [subscriptionId], references: [id])
 
