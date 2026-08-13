@@ -37,9 +37,10 @@ export async function POST(req: NextRequest, { params }: { params: { customerId:
   // einzeln nachzufragen.
   const subscriptions = await prisma.managedServiceSubscription.findMany({
     where: { customerId: params.customerId },
-    select: { id: true },
+    select: { id: true, productSlug: true },
   });
   const validSubscriptionIds = new Set(subscriptions.map((s) => s.id));
+  const productSlugBySubscriptionId = new Map(subscriptions.map((s) => [s.id, s.productSlug]));
 
   const results: { fileName: string; ok: boolean; metricsStored?: number; error?: string }[] = [];
 
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: { customerId:
         continue;
       }
 
-      const { metricsStored } = await applyManualIngest(subscriptionId, parsed.data, file.name);
+      const { metricsStored } = await applyManualIngest(subscriptionId, parsed.data, file.name, productSlugBySubscriptionId.get(subscriptionId)!);
       results.push({ fileName: file.name, ok: true, metricsStored });
     } catch (err) {
       results.push({ fileName: file.name, ok: false, error: err instanceof Error ? err.message : "Unbekannter Fehler" });

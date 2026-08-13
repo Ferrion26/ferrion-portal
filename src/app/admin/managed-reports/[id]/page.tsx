@@ -158,7 +158,8 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
         <h2 className="font-semibold text-white mb-2">Datenaufbewahrung</h2>
         <p className="text-xs text-gray-500 mb-4">
           Nach wie vielen Tagen Rohdaten (Kennzahlen, Ingestion-Verlauf, bereits behobene Alarme/Fehler) automatisch gelöscht werden. Leer = unbegrenzt. Aktive,
-          noch offene Alarme/Fehler werden nie automatisch gelöscht.
+          noch offene Alarme/Fehler werden nie automatisch gelöscht. Ist eine Frist gesetzt, sind nach Ablauf auch der Rohdaten-Browser und ein rückwirkendes
+          Nachtragen neuer Kennzahlen (Backfill) für die betroffenen Ingestions nicht mehr möglich, da die zugrunde liegenden Rohdaten dann gelöscht sind.
         </p>
         <RetentionForm subscriptionId={subscription.id} initialDays={subscription.metricsRetentionDays} />
       </div>

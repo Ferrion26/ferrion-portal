@@ -11,6 +11,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "backfill-metrics": "tsx scripts/backfill-metrics.ts",
     "collector:package": "node scripts/package-collector.js",
     "test": "vitest run"
   },

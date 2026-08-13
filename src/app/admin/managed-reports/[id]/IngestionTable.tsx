@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { formatDateTime } from "@/lib/managed-reports/reportFormat";
+import RawDataViewer from "./RawDataViewer";
 
 type Ingestion = { id: string; receivedAt: string; source: string; fileName: string | null; metricsCount: number };
 
@@ -11,6 +12,7 @@ export default function IngestionTable({ subscriptionId, ingestions }: { subscri
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [rawViewIngestion, setRawViewIngestion] = useState<Ingestion | null>(null);
 
   const allSelected = ingestions.length > 0 && selected.size === ingestions.length;
 
@@ -66,6 +68,7 @@ export default function IngestionTable({ subscriptionId, ingestions }: { subscri
             <th className="py-2 font-medium">Quelle</th>
             <th className="py-2 font-medium">Datei</th>
             <th className="py-2 font-medium">Kennzahlen</th>
+            <th className="py-2 font-medium"></th>
           </tr>
         </thead>
         <tbody>
@@ -88,17 +91,34 @@ export default function IngestionTable({ subscriptionId, ingestions }: { subscri
               </td>
               <td className="py-2 text-gray-400">{ing.fileName ?? "—"}</td>
               <td className="py-2 text-gray-400">{ing.metricsCount}</td>
+              <td className="py-2 text-right">
+                <button
+                  type="button"
+                  onClick={() => setRawViewIngestion(ing)}
+                  className="text-xs text-gray-500 hover:text-[#c9a84c] underline decoration-dotted"
+                >
+                  Rohdaten anzeigen
+                </button>
+              </td>
             </tr>
           ))}
           {ingestions.length === 0 && (
             <tr>
-              <td colSpan={5} className="py-6 text-center text-gray-500">
+              <td colSpan={6} className="py-6 text-center text-gray-500">
                 Noch keine Daten eingegangen.
               </td>
             </tr>
           )}
         </tbody>
       </table>
+      {rawViewIngestion && (
+        <RawDataViewer
+          subscriptionId={subscriptionId}
+          ingestionId={rawViewIngestion.id}
+          label={formatDateTime(new Date(rawViewIngestion.receivedAt))}
+          onClose={() => setRawViewIngestion(null)}
+        />
+      )}
     </div>
   );
 }

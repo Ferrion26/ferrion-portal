@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { MetricHistoryChart } from "@/components/managed-reports/MetricHistoryChart";
 import { formatValue, formatDateTime } from "@/lib/managed-reports/reportFormat";
 import type { MetricDefinition } from "@/lib/managed-reports/metrics/types";
+import RawDataViewer from "../RawDataViewer";
 
 interface Edit {
   previousValue: number;
@@ -45,14 +46,11 @@ export default function MetricDetailPanel({
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
-  const [rawPayload, setRawPayload] = useState<unknown | null>(null);
-  const [rawLoading, setRawLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     setUnlocked(false);
     setShowRaw(false);
-    setRawPayload(null);
     fetch(`/api/admin/managed-reports/${subscriptionId}/metrics/${encodeURIComponent(metricKey)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => setPoints(data?.points ?? null))
@@ -89,20 +87,6 @@ export default function MetricDetailPanel({
       // Neu laden, damit Edit-Historie/Diagramm sofort den korrigierten Wert zeigen.
       const fresh = await fetch(`/api/admin/managed-reports/${subscriptionId}/metrics/${encodeURIComponent(metricKey)}`);
       if (fresh.ok) setPoints((await fresh.json()).points);
-    }
-  }
-
-  async function handleShowRaw() {
-    if (showRaw) {
-      setShowRaw(false);
-      return;
-    }
-    setShowRaw(true);
-    if (rawPayload === null) {
-      setRawLoading(true);
-      const res = await fetch(`/api/admin/managed-reports/${subscriptionId}/ingestions/${latest.ingestion.id}`);
-      if (res.ok) setRawPayload((await res.json()).payload);
-      setRawLoading(false);
     }
   }
 
@@ -185,13 +169,20 @@ export default function MetricDetailPanel({
           · {formatDateTime(latest.ingestion.receivedAt)}
           {latest.ingestion.fileName && <> · {latest.ingestion.fileName}</>}
         </p>
-        <button type="button" onClick={handleShowRaw} className="text-xs text-gray-500 hover:text-[#c9a84c] underline decoration-dotted mt-2">
-          {showRaw ? "Rohdaten ausblenden" : "Rohdaten dieser Erhebung anzeigen"}
+        <button
+          type="button"
+          onClick={() => setShowRaw(true)}
+          className="text-xs text-gray-500 hover:text-[#c9a84c] underline decoration-dotted mt-2"
+        >
+          Rohdaten dieser Erhebung anzeigen
         </button>
         {showRaw && (
-          <pre className="mt-2 max-h-96 overflow-auto bg-[#0d1117] border border-white/10 p-3 text-[10px] text-gray-400">
-            {rawLoading ? "Wird geladen…" : JSON.stringify(rawPayload, null, 2)}
-          </pre>
+          <RawDataViewer
+            subscriptionId={subscriptionId}
+            ingestionId={latest.ingestion.id}
+            label={formatDateTime(latest.ingestion.receivedAt)}
+            onClose={() => setShowRaw(false)}
+          />
         )}
       </div>
 

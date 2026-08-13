@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { IngestPayload } from "./ingestSchema";
 import { reconcileFindings, alarmSamplesToFindings, componentFaultsToFindings } from "./reconcileFindings";
+import { runExtractors } from "./extractors";
 
 // Felder aus meta/collectorVersion, die direkt auf die Subscription
 // geschrieben werden (Momentaufnahme, kein Zeitreihen-Wert) — geteilt
@@ -28,8 +29,16 @@ export function buildDeviceUpdate(payload: Pick<IngestPayload, "collectorVersion
 // Kundenebene — sonst ein drittes Mal dupliziert). Deckungsgleich mit
 // /api/collector/ingest, aber ohne dessen API-Key-Transaktionslogik
 // (lastSeenAt-Update, apiKeyId-FK), die dort spezifisch ist.
-export async function applyManualIngest(subscriptionId: string, payload: IngestPayload, fileName: string) {
+export async function applyManualIngest(subscriptionId: string, payload: IngestPayload, fileName: string, productSlug: string) {
   const recordedAt = new Date(payload.collectedAt);
+
+  // Wie /api/collector/ingest: zusätzlich zu den im Export bereits
+  // enthaltenen Kennzahlen die vom Portal aus meta.rawEndpoints
+  // ableitbaren ergänzen — gerade air-gapped Standorte (dieser Upload-Weg)
+  // profitieren besonders davon, da hier ein Collector-Rollout am
+  // aufwendigsten ist.
+  const extracted = runExtractors(productSlug, payload.meta?.rawEndpoints ?? {});
+  const allMetrics = [...payload.metrics, ...extracted];
 
   await prisma.collectorIngestion.create({
     data: {
@@ -38,7 +47,7 @@ export async function applyManualIngest(subscriptionId: string, payload: IngestP
       fileName,
       payload: payload as unknown as object,
       metrics: {
-        create: payload.metrics.map((m) => ({
+        create: allMetrics.map((m) => ({
           subscriptionId,
           metricKey: m.key,
           value: m.value,
@@ -60,5 +69,5 @@ export async function applyManualIngest(subscriptionId: string, payload: IngestP
     await reconcileFindings(subscriptionId, "COMPONENT_FAULT", componentFaultsToFindings(payload.meta.componentFaults));
   }
 
-  return { metricsStored: payload.metrics.length };
+  return { metricsStored: allMetrics.length };
 }
