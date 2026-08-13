@@ -24,6 +24,7 @@ export default async function CustomersPage() {
         </div>
       </div>
       <div className="bg-[#111827] border border-white/10 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/10 text-left text-gray-500">
@@ -55,6 +56,7 @@ export default async function CustomersPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

@@ -23,7 +23,7 @@ export default function RetentionForm({ subscriptionId, initialDays }: { subscri
   }
 
   return (
-    <div className="flex items-end gap-3">
+    <div className="flex flex-col sm:flex-row sm:items-end gap-3">
       <div>
         <label className="block text-xs font-medium text-gray-400 mb-1">Aufbewahrung (Tage)</label>
         <input

@@ -33,7 +33,7 @@ export default async function AdminDashboard() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-white mb-8">{t.overview}</h1>
-      <div className="grid grid-cols-4 gap-5 mb-10">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
         {stats.map((s) => (
           <Link key={s.href} href={s.href} className="bg-[#111827] border border-white/10 p-5 hover:border-[#c9a84c]/40 transition-colors">
             <p className="text-sm text-gray-400">{s.label}</p>
@@ -46,6 +46,7 @@ export default async function AdminDashboard() {
           <h2 className="font-semibold text-white">{t.openSupport}</h2>
           <Link href="/admin/tickets" className="text-sm text-[#c9a84c] hover:underline">{t.viewAll}</Link>
         </div>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/10 text-left text-gray-500">
@@ -69,6 +70,7 @@ export default async function AdminDashboard() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

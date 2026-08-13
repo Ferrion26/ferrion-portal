@@ -73,6 +73,7 @@ export default function ReportsTable({ subscriptionId, reports }: { subscription
           </button>
         </div>
       )}
+      <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/10 text-left text-gray-500">
@@ -130,6 +131,7 @@ export default function ReportsTable({ subscriptionId, reports }: { subscription
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

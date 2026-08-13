@@ -127,6 +127,7 @@ export default function BatchUploadForm({
 
       {rows.length > 0 && (
         <div className="border border-white/10">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-gray-500">
@@ -174,6 +175,7 @@ export default function BatchUploadForm({
               ))}
             </tbody>
           </table>
+          </div>
 
           <div className="flex items-center gap-3 p-4">
             <button

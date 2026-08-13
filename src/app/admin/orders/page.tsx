@@ -15,6 +15,7 @@ export default async function AdminOrdersPage() {
       <h1 className="text-2xl font-bold text-gray-900 mb-6">All Orders</h1>
 
       <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-left text-gray-500 bg-gray-50">
@@ -39,6 +40,7 @@ export default async function AdminOrdersPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

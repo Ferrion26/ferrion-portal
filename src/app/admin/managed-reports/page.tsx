@@ -56,6 +56,7 @@ export default async function ManagedReportsPage() {
         <div className="px-6 py-4 border-b border-white/10">
           <h2 className="font-semibold text-white">Kunden</h2>
         </div>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/10 text-left text-gray-500">
@@ -101,6 +102,7 @@ export default async function ManagedReportsPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

@@ -189,6 +189,7 @@ export default function MetricDetailPanel({
       {latest.edits.length > 0 && (
         <div className="border border-white/10 p-4">
           <p className="text-xs text-gray-500 mb-2">Bearbeitungshistorie</p>
+          <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-white/10 text-left text-gray-500">
@@ -211,6 +212,7 @@ export default function MetricDetailPanel({
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -223,6 +225,7 @@ export default function MetricDetailPanel({
 
       <div className="border border-white/10 p-4">
         <p className="text-xs text-gray-500 mb-2">Alle Messwerte ({points.length})</p>
+        <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-white/10 text-left text-gray-500">
@@ -247,6 +250,7 @@ export default function MetricDetailPanel({
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

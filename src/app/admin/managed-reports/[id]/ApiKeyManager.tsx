@@ -59,7 +59,7 @@ export default function ApiKeyManager({ subscriptionId, apiKeys }: { subscriptio
         </div>
       )}
 
-      <form onSubmit={handleCreate} className="flex items-end gap-3 mb-4">
+      <form onSubmit={handleCreate} className="flex flex-col sm:flex-row sm:items-end gap-3 mb-4">
         <div>
           <label className="block text-xs font-medium text-gray-400 mb-1">Bezeichnung</label>
           <input
@@ -79,6 +79,7 @@ export default function ApiKeyManager({ subscriptionId, apiKeys }: { subscriptio
       </form>
       {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
 
+      <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/10 text-left text-gray-500">
@@ -112,6 +113,7 @@ export default function ApiKeyManager({ subscriptionId, apiKeys }: { subscriptio
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

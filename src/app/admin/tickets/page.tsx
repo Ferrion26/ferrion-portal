@@ -23,6 +23,7 @@ export default async function AdminTicketsPage() {
     <div>
       <h1 className="text-2xl font-bold text-white mb-6">{at.sidebar.tickets}</h1>
       <div className="bg-[#111827] border border-white/10 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/10 text-left text-gray-500">
@@ -54,6 +55,7 @@ export default async function AdminTicketsPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

@@ -62,7 +62,7 @@ export default function NewCustomerForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-4">
         <div>
           <label className="block text-xs font-medium text-gray-400 mb-1">Name</label>
           <input

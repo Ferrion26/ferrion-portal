@@ -65,6 +65,7 @@ export default async function ManagedReportsCustomerPage({ params }: { params: {
         <div className="px-6 py-4 border-b border-white/10">
           <h2 className="font-semibold text-white">Verträge/Geräte</h2>
         </div>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/10 text-left text-gray-500">
@@ -111,6 +112,7 @@ export default async function ManagedReportsCustomerPage({ params }: { params: {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {subscriptions.length > 0 && (

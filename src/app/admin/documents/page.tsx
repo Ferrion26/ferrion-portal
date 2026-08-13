@@ -31,6 +31,7 @@ export default async function AdminDocumentsPage() {
         <div className="px-6 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-800">All Documents</h2>
         </div>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-left text-gray-500 bg-gray-50">
@@ -62,6 +63,7 @@ export default async function AdminDocumentsPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

@@ -66,6 +66,7 @@ export default async function FindingsPage({
       </div>
 
       <div className="bg-[#111827] border border-white/10 p-6">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/10 text-left text-gray-500">
@@ -106,6 +107,7 @@ export default async function FindingsPage({
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

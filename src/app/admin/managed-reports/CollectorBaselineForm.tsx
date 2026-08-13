@@ -34,7 +34,7 @@ export default function CollectorBaselineForm({
   }
 
   return (
-    <div className="flex items-end gap-3">
+    <div className="flex flex-col sm:flex-row sm:items-end gap-3">
       <div>
         <label className="block text-xs font-medium text-gray-400 mb-1">Mindest-Collector-Version</label>
         <select
