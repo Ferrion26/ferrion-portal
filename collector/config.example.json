@@ -9,10 +9,10 @@
       "oceanprotect": {
         "storagePoolId": "0",
         "deviceManagerUrl": "https://<oceanprotect-x8000-host>:8088",
-        "deviceManagerUsername": "collector-readonly",
+        "deviceManagerUsername": "collector_ro",
         "deviceManagerPassword": "…",
         "dataBackupUrl": "https://<oceanprotect-x8000-host>:25081",
-        "dataBackupUsername": "collector-readonly",
+        "dataBackupUsername": "collector_ro",
         "dataBackupPassword": "…"
       }
     },
@@ -22,7 +22,7 @@
       "oceanstor": {
         "storagePoolId": "0",
         "deviceManagerUrl": "https://<oceanstor-5310-host>:8088",
-        "username": "collector-readonly",
+        "username": "collector_ro",
         "password": "…"
       }
     },
@@ -31,7 +31,16 @@
       "apiKey": "fcs_… (Subscription 3 — im Admin-Bereich unter Managed Reports > NetApp-Subscription > API-Keys erzeugen)",
       "netapp": {
         "managementUrl": "https://<netapp-aff-cluster-mgmt-ip>",
-        "username": "collector-readonly",
+        "username": "collector_ro",
+        "password": "…"
+      }
+    },
+    {
+      "productSlug": "huawei-dcs",
+      "apiKey": "fcs_… (Subscription 4 — im Admin-Bereich unter Managed Reports > Huawei-DCS-Subscription > API-Keys erzeugen)",
+      "fusioncompute": {
+        "managementUrl": "https://<fusioncompute-vrm-host>",
+        "username": "collector_ro",
         "password": "…"
       }
     }

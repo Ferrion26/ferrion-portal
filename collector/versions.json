@@ -58,5 +58,10 @@
     "version": "1.11.0",
     "releasedAt": "2026-08-11",
     "notes": "NetApp: neuer Healthcheck für Volumes (GET /api/storage/volumes) — neue Kennzahl volumes_faulty, jedes Volume erscheint mit Zustand im Infrastrukturstatus/den Auffälligkeiten/der \"erfolgreich geprüft\"-Referenz, sowie eine neue Übersichtstabelle \"Volumes\" (Name, SVM, Aggregat, Zustand, genutzte/gesamte Kapazität) in PDF und Web-Ansicht. Feldnamen für space.used bei Volumes noch nicht gegen ein reales Gerät verifiziert (wie der übrige NetApp-Adapter) — bei Abweichungen meta.rawEndpoints[\"/storage/volumes\"] prüfen."
+  },
+  {
+    "version": "1.12.0",
+    "releasedAt": "2026-08-13",
+    "notes": "Neuer Healthcheck-Adapter für Huawei DCS/FusionCompute (adapters/fusioncompute.js): Host-, Datastore- und VM-Status, Storage-Kapazität, aktive Alarme — plus aktive Wartungsmodus-Steuerung (\"node index.js maintenance enter|exit <hostId>\"), bisher der einzige Adapter mit schreibendem Eingriff am Kundengerät. Endpunkte aus der VRM-REST-Doku recherchiert, noch nicht gegen ein reales Gerät verifiziert, siehe README. Neu: automatisches Aufräumen alter Export-Dateien im --export-dir-Modus (--cleanup-max-age-days/--cleanup-max-count/--cleanup-max-size-mb). Neu: \"node index.js config list|add|edit|remove\" verwaltet Geräte-Einträge in config.json interaktiv, ohne die Datei von Hand editieren zu müssen — inkl. \"node index.js --help\" mit Beispielen. Der in config.example.json vorgeschlagene Standard-Benutzername für read-only Service-Accounts ist jetzt collector_ro (vorher collector-readonly)."
   }
 ]

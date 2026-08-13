@@ -2,6 +2,7 @@ import { MetricDefinition } from "./types";
 import { OCEANPROTECT_METRICS } from "./oceanprotect";
 import { OCEANSTOR_METRICS } from "./oceanstor";
 import { NETAPP_METRICS } from "./netapp";
+import { FUSIONCOMPUTE_METRICS } from "./fusioncompute";
 
 export * from "./types";
 
@@ -13,6 +14,13 @@ const METRIC_DEFINITIONS: Record<string, MetricDefinition[]> = {
   oceanprotect: OCEANPROTECT_METRICS,
   "oceanstor-hybrid-flash": OCEANSTOR_METRICS,
   "netapp-aff": NETAPP_METRICS,
+  // Kein eigener Katalog-Eintrag "fusioncompute" nötig — das bestehende
+  // Produkt "huawei-dcs" (Huawei Datacenter Virtualization, siehe
+  // products-data.ts) ist laut eigener Beschreibung bereits "die Server-
+  // und Hypervisor-Schicht auf Basis von FusionCompute", also derselbe
+  // Collector-Adapter/dieselbe Kennzahlen-Definition unter dem bestehenden
+  // Slug statt eines verwirrenden Duplikats.
+  "huawei-dcs": FUSIONCOMPUTE_METRICS,
 };
 
 export function getMetricDefinitions(productSlug: string): MetricDefinition[] {

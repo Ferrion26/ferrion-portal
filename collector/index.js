@@ -10,6 +10,27 @@
 //   node index.js config.json                         Live-Push (Standard)
 //   node index.js config.json --export-dir ./exports   Export-Dateien statt Push
 //   node index.js config.json --debug                  + volle Request/Response-Logs
+//   node index.js --help                               Diese Übersicht anzeigen
+//
+// Export-Verzeichnis aufräumen (nur zusammen mit --export-dir):
+//   node index.js config.json --export-dir ./exports --cleanup-max-age-days 30
+//   node index.js config.json --export-dir ./exports --cleanup-max-count 500
+//   node index.js config.json --export-dir ./exports --cleanup-max-size-mb 200
+//   (kombinierbar; siehe cleanup.js für die genaue Reihenfolge der Regeln)
+//
+// config.json über die CLI verwalten, statt von Hand zu editieren:
+//   node index.js config list [config.json]
+//   node index.js config add [config.json]
+//   node index.js config edit <productSlug> [config.json]
+//   node index.js config remove <productSlug> [config.json]
+//   (siehe configCli.js)
+//
+// Wartungsmodus an einem FusionCompute-Host — bewusst NICHT Teil des
+// automatischen Healthcheck-Laufs, sondern ein separater, explizit
+// ausgelöster Befehl (schreibender Eingriff am Kundengerät):
+//   node index.js maintenance enter <hostId> [config.json]
+//   node index.js maintenance exit  <hostId> [config.json]
+//   (siehe maintenanceCli.js)
 //
 // Ein Standort mit mehreren Geräten (z. B. OceanProtect + OceanStor) braucht
 // nur EIN config.json mit einem "devices"-Array (siehe config.example.json)
@@ -29,27 +50,81 @@ const { pushMetrics } = require("./push");
 const { createLogger } = require("./logger");
 const { FULL: COLLECTOR_VERSION } = require("./version");
 const { ensureSecretsEncrypted, decryptSecretsForRuntime } = require("./configSecrets");
+const { cleanupExports } = require("./cleanup");
 
 const ADAPTERS = {
   oceanprotect: require("./adapters/oceanprotect"),
   "oceanstor-hybrid-flash": require("./adapters/oceanstor"),
   "netapp-aff": require("./adapters/netapp"),
+  // productSlug ist "huawei-dcs" (nicht "fusioncompute") — das bestehende
+  // Katalogprodukt "Huawei DCS" IST laut eigener Produktbeschreibung "die
+  // Server-/Hypervisor-Schicht auf Basis von FusionCompute", kein eigenes
+  // neues Produkt nötig. Der Adapter/das config.json-Feld heißen weiterhin
+  // "fusioncompute" (technisch treffender, wie oceanstor/oceanstor-hybrid-
+  // flash ebenfalls unterschiedliche Namen haben).
+  "huawei-dcs": require("./adapters/fusioncompute"),
 };
+
+function printUsage() {
+  // Gibt exakt den Kommentarblock oben im File aus (Zeilen 9–31) — bewusst
+  // hier dupliziert statt den Kommentar zu parsen, damit die Laufzeitausgabe
+  // nicht von Kommentarformatierung abhängt.
+  console.log(`Ferrion Managed-Service-Collector — Aufruf:
+
+  node index.js config.json                         Live-Push (Standard)
+  node index.js config.json --export-dir ./exports   Export-Dateien statt Push
+  node index.js config.json --debug                  + volle Request/Response-Logs
+  node index.js --help                               Diese Übersicht anzeigen
+
+Export-Verzeichnis aufräumen (nur zusammen mit --export-dir):
+  node index.js config.json --export-dir ./exports --cleanup-max-age-days 30
+  node index.js config.json --export-dir ./exports --cleanup-max-count 500
+  node index.js config.json --export-dir ./exports --cleanup-max-size-mb 200
+  (kombinierbar)
+
+config.json über die CLI verwalten:
+  node index.js config list [config.json]
+  node index.js config add [config.json]
+  node index.js config edit <productSlug> [config.json]
+  node index.js config remove <productSlug> [config.json]
+
+Wartungsmodus an einem FusionCompute-Host:
+  node index.js maintenance enter <hostId> [config.json]
+  node index.js maintenance exit  <hostId> [config.json]
+
+Siehe README.md für Details.`);
+}
 
 function parseArgs(argv) {
   let configPath;
   let exportDir;
   let debug = false;
+  let cleanupMaxAgeDays;
+  let cleanupMaxCount;
+  let cleanupMaxSizeMB;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--export-dir") {
       exportDir = argv[++i];
     } else if (argv[i] === "--debug") {
       debug = true;
+    } else if (argv[i] === "--cleanup-max-age-days") {
+      cleanupMaxAgeDays = Number(argv[++i]);
+    } else if (argv[i] === "--cleanup-max-count") {
+      cleanupMaxCount = Number(argv[++i]);
+    } else if (argv[i] === "--cleanup-max-size-mb") {
+      cleanupMaxSizeMB = Number(argv[++i]);
     } else if (!configPath) {
       configPath = argv[i];
     }
   }
-  return { configPath: configPath || path.join(__dirname, "config.json"), exportDir, debug };
+  return {
+    configPath: configPath || path.join(__dirname, "config.json"),
+    exportDir,
+    debug,
+    cleanupMaxAgeDays,
+    cleanupMaxCount,
+    cleanupMaxSizeMB,
+  };
 }
 
 function loadConfig(configPath) {
@@ -78,7 +153,31 @@ function writeExportFile(exportDir, productSlug, payload) {
   return filePath;
 }
 
-const { configPath, exportDir, debug } = parseArgs(process.argv.slice(2));
+// Subcommand-Dispatch: "config"/"maintenance"/"--help" laufen VOR dem
+// normalen parseArgs()+main()-Ablauf und beenden den Prozess selbst — sonst
+// würde z. B. "config" als (falscher) configPath-Dateiname interpretiert.
+// Kollisionsrisiko mit einer tatsächlich "config"/"maintenance" genannten
+// Config-Datei (ohne .json-Endung) ist bewusst in Kauf genommen, wie bei
+// jeder CLI mit Subcommands (npm, git, docker, …).
+const firstArg = process.argv[2];
+if (firstArg === "--help" || firstArg === "-h") {
+  printUsage();
+  process.exit(0);
+}
+if (firstArg === "config") {
+  // Node wrappt jedes CommonJS-Modul in eine Funktion — ein `return` auf
+  // oberster Ebene ist daher gültig und beendet den Rest dieser Datei
+  // (kein `process.exit()` nötig, runConfigCli() ist async und beendet
+  // sich selbst über die normale Event-Loop-Terminierung).
+  require("./configCli").runConfigCli(process.argv.slice(3));
+  return;
+}
+if (firstArg === "maintenance") {
+  require("./maintenanceCli").runMaintenanceCli(process.argv.slice(3));
+  return;
+}
+
+const { configPath, exportDir, debug, cleanupMaxAgeDays, cleanupMaxCount, cleanupMaxSizeMB } = parseArgs(process.argv.slice(2));
 
 async function collectDevice(sharedConfig, device, log, exportDir) {
   // Gerätespezifische Felder (productSlug, apiKey, ingestUrl, Zugangsdaten-
@@ -149,6 +248,14 @@ async function main() {
   if (failed.length > 0) {
     log.warn(`${failed.length} von ${results.length} Geräten fehlgeschlagen — die übrigen wurden trotzdem erhoben/gesendet.`);
     process.exitCode = 1;
+  }
+
+  // Nur relevant im Export-Modus und nur, wenn mindestens eine Grenze
+  // gesetzt ist — ohne --export-dir gibt es nichts aufzuräumen, und ohne
+  // gesetzte Grenze bleibt das Verhalten unverändert (kein Datenverlust
+  // ohne bewusste Konfiguration, wie bei metricsRetentionDays im Portal).
+  if (exportDir && (cleanupMaxAgeDays !== undefined || cleanupMaxCount !== undefined || cleanupMaxSizeMB !== undefined)) {
+    cleanupExports(exportDir, { maxAgeDays: cleanupMaxAgeDays, maxCount: cleanupMaxCount, maxSizeMB: cleanupMaxSizeMB }, log);
   }
 }
 

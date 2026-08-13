@@ -3,16 +3,13 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { PRODUCTS } from "@/app/produkte/products-data";
-import { periodLabel } from "@/lib/managed-reports/quarter";
-import { formatDateTime } from "@/lib/managed-reports/reportFormat";
 import { isCollectorOutdated } from "@/lib/managed-reports/collectorVersion";
 import { getCollectorBaseline } from "@/lib/settings";
 import { Badge } from "@/components/ui/Badge";
-import ReportDownloadButton from "@/components/managed-reports/ReportDownloadButton";
 import ApiKeyManager from "./ApiKeyManager";
 import GenerateReportButton from "./GenerateReportButton";
-import PublishButton from "./PublishButton";
-import DeleteReportButton from "./DeleteReportButton";
+import IngestionTable from "./IngestionTable";
+import ReportsTable from "./ReportsTable";
 import ReplicationNoteForm from "./ReplicationNoteForm";
 import LocationForm from "./LocationForm";
 import RetentionForm from "./RetentionForm";
@@ -127,37 +124,16 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
           </Link>
           .
         </p>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-white/10 text-left text-gray-500">
-              <th className="py-2 font-medium">Zeitpunkt</th>
-              <th className="py-2 font-medium">Quelle</th>
-              <th className="py-2 font-medium">Datei</th>
-              <th className="py-2 font-medium">Kennzahlen</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ingestions.map((ing) => (
-              <tr key={ing.id} className="border-b border-white/5">
-                <td className="py-2 text-gray-300">{formatDateTime(ing.receivedAt)}</td>
-                <td className="py-2">
-                  <Badge variant={ing.source === "MANUAL_UPLOAD" ? "yellow" : "green"}>
-                    {ing.source === "MANUAL_UPLOAD" ? "Manueller Upload" : "Collector (Live)"}
-                  </Badge>
-                </td>
-                <td className="py-2 text-gray-400">{ing.fileName ?? "—"}</td>
-                <td className="py-2 text-gray-400">{ing._count.metrics}</td>
-              </tr>
-            ))}
-            {ingestions.length === 0 && (
-              <tr>
-                <td colSpan={4} className="py-6 text-center text-gray-500">
-                  Noch keine Daten eingegangen.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <IngestionTable
+          subscriptionId={subscription.id}
+          ingestions={ingestions.map((ing) => ({
+            id: ing.id,
+            receivedAt: ing.receivedAt.toISOString(),
+            source: ing.source,
+            fileName: ing.fileName,
+            metricsCount: ing._count.metrics,
+          }))}
+        />
         {ingestions.length === 30 && <p className="text-xs text-gray-500 mt-3">Zeigt die letzten 30 Einträge.</p>}
       </div>
 
@@ -197,55 +173,18 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
           />
         </div>
 
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-white/10 text-left text-gray-500">
-              <th className="py-2 font-medium">Zeitraum</th>
-              <th className="py-2 font-medium">Erstellt</th>
-              <th className="py-2 font-medium">Status</th>
-              <th className="py-2 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {subscription.reports.map((report) => (
-              <tr key={report.id} className="border-b border-white/5">
-                <td className="py-2 text-gray-300">
-                  {periodLabel(report.periodType, report.periodStart)}
-                  {report.additionalSubscriptionIds.length > 0 && (
-                    <span className="ml-2 text-[10px] text-[#c9a84c] tracking-widest uppercase">
-                      kombiniert ({report.additionalSubscriptionIds.length + 1} Produkte)
-                    </span>
-                  )}
-                </td>
-                <td className="py-2 text-gray-400">{formatDateTime(report.generatedAt)}</td>
-                <td className="py-2">
-                  <Badge variant={report.status === "PUBLISHED" ? "green" : "yellow"}>
-                    {report.status === "PUBLISHED" ? "Veröffentlicht" : "Entwurf"}
-                  </Badge>
-                </td>
-                <td className="py-2 text-right space-x-4">
-                  <Link href={`/dashboard/reports/${report.id}`} className="text-sm text-[#c9a84c] hover:text-[#e0bc5a] font-medium">
-                    Anzeigen →
-                  </Link>
-                  {report.document && (
-                    <ReportDownloadButton documentId={report.document.id} fileName={report.document.name} />
-                  )}
-                  {report.status === "DRAFT" && (
-                    <PublishButton subscriptionId={subscription.id} reportId={report.id} />
-                  )}
-                  <DeleteReportButton subscriptionId={subscription.id} reportId={report.id} published={report.status === "PUBLISHED"} />
-                </td>
-              </tr>
-            ))}
-            {subscription.reports.length === 0 && (
-              <tr>
-                <td colSpan={4} className="py-6 text-center text-gray-500">
-                  Noch kein Bericht erstellt.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <ReportsTable
+          subscriptionId={subscription.id}
+          reports={subscription.reports.map((report) => ({
+            id: report.id,
+            periodType: report.periodType,
+            periodStart: report.periodStart.toISOString(),
+            generatedAt: report.generatedAt.toISOString(),
+            status: report.status,
+            additionalSubscriptionIds: report.additionalSubscriptionIds,
+            document: report.document ? { id: report.document.id, name: report.document.name } : null,
+          }))}
+        />
       </div>
     </div>
   );

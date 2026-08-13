@@ -518,7 +518,10 @@ export const PRODUCTS: Product[] = [
     heroImage: "/images/Hero Visual/Huawei_DCS_01.webp",
     icon: "🖥",
     eyebrow: { de: "Produkt · Huawei Gold Partner", en: "Product · Huawei Gold Partner" },
-    name: "Huawei DCS",
+    // Kein "Huawei"-Präfix hier — product.vendor wird im Bericht/Katalog
+    // davorgesetzt ("{vendor} {name}"), sonst würde "Huawei Huawei DCS"
+    // entstehen (analog zu "AFF All-Flash Storage" bei netapp-aff).
+    name: "DCS Datacenter Virtualization",
     tagline: {
       de: "Datacenter Virtualization (DCS) — die Compute-Schicht auf Basis von FusionCompute.",
       en: "Datacenter Virtualization (DCS) — the compute layer built on FusionCompute.",

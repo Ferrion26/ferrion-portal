@@ -62,6 +62,33 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    tatsächlichen Antwortformat anpassen.
    Läuft der Cluster mit einem selbstsignierten Zertifikat im internen Netz,
    auch hier `allowInsecureTls: true` setzen (siehe oben).
+3d. Für Huawei DCS/FusionCompute (VRM-Management) braucht
+   `adapters/fusioncompute.js` Zugangsdaten zur **VRM-REST-API**
+   (`POST /service/session` mit Benutzername/Passwort, liefert einen
+   10 Minuten gültigen Session-Token im Antwort-Header `X-Auth-Token`), siehe
+   den `fusioncompute`-Block im vierten `devices`-Eintrag in
+   `config.example.json` (`productSlug: "huawei-dcs"` — dasselbe
+   Katalogprodukt wie im Shop, kein separates "FusionCompute"-Produkt).
+   Der Service-Account braucht mindestens read-only Zugriff auf
+   `/service/sites`, `hosts`, `clusters`, `datastores`, `vms` und
+   `alarms/activeAlarms` der jeweiligen Site. Quelle der Endpunkte: die vom
+   Kunden bereitgestellte FusionCompute-VRM-REST-Doku (`docs/Rest/` im
+   Repo). **Noch nicht gegen ein reales Gerät verifiziert** — beim ersten
+   echten Ingest `meta.rawEndpoints` im Admin-Bereich prüfen, insbesondere
+   den JSON-Listen-Schlüssel für Hosts/Clusters/Datastores/VMs (der Adapter
+   probiert dafür mehrere plausible Kandidaten durch, siehe `extractList()`
+   in `adapters/fusioncompute.js`).
+   Läuft der Cluster mit einem selbstsignierten Zertifikat im internen Netz,
+   auch hier `allowInsecureTls: true` setzen (siehe oben).
+
+   Zusätzlich zum passiven Healthcheck kann für FusionCompute-Hosts aktiv der
+   **Wartungsmodus** ein-/ausgeschaltet werden (einziger schreibender Eingriff
+   unter allen Adaptern, deshalb bewusst kein Teil des automatischen Laufs):
+
+   ```bash
+   node index.js maintenance enter <hostId> [config.json]
+   node index.js maintenance exit  <hostId> [config.json]
+   ```
 4. Node.js 18+ auf dem Collector-Host voraussetzen (nutzt das eingebaute
    `fetch`), keine weiteren Abhängigkeiten nötig.
 5. Testlauf: `node index.js config.json`
@@ -96,6 +123,54 @@ Abschnitt **"Manueller Upload"**) hochgeladen — die Datei gehört anhand ihres
 `productSlug` im Namen zur passenden Subscription. Mehrere Dateien
 gleichzeitig innerhalb derselben Subscription sind möglich, kein API-Key
 nötig (die Admin-Anmeldung übernimmt die Authentifizierung).
+
+## Alte Export-Dateien aufräumen
+
+Im Air-Gap-Export-Modus (`--export-dir`, siehe oben) sammeln sich mit der
+Zeit beliebig viele `metrics-<productSlug>-<Zeitstempel>.json`-Dateien im
+Exportverzeichnis an — der Collector selbst löscht sie nie automatisch.
+Drei optionale, frei kombinierbare Flags räumen nach jedem Lauf auf (immer
+die ältesten Dateien zuerst):
+
+```bash
+node index.js config.json --export-dir ./exports --cleanup-max-age-days 90
+node index.js config.json --export-dir ./exports --cleanup-max-count 500
+node index.js config.json --export-dir ./exports --cleanup-max-size-mb 200
+```
+
+- `--cleanup-max-age-days <n>` — löscht Dateien, die älter als `n` Tage sind.
+- `--cleanup-max-count <n>` — löscht die ältesten Dateien, bis höchstens `n`
+  übrig bleiben.
+- `--cleanup-max-size-mb <n>` — löscht die ältesten Dateien, bis die
+  Gesamtgröße des Verzeichnisses höchstens `n` MB beträgt.
+
+Alle drei lassen sich kombinieren (werden dann nacheinander angewendet) und
+sind reine CLI-Parameter ohne Pendant in `config.json`, analog zu
+`--export-dir` selbst. Ohne gesetztes Flag räumt der Collector nichts auf.
+
+## Config.json über die CLI verwalten
+
+Statt `config.json` von Hand zu editieren, lassen sich Geräte-Einträge über
+eingebaute Unterbefehle verwalten — praktisch besonders bei mehreren Geräten
+im `devices`-Array:
+
+```bash
+node index.js config list                       # alle Geräte anzeigen (Zugangsdaten maskiert)
+node index.js config add                        # neues Gerät interaktiv anlegen
+node index.js config edit <productSlug>          # bestehendes Gerät bearbeiten
+node index.js config remove <productSlug>        # Gerät entfernen (mit Bestätigung)
+node index.js --help                             # vollständige Usage-Übersicht mit Beispielen
+```
+
+`config add`/`config edit` fragen die nötigen Felder interaktiv ab (Node-
+`readline`, keine Passwort-Maskierung während der Eingabe — dafür bräuchte es
+plattformübergreifenden Raw-Mode-Terminal-Code, der auf Windows/PowerShell
+und Linux/Bash unterschiedlich zuverlässig ist). Eingegebene Passwörter
+landen nie im Klartext auf der Platte, sondern werden vor dem Schreiben
+sofort verschlüsselt (siehe nächster Abschnitt). Ein optionaler
+Pfad-Parameter am Ende (`node index.js config list ./andere-config.json`)
+zielt auf eine andere Datei als das Standard-`config.json` im
+`collector`-Ordner.
 
 ## Passwörter in config.json
 

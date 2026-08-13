@@ -8,7 +8,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const VERSION = "1.11.0";
+const VERSION = "1.12.0";
 
 let build = "dev";
 try {
