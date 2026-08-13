@@ -464,6 +464,60 @@ export function ReportDashboardView({
                 </div>
               </div>
             )}
+
+            {product.versionBaseline && (
+              <div className="bg-[#111827] border border-white/10 p-6">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-semibold text-white">{locale === "de" ? "Software-Baseline" : "Software Baseline"}</h3>
+                  {(() => {
+                    const s = STATUS_STYLES[product.versionBaseline.status === "current" ? "good" : product.versionBaseline.status === "outdated" ? "warning" : "neutral"];
+                    const label =
+                      product.versionBaseline.status === "current"
+                        ? { de: "Aktuell", en: "Current" }
+                        : product.versionBaseline.status === "outdated"
+                        ? { de: "Update verfügbar", en: "Update available" }
+                        : { de: "Unbekannt", en: "Unknown" };
+                    return <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.bg} ${s.text}`}>{label[locale]}</span>;
+                  })()}
+                </div>
+                {(product.versionBaseline.installedVersion || product.versionBaseline.recommendedVersion) && (
+                  <p className="text-xs text-gray-500 mb-3">
+                    {product.versionBaseline.installedVersion && (
+                      <>
+                        {locale === "de" ? "Installiert" : "Installed"}: {product.versionBaseline.installedVersion}
+                        <br />
+                      </>
+                    )}
+                    {product.versionBaseline.recommendedVersion && (
+                      <>
+                        {locale === "de" ? "Empfohlen" : "Recommended"}: {product.versionBaseline.recommendedVersion}
+                      </>
+                    )}
+                  </p>
+                )}
+                {product.versionBaseline.status === "outdated" && (
+                  <ul className="space-y-1.5 mt-2">
+                    {[...product.versionBaseline.pendingFeatures, ...product.versionBaseline.pendingFixes].slice(0, 8).map((item, i) => (
+                      <li key={i} className="text-xs text-gray-300">
+                        <span className="text-white font-medium">{item.title}</span>
+                        {item.description && <span className="text-gray-500"> — {item.description}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {product.versionBaseline.status === "unknown" && (
+                  <p className="text-xs text-gray-500">
+                    {product.versionBaseline.installedVersion
+                      ? locale === "de"
+                        ? "Diese Version ist nicht in der gepflegten Baseline-Historie hinterlegt."
+                        : "This version is not on record in the maintained baseline history."
+                      : locale === "de"
+                      ? "Noch keine Software-Version für dieses Gerät gemeldet."
+                      : "No software version reported for this device yet."}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="bg-black/30 border border-white/10 p-6">

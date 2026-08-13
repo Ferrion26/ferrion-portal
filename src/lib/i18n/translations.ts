@@ -108,6 +108,7 @@ export const translations = {
         documents: "Dokumente",
         tickets: "Support-Tickets",
         managedReports: "Managed Reports",
+        baselines: "Baselines",
       },
     },
     header: {
@@ -222,6 +223,7 @@ export const translations = {
         documents: "Documents",
         tickets: "Support Tickets",
         managedReports: "Managed Reports",
+        baselines: "Baselines",
       },
     },
     header: {

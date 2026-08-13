@@ -28,6 +28,7 @@ export default function AdminSidebar({
     { href: "/admin/documents", label: s.documents, icon: "📄" },
     { href: "/admin/tickets", label: s.tickets, icon: "🎟" },
     { href: "/admin/managed-reports", label: s.managedReports, icon: "📊" },
+    { href: "/admin/baselines", label: s.baselines, icon: "🏷" },
     { href: "/admin/einstellungen", label: locale === "de" ? "Einstellungen" : "Settings", icon: "⚙️" },
   ];
 

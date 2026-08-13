@@ -5,6 +5,7 @@ import { QuarterSummaryEntry } from "../aggregate";
 import { ReportSection } from "../metrics";
 import { formatValue, formatDateTime, daysToThreshold, trendGrowthPerDay, normalizeComponentLabel } from "../reportFormat";
 import { deriveStatus, buildExecutiveSummary, buildRecommendations, buildBannerHighlights, MetricStatus } from "../reportNarrative";
+import { VersionBaselineResult } from "../baseline";
 
 // Ohne das hier splittet react-pdf lange Wörter (Seriennummern, lange
 // zusammengesetzte deutsche Begriffe) mit einem eingefügten Bindestrich
@@ -785,6 +786,103 @@ function ComponentFaultsCard({ faults, locale }: { faults: ComponentFault[]; loc
   );
 }
 
+const VERSION_BASELINE_COPY = {
+  de: {
+    title: "Software-Baseline",
+    sub: "Vergleich der installierten Version mit der von Huawei empfohlenen Version.",
+    installed: "Installierte Version",
+    recommended: "Empfohlene Version",
+    current: "Die installierte Version entspricht der aktuell empfohlenen Version.",
+    unknownNoVersion: "Der Collector hat noch keine Software-Version für dieses Gerät gemeldet.",
+    unknownNoMatch: (v: string) => `Version "${v}" ist nicht in der gepflegten Baseline-Historie hinterlegt — kein Vergleich möglich.`,
+    outdatedIntro: "Ein Upgrade auf die empfohlene Version würde folgende Verbesserungen bringen:",
+    newFeaturesTitle: "New Features",
+    fixesTitle: "Resolved Issues",
+    moreItems: (n: number) => `+ ${n} weitere Einträge.`,
+  },
+  en: {
+    title: "Software Baseline",
+    sub: "Comparison of the installed version against Huawei's recommended version.",
+    installed: "Installed version",
+    recommended: "Recommended version",
+    current: "The installed version matches the currently recommended version.",
+    unknownNoVersion: "The collector has not yet reported a software version for this device.",
+    unknownNoMatch: (v: string) => `Version "${v}" is not on record in the maintained baseline history — no comparison possible.`,
+    outdatedIntro: "Upgrading to the recommended version would bring the following improvements:",
+    newFeaturesTitle: "New Features",
+    fixesTitle: "Resolved Issues",
+    moreItems: (n: number) => `+ ${n} more entries.`,
+  },
+};
+
+const MAX_BASELINE_ITEMS_SHOWN = 10;
+
+function VersionBaselineCard({ baseline, locale }: { baseline: VersionBaselineResult; locale: "de" | "en" }) {
+  const t = VERSION_BASELINE_COPY[locale];
+
+  return (
+    <View style={styles.tableCardBlock} wrap={false}>
+      <Text style={styles.listCardTitle}>{t.title}</Text>
+      <Text style={styles.listCardSub}>{t.sub}</Text>
+
+      {(baseline.installedVersion || baseline.recommendedVersion) && (
+        <View style={{ marginTop: 6, marginBottom: 4 }}>
+          {baseline.installedVersion && (
+            <Text style={styles.alarmDesc}>
+              {t.installed}: {baseline.installedVersion}
+            </Text>
+          )}
+          {baseline.recommendedVersion && (
+            <Text style={styles.alarmDesc}>
+              {t.recommended}: {baseline.recommendedVersion}
+            </Text>
+          )}
+        </View>
+      )}
+
+      {baseline.status === "current" && <Text style={{ ...styles.methodologyLine, marginTop: 4 }}>{t.current}</Text>}
+      {baseline.status === "unknown" && (
+        <Text style={{ ...styles.methodologyLine, marginTop: 4 }}>
+          {baseline.installedVersion ? t.unknownNoMatch(baseline.installedVersion) : t.unknownNoVersion}
+        </Text>
+      )}
+      {baseline.status === "outdated" && (
+        <View style={{ marginTop: 4 }}>
+          <Text style={styles.alarmDesc}>{t.outdatedIntro}</Text>
+          {baseline.pendingFeatures.length > 0 && (
+            <View style={{ marginTop: 6 }}>
+              <Text style={styles.occurrenceTag}>{t.newFeaturesTitle}</Text>
+              {baseline.pendingFeatures.slice(0, MAX_BASELINE_ITEMS_SHOWN).map((f, i) => (
+                <View key={i} style={{ marginTop: 3 }}>
+                  <Text style={styles.alarmName}>{f.title}</Text>
+                  {f.description && <Text style={styles.alarmSuggestion}>{f.description}</Text>}
+                </View>
+              ))}
+              {baseline.pendingFeatures.length > MAX_BASELINE_ITEMS_SHOWN && (
+                <Text style={{ ...styles.methodologyLine, marginTop: 4 }}>{t.moreItems(baseline.pendingFeatures.length - MAX_BASELINE_ITEMS_SHOWN)}</Text>
+              )}
+            </View>
+          )}
+          {baseline.pendingFixes.length > 0 && (
+            <View style={{ marginTop: 6 }}>
+              <Text style={styles.occurrenceTag}>{t.fixesTitle}</Text>
+              {baseline.pendingFixes.slice(0, MAX_BASELINE_ITEMS_SHOWN).map((f, i) => (
+                <View key={i} style={{ marginTop: 3 }}>
+                  <Text style={styles.alarmName}>{f.title}</Text>
+                  {f.description && <Text style={styles.alarmSuggestion}>{f.description}</Text>}
+                </View>
+              ))}
+              {baseline.pendingFixes.length > MAX_BASELINE_ITEMS_SHOWN && (
+                <Text style={{ ...styles.methodologyLine, marginTop: 4 }}>{t.moreItems(baseline.pendingFixes.length - MAX_BASELINE_ITEMS_SHOWN)}</Text>
+              )}
+            </View>
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+
 // Nach der Gruppierung großer Kategorien (siehe groupSuccessfulChecks) bleibt
 // die Zeilenzahl auch bei sehr großen Anlagen überschaubar — der Deckel ist
 // nur noch ein Sicherheitsnetz für den unrealistischen Fall vieler
@@ -1426,6 +1524,10 @@ export interface ProductReportData {
   // (buildExecutiveSummary) zusätzlich zu den Kennzahl-Schwellwerten, bis
   // ein Admin sie unter .../findings bestätigt.
   unacknowledgedCriticalFindingsCount?: number;
+  // Vergleich installierte vs. empfohlene Software-/Firmware-Version (siehe
+  // src/lib/managed-reports/baseline.ts) — bewusst NICHT Teil des
+  // Overall-Status, nur ein eigener informativer Abschnitt.
+  versionBaseline?: VersionBaselineResult;
   recentAlarms?: AlarmSample[];
   resourceBreakdown?: ResourceBreakdownEntry[];
   topJobFailures?: TopJobFailures;
@@ -1704,6 +1806,12 @@ function ProductPage({
           </View>
         )}
 
+        {product.versionBaseline && (
+          <View id={`p${index}-baseline`} style={{ marginBottom: 14 }}>
+            <VersionBaselineCard baseline={product.versionBaseline} locale={locale} />
+          </View>
+        )}
+
         {adminNotes && (
           <View style={styles.notesBlock} wrap={false}>
             <Text style={styles.notesLabel}>{t.notes.toUpperCase()}</Text>
@@ -1812,6 +1920,7 @@ function productTocSections(product: ProductReportData, locale: "de" | "en", ind
     (product.volumes?.length ?? 0) > 0 && { label: VOLUME_OVERVIEW_COPY[locale].title, anchor: `p${index}-volumes` },
     hasProtection && { label: PROTECTION_COPY[locale].title, anchor: `p${index}-schutz` },
     (product.componentFaults?.length ?? 0) > 0 && { label: t.detailsTitle, anchor: `p${index}-auffaelligkeiten` },
+    !!product.versionBaseline && { label: VERSION_BASELINE_COPY[locale].title, anchor: `p${index}-baseline` },
     (product.componentChecks?.length ?? 0) > 0 && { label: t.successTitle, anchor: `p${index}-geprueft` },
   ].filter((s): s is { label: string; anchor: string } => Boolean(s));
 }

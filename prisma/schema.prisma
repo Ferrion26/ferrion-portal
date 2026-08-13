@@ -446,3 +446,56 @@ model QuarterlyReport {
   @@index([subscriptionId])
   @@index([periodStart, periodEnd])
 }
+
+// Empfohlene/erwartete Werte für ein Produkt (nicht für eine einzelne
+// Subscription) — aktuell nur ein Attribut-Typ (Software-Version, siehe
+// BaselineSoftwareVersion), aber bewusst als eigenständige Policy statt hart
+// verdrahtet, da künftig weitere Attribut-Typen dazukommen können (jeweils
+// eigenes Baseline<Attribut>-Modell mit eigener Relation hierher, analog zum
+// Registry-Muster von metrics/<produkt>.ts).
+model BaselinePolicy {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  productSlug String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  softwareVersions BaselineSoftwareVersion[]
+
+  @@index([productSlug])
+}
+
+// Eine bekannte Software-/Firmware-Version für ein Produkt, inkl. der
+// Bugfixes/Features aus den Release Notes — Grundlage für den
+// Baseline-Abschnitt im Healthcheck-Bericht (Vergleich installierte vs.
+// empfohlene Version). "recommended" wird von der API beim Setzen exklusiv
+// gehalten (alle anderen Versionen derselben Policy werden in derselben
+// Transaktion zurückgesetzt) — Prisma kennt keine partiellen Unique-Indizes
+// ohne rohes SQL, daher hier nur ein normales Boolean-Feld.
+model BaselineSoftwareVersion {
+  id       String         @id @default(cuid())
+  policyId String
+  policy   BaselinePolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  versionNumber   String // z. B. "OceanStor Series V700R001C10SPH128"
+  description     String?
+  status          String    @default("Valid")
+  publicationDate DateTime?
+  recommended     Boolean   @default(false)
+
+  // [{ title, description }] — aus "New Features"/"What's New" der Release Notes.
+  newFeatures Json?
+  // [{ title, description }] — aus "Modified Features".
+  modifiedFeatures Json?
+  // [{ ticketNumber?, title, description, severity?, solution? }] — aus "Resolved Issues".
+  resolvedIssues Json?
+  // Zitat der Quelle, z. B. "OceanStor V700R001C30 Release Notes, Issue 01, 2026-06-30".
+  sourceDocument String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([policyId, versionNumber])
+  @@index([policyId, recommended])
+}

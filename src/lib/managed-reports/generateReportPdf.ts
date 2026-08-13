@@ -6,6 +6,7 @@ import { PRODUCTS } from "@/app/produkte/products-data";
 import { computeQuarterSummary } from "./aggregate";
 import { periodLabel, PeriodType } from "./quarter";
 import { ReportDocument, ProductReportData } from "./pdf/ReportDocument";
+import { getBaselineForProduct, evaluateVersionStatus } from "./baseline";
 
 type SubscriptionWithCustomer = Awaited<ReturnType<typeof loadSubscription>>;
 
@@ -54,11 +55,13 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
     (p) => p.id === subscription.packageId.toLowerCase()
   )?.name;
 
-  const [entries, findings, capacityTrend] = await Promise.all([
+  const [entries, findings, capacityTrend, baselinePolicy] = await Promise.all([
     computeQuarterSummary(subscription.id, periodStart, periodEnd),
     loadFindings(subscription.id, periodStart, periodEnd),
     loadCapacityTrend(subscription.id, periodStart, periodEnd),
+    getBaselineForProduct(subscription.productSlug),
   ]);
+  const versionBaseline = evaluateVersionStatus(subscription.deviceSoftwareVersion, baselinePolicy) ?? undefined;
 
   // Nur unbestätigte KRITISCHE Alarme degradieren den Overall-Status
   // (buildExecutiveSummary) — dieselbe Schwelle wie bei Kennzahlen (nur
@@ -120,6 +123,7 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
     location: subscription.location ?? undefined,
     entries,
     unacknowledgedCriticalFindingsCount,
+    versionBaseline,
     recentAlarms: recentAlarms.length > 0 ? recentAlarms : undefined,
     resourceBreakdown: (subscription.resourceBreakdown as unknown as ProductReportData["resourceBreakdown"]) ?? undefined,
     topJobFailures: (subscription.topJobFailures as unknown as ProductReportData["topJobFailures"]) ?? undefined,
