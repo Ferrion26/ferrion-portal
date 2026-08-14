@@ -157,6 +157,25 @@ export default function ProductDetailPage({ params, searchParams }: Params & SP)
           </div>
         </section>
 
+        {/* Video */}
+        {product.videoUrl && (
+          <section className="max-w-5xl mx-auto px-6 pb-16">
+            <div className="border border-white/10 overflow-hidden">
+              <video
+                src={product.videoUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                controls={false}
+                disablePictureInPicture
+                controlsList="nodownload noplaybackrate"
+                className="w-full h-auto block"
+              />
+            </div>
+          </section>
+        )}
+
         {/* Managed Services */}
         {ms && (
           <section className="max-w-6xl mx-auto px-6 py-16 border-t border-white/10">

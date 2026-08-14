@@ -45,6 +45,7 @@ export type Product = {
   vendor: string;
   vendorLogo?: string;
   heroImage?: string;
+  videoUrl?: string;
   icon: string;
   eyebrow: Bi;
   name: string; // brand/product name, not translated
@@ -516,6 +517,7 @@ export const PRODUCTS: Product[] = [
     vendor: "Huawei",
     vendorLogo: "/logos/Huawei_Standard_logo.svg.png",
     heroImage: "/images/Hero Visual/Huawei_DCS_01.webp",
+    videoUrl: "/videos/ferrion-dcs-kampagne.mp4",
     icon: "🖥",
     eyebrow: { de: "Produkt · Huawei Gold Partner", en: "Product · Huawei Gold Partner" },
     // Kein "Huawei"-Präfix hier — product.vendor wird im Bericht/Katalog
