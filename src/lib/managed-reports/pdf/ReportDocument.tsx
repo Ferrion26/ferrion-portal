@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   // AlarmCard/ComponentFaultsCard weiter oben).
   methodologyIntro: { fontSize: 7, color: MUTED, lineHeight: 1.5, marginBottom: 10 },
   methodologyGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  methodologyCard: { width: (MAIN_CONTENT_WIDTH - 10) / 2, backgroundColor: WHITE, borderRadius: 8, padding: 12, marginBottom: 10 },
+  methodologyCard: { width: (MAIN_CONTENT_WIDTH - 20) / 3, backgroundColor: WHITE, borderRadius: 8, padding: 12, marginBottom: 10 },
   methodologyCardTitle: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: GOLD, paddingBottom: 4 },
   methodologyBullet: { flexDirection: "row", gap: 6, marginBottom: 8 },
   methodologyBulletDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: GOLD, marginTop: 4 },
