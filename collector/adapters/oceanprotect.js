@@ -19,7 +19,7 @@
 // metricKeys müssen exakt zu den Definitionen in
 // src/lib/managed-reports/metrics/oceanprotect.ts passen.
 const { requestJson, joinUrl } = require("../httpClient");
-const { componentGroup } = require("./shared");
+const { componentGroup, collectLunOverview } = require("./shared");
 
 async function loginStorage(config) {
   const { deviceManagerUrl, deviceManagerUsername, deviceManagerPassword } = config.oceanprotect;
@@ -207,6 +207,16 @@ async function collectStorageMetrics(config, session) {
 // Disks, Lüfter, Netzteile, Netzwerk-Ports — alles über die jeweiligen
 // "Batch Querying"-Endpunkte des DeviceManager (ein Aufruf liefert alle
 // Instanzen als Array, kein Durchpaginieren nötig).
+// LUNs + darauf gemappte Initiatoren der Storage-Ebene (nicht der
+// DataBackup-Ebene, die kein LUN-Konzept kennt) — siehe shared.js für die
+// Auflösungskette und den Unsicherheits-Hinweis zu den Assoziationscodes.
+async function collectLunMetrics(config, session) {
+  const { deviceManagerUrl } = config.oceanprotect;
+  const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
+  const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
+  return collectLunOverview(config, base, authHeaders, fetchOptional, describeHealthStatus);
+}
+
 async function collectHardwareMetrics(config, session) {
   const { deviceManagerUrl } = config.oceanprotect;
   const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
@@ -928,15 +938,17 @@ async function tryCollectStorage(config) {
     return { metrics: [], deviceSerialNumber: null, deviceInfo: null, alarmSamples: undefined, componentFaults: undefined };
   }
   try {
-    const [capacityResult, hardwareResult] = await Promise.allSettled([
+    const [capacityResult, hardwareResult, lunResult] = await Promise.allSettled([
       collectStorageMetrics(config, session),
       collectHardwareMetrics(config, session),
+      collectLunMetrics(config, session),
     ]);
     const metrics = [];
     let deviceInfo = null;
     let alarmSamples;
     let componentFaults;
     let componentChecks;
+    let luns;
     const rawEndpoints = {};
     if (capacityResult.status === "fulfilled") {
       metrics.push(...capacityResult.value.metrics);
@@ -954,9 +966,16 @@ async function tryCollectStorage(config) {
     } else {
       config.logger?.warn(`Hardware-Kennzahlen konnten nicht erhoben werden: ${hardwareResult.reason.message}`);
     }
+    if (lunResult.status === "fulfilled") {
+      metrics.push(...lunResult.value.metrics);
+      luns = lunResult.value.luns;
+      Object.assign(rawEndpoints, lunResult.value.rawEndpoints);
+    } else {
+      config.logger?.warn(`LUN-/Initiator-Übersicht konnte nicht erhoben werden: ${lunResult.reason.message}`);
+    }
     // deviceId aus der Login-Antwort ist bei Huawei die Geräte-ESN
     // (Seriennummer) — dieselbe Kennung, die schon in jeder Request-URL steckt.
-    return { metrics, deviceSerialNumber: session.deviceId, deviceInfo, alarmSamples, componentFaults, componentChecks, rawEndpoints };
+    return { metrics, deviceSerialNumber: session.deviceId, deviceInfo, alarmSamples, componentFaults, componentChecks, luns, rawEndpoints };
   } finally {
     await logoutStorage(config, session);
   }
@@ -1010,6 +1029,7 @@ async function collect(config) {
   // Reine Momentaufnahme (kein aktiv/gelöst-Historienkonzept wie bei
   // componentFaults) — wird bei jedem Ingest einfach überschrieben.
   if (storageResult.componentChecks?.length > 0) meta.componentChecks = storageResult.componentChecks;
+  if (storageResult.luns?.length > 0) meta.luns = storageResult.luns;
   if (dataBackupResult.dataBackupVersion) meta.dataBackupVersion = dataBackupResult.dataBackupVersion;
   if (dataBackupResult.resourceBreakdown?.length > 0) meta.resourceBreakdown = dataBackupResult.resourceBreakdown;
   if (dataBackupResult.topJobFailures && (dataBackupResult.topJobFailures.bySla.length > 0 || dataBackupResult.topJobFailures.byResource.length > 0)) {

@@ -167,6 +167,31 @@ export const NETAPP_METRICS: MetricDefinition[] = [
     },
   },
   {
+    key: "luns_faulty",
+    label: { de: "LUNs mit Fehlstatus", en: "Unhealthy LUNs" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+    severeIfNonZero: true,
+    methodology: {
+      de: "Anzahl der LUNs mit status.state ungleich \"online\" (Quelle: ONTAP REST API GET /api/storage/luns) — als kritisch eingestuft, da ein LUN-Fehlstatus ein Verfügbarkeitsrisiko für die zugreifenden Hosts ist.",
+      en: "Number of LUNs with status.state other than \"online\" (source: ONTAP REST API GET /api/storage/luns) — treated as critical, since an unhealthy LUN is an availability risk for the hosts accessing it.",
+    },
+  },
+  {
+    key: "luns_unmapped",
+    label: { de: "Nicht gemappte LUNs", en: "Unmapped LUNs" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+    methodology: {
+      de: "Anzahl der LUNs ohne Eintrag in GET /api/protocols/san/lun-maps — kann auch eine bewusst in Vorbereitung befindliche Provisionierung sein, daher nur als Hinweis statt kritisch eingestuft.",
+      en: "Number of LUNs with no entry in GET /api/protocols/san/lun-maps — can also be an intentional provisioning-in-progress state, so treated as informational rather than critical.",
+    },
+  },
+  {
     key: "shelves_unhealthy",
     label: { de: "Disk-Shelves mit Fehlstatus", en: "Unhealthy Disk Shelves" },
     format: "count",

@@ -63,5 +63,10 @@
     "version": "1.12.0",
     "releasedAt": "2026-08-13",
     "notes": "Neuer Healthcheck-Adapter für Huawei DCS/FusionCompute (adapters/fusioncompute.js): Host-, Datastore- und VM-Status, Storage-Kapazität, aktive Alarme — plus aktive Wartungsmodus-Steuerung (\"node index.js maintenance enter|exit <hostId>\"), bisher der einzige Adapter mit schreibendem Eingriff am Kundengerät. Endpunkte aus der VRM-REST-Doku recherchiert, noch nicht gegen ein reales Gerät verifiziert, siehe README. Neu: automatisches Aufräumen alter Export-Dateien im --export-dir-Modus (--cleanup-max-age-days/--cleanup-max-count/--cleanup-max-size-mb). Neu: \"node index.js config list|add|edit|remove\" verwaltet Geräte-Einträge in config.json interaktiv, ohne die Datei von Hand editieren zu müssen — inkl. \"node index.js --help\" mit Beispielen. Der in config.example.json vorgeschlagene Standard-Benutzername für read-only Service-Accounts ist jetzt collector_ro (vorher collector-readonly)."
+  },
+  {
+    "version": "1.13.0",
+    "releasedAt": "2026-08-14",
+    "notes": "Neuer Healthcheck für LUNs + darauf gemappte Initiatoren (iSCSI-IQN/FC-WWN) bei allen block-storage-fähigen Produkten (OceanStor, OceanProtect-Storage-Ebene, NetApp) — neue Kennzahlen luns_faulty/luns_unmapped, neue Übersichtstabelle \"LUNs\" in PDF und Web-Ansicht. Bei Huawei löst der Collector die LUN->Initiator-Zuordnung über die Kette LUN-Gruppe -> Mapping View -> Host-Gruppe -> Host -> Initiator auf (neue Endpunkte GET /lun, /mappingview, /lungroup, /hostgroup, /host, /iscsi_initiator, /fc_initiator) — die dabei verwendeten ASSOCIATEOBJTYPE-Codes (245/256/14) und PARENTTYPE=21 folgen der allgemeinen DeviceManager-API-Konvention, sind aber NICHT gegen ein reales Gerät verifiziert; jeder Teilschritt ist einzeln fehlertolerant, ein falscher Code führt bestenfalls zu einer leeren Initiatorenliste statt zum Abbruch. Bei NetApp ist der Join direkt (GET /storage/luns, /protocols/san/lun-maps, /protocols/san/igroups), ebenfalls noch nicht gegen ein reales Gerät verifiziert (wie der übrige NetApp-Adapter)."
   }
 ]

@@ -21,6 +21,7 @@ export function buildDeviceUpdate(payload: Pick<IngestPayload, "collectorVersion
   if (meta?.componentChecks) deviceUpdate.componentChecks = meta.componentChecks;
   if (meta?.capacityBreakdown) deviceUpdate.capacityBreakdown = meta.capacityBreakdown;
   if (meta?.volumes) deviceUpdate.volumes = meta.volumes;
+  if (meta?.luns) deviceUpdate.luns = meta.luns;
   return deviceUpdate;
 }
 

@@ -465,6 +465,55 @@ export function ReportDashboardView({
               </div>
             )}
 
+            {(product.luns?.length ?? 0) > 0 && (
+              <div className="bg-[#111827] border border-white/10 p-6">
+                <h3 className="text-sm font-semibold text-white mb-1">{locale === "de" ? "LUNs" : "LUNs"}</h3>
+                <p className="text-xs text-gray-500 mb-4">
+                  {locale === "de"
+                    ? "Alle erfassten LUNs mit Zustand, Kapazität und den darauf gemappten Initiatoren."
+                    : "All discovered LUNs with state, capacity, and the initiators mapped to them."}
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-gray-500 border-b border-white/10">
+                        <th className="font-medium py-2 pr-3">LUN</th>
+                        <th className="font-medium py-2 pr-3">{locale === "de" ? "Zustand" : "State"}</th>
+                        <th className="font-medium py-2 pr-3 text-right">{locale === "de" ? "Kapazität" : "Capacity"}</th>
+                        <th className="font-medium py-2">{locale === "de" ? "Initiatoren" : "Initiators"}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...product.luns!]
+                        .sort((a, b) => b.capacityTB - a.capacityTB)
+                        .map((l, i) => {
+                          const ok = l.healthStatus === "Normal" || l.healthStatus === "online";
+                          const s = STATUS_STYLES[ok ? "good" : "critical"];
+                          return (
+                            <tr key={l.id + i} className="border-t border-white/5">
+                              <td className="py-2 pr-3 text-white font-medium">{l.name}</td>
+                              <td className="py-2 pr-3">
+                                <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.bg} ${s.text}`}>{l.healthStatus}</span>
+                              </td>
+                              <td className="py-2 pr-3 text-right text-white">{l.capacityTB.toLocaleString(locale === "de" ? "de-DE" : "en-US", { maximumFractionDigits: 1 })} TB</td>
+                              <td className="py-2 text-gray-400">
+                                {l.mapped && l.initiators && l.initiators.length > 0 ? (
+                                  l.initiators.map((init) => init.hostName || init.name).join(", ")
+                                ) : (
+                                  <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_STYLES.warning.bg} ${STATUS_STYLES.warning.text}`}>
+                                    {locale === "de" ? "Nicht gemappt" : "Not mapped"}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             {product.versionBaseline && (
               <div className="bg-[#111827] border border-white/10 p-6">
                 <div className="flex items-center justify-between mb-1">

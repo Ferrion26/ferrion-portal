@@ -133,6 +133,7 @@ async function buildProductData(subscription: SubscriptionWithCustomer, periodSt
     capacityTrend: capacityTrend.length > 1 ? capacityTrend : undefined,
     capacityBreakdown: (subscription.capacityBreakdown as unknown as ProductReportData["capacityBreakdown"]) ?? undefined,
     volumes: (subscription.volumes as unknown as ProductReportData["volumes"]) ?? undefined,
+    luns: (subscription.luns as unknown as ProductReportData["luns"]) ?? undefined,
   };
 }
 

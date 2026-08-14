@@ -103,6 +103,33 @@ export const ingestPayloadSchema = z.object({
         )
         .max(300)
         .optional(),
+      // Übersicht je LUN (Huawei OceanStor/OceanProtect-Storage-Ebene,
+      // NetApp) — Zustand/Kapazität sowie die darauf gemappten Initiatoren
+      // (iSCSI-IQN/FC-WWN), vom letzten Ingest überschrieben, keine Historie
+      // (wie volumes).
+      luns: z
+        .array(
+          z.object({
+            id: z.string().max(100),
+            name: z.string().min(1).max(100),
+            healthStatus: z.string().max(50),
+            capacityTB: z.number().min(0),
+            allocatedTB: z.number().min(0).optional(),
+            mapped: z.boolean(),
+            initiators: z
+              .array(
+                z.object({
+                  type: z.enum(["iscsi", "fc"]),
+                  name: z.string().max(200),
+                  hostName: z.string().max(100).optional(),
+                })
+              )
+              .max(20)
+              .optional(),
+          })
+        )
+        .max(300)
+        .optional(),
       // Die am häufigsten fehlgeschlagenen Jobs, getrennt nach SLA-Richtlinie
       // und nach Ressource.
       topJobFailures: z

@@ -1099,6 +1099,74 @@ function VolumeOverviewCard({ volumes, locale }: { volumes: VolumeOverviewEntry[
   );
 }
 
+const LUN_OVERVIEW_COPY = {
+  de: {
+    title: "LUNs",
+    sub: "Alle erfassten LUNs mit Zustand, Kapazität und den darauf gemappten Initiatoren.",
+    name: "LUN",
+    state: "Zustand",
+    capacity: "Kapazität",
+    initiators: "Initiatoren",
+    unmapped: "Nicht gemappt",
+  },
+  en: {
+    title: "LUNs",
+    sub: "All discovered LUNs with state, capacity, and the initiators mapped to them.",
+    name: "LUN",
+    state: "State",
+    capacity: "Capacity",
+    initiators: "Initiators",
+    unmapped: "Not mapped",
+  },
+};
+
+// Zeilenlimit wie bei VolumeOverviewCard — größte LUNs zuerst.
+const MAX_LUNS_SHOWN = 40;
+
+function LunOverviewCard({ luns, locale }: { luns: LunOverviewEntry[]; locale: "de" | "en" }) {
+  const t = LUN_OVERVIEW_COPY[locale];
+  const n = (v: number) => v.toLocaleString(locale === "de" ? "de-DE" : "en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const sorted = [...luns].sort((a, b) => b.capacityTB - a.capacityTB);
+  const shown = sorted.slice(0, MAX_LUNS_SHOWN);
+  const overflow = sorted.length - shown.length;
+  return (
+    // Kein wrap={false} auf dem Container — siehe VolumeOverviewCard.
+    <View style={styles.tableCardBlock}>
+      <Text style={styles.listCardTitle}>{t.title}</Text>
+      <Text style={styles.listCardSub}>{t.sub}</Text>
+      <View style={{ ...styles.tableHeaderRow, marginTop: 4 }}>
+        <Text style={{ ...styles.tableHeaderCell, width: 110 }}>{t.name}</Text>
+        <Text style={{ ...styles.tableHeaderCell, width: 60 }}>{t.state}</Text>
+        <Text style={{ ...styles.tableHeaderCell, width: 55, textAlign: "right" }}>{t.capacity}</Text>
+        <Text style={{ ...styles.tableHeaderCell, flex: 1 }}>{t.initiators}</Text>
+      </View>
+      {shown.map((l, i) => {
+        const ok = l.healthStatus === "Normal" || l.healthStatus === "online";
+        const initiatorNames = (l.initiators ?? []).map((init) => init.hostName || init.name);
+        const initiatorLabel =
+          initiatorNames.length > 0
+            ? initiatorNames.length > 2
+              ? `${initiatorNames.slice(0, 2).join(", ")}, +${initiatorNames.length - 2}`
+              : initiatorNames.join(", ")
+            : t.unmapped;
+        return (
+          <View key={l.id + i} wrap={false} style={{ ...styles.tableRow, alignItems: "flex-start" }}>
+            <Text style={{ width: 110, fontSize: 8, fontFamily: "Helvetica-Bold", color: INK, paddingRight: 6 }}>{l.name}</Text>
+            <Text style={{ width: 60, fontSize: 7.5, color: ok ? STATUS_COLORS.good.dot : STATUS_COLORS.critical.dot }}>{l.healthStatus}</Text>
+            <Text style={{ width: 55, fontSize: 8, color: INK, textAlign: "right" }}>{n(l.capacityTB)} TB</Text>
+            <Text style={{ flex: 1, fontSize: 7.5, color: l.mapped ? GRAY : STATUS_COLORS.warning.dot, paddingRight: 6 }}>{initiatorLabel}</Text>
+          </View>
+        );
+      })}
+      {overflow > 0 && (
+        <Text style={{ ...styles.methodologyLine, marginTop: 6 }}>
+          {locale === "de" ? `+ ${overflow} weitere LUNs (nach Kapazität sortiert).` : `+ ${overflow} more LUNs (sorted by capacity).`}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 const RESOURCE_BREAKDOWN_COPY = {
   de: { title: "Ressourcen nach Typ", type: "Typ", protectedCol: "Geschützt", unprotectedCol: "Ungeschützt" },
   en: { title: "Resources by Type", type: "Type", protectedCol: "Protected", unprotectedCol: "Unprotected" },
@@ -1461,6 +1529,25 @@ export interface VolumeOverviewEntry {
   totalTB: number;
 }
 
+// Übersicht je LUN (Huawei OceanStor/OceanProtect-Storage-Ebene, NetApp) —
+// Zustand/Kapazität sowie die darauf gemappten Initiatoren (iSCSI-IQN/
+// FC-WWN), analog VolumeOverviewEntry.
+export interface LunInitiatorEntry {
+  type: "iscsi" | "fc";
+  name: string;
+  hostName?: string;
+}
+
+export interface LunOverviewEntry {
+  id: string;
+  name: string;
+  healthStatus: string;
+  capacityTB: number;
+  allocatedTB?: number;
+  mapped: boolean;
+  initiators?: LunInitiatorEntry[];
+}
+
 export interface TopJobFailures {
   bySla: { name: string; failedCount: number }[];
   byResource: { name: string; failedCount: number }[];
@@ -1548,6 +1635,9 @@ export interface ProductReportData {
   capacityBreakdown?: CapacityBreakdownEntry[];
   // Übersicht je Volume (aktuell nur NetApp) — siehe VolumeOverviewEntry.
   volumes?: VolumeOverviewEntry[];
+  // Übersicht je LUN (Huawei OceanStor/OceanProtect-Storage-Ebene, NetApp) —
+  // siehe LunOverviewEntry.
+  luns?: LunOverviewEntry[];
 }
 
 export interface ReportDocumentProps {
@@ -1769,6 +1859,12 @@ function ProductPage({
           </View>
         )}
 
+        {(product.luns?.length ?? 0) > 0 && (
+          <View id={`p${index}-luns`} style={{ marginBottom: 14 }}>
+            <LunOverviewCard luns={product.luns!} locale={locale} />
+          </View>
+        )}
+
         <View id={`p${index}-schutz`}>
           <ProtectionSection entries={entries} locale={locale} />
         </View>
@@ -1918,6 +2014,7 @@ function productTocSections(product: ProductReportData, locale: "de" | "en", ind
     hasInfra && { label: t.infraTitle, anchor: `p${index}-infra` },
     hasCapacity && { label: SECTION_LABELS.capacity[locale], anchor: `p${index}-kapazitaet` },
     (product.volumes?.length ?? 0) > 0 && { label: VOLUME_OVERVIEW_COPY[locale].title, anchor: `p${index}-volumes` },
+    (product.luns?.length ?? 0) > 0 && { label: LUN_OVERVIEW_COPY[locale].title, anchor: `p${index}-luns` },
     hasProtection && { label: PROTECTION_COPY[locale].title, anchor: `p${index}-schutz` },
     (product.componentFaults?.length ?? 0) > 0 && { label: t.detailsTitle, anchor: `p${index}-auffaelligkeiten` },
     !!product.versionBaseline && { label: VERSION_BASELINE_COPY[locale].title, anchor: `p${index}-baseline` },

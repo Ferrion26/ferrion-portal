@@ -12,7 +12,7 @@
 // metricKeys müssen exakt zu den Definitionen in
 // src/lib/managed-reports/metrics/oceanstor.ts passen.
 const { requestJson, joinUrl } = require("../httpClient");
-const { componentGroup } = require("./shared");
+const { componentGroup, collectLunOverview } = require("./shared");
 
 async function login(config) {
   const { deviceManagerUrl, username, password } = config.oceanstor;
@@ -213,6 +213,16 @@ async function collectCapacityMetrics(config, session) {
   metrics.push({ key: "alerts_warning", value: Number(warning.body.data.COUNT) || 0, unit: "count" });
 
   return { metrics, alarmSamples, rawEndpoints };
+}
+
+// LUNs + darauf gemappte Initiatoren — eigener Erhebungsschritt, damit ein
+// Fehler hier (siehe Unsicherheits-Hinweis in shared.js) nicht die übrige
+// Kapazitäts-/Hardware-Erhebung mitreißt (Promise.allSettled in collect()).
+async function collectLunMetrics(config, session) {
+  const { deviceManagerUrl } = config.oceanstor;
+  const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
+  const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
+  return collectLunOverview(config, base, authHeaders, fetchOptional, describeHealthStatus);
 }
 
 async function collectHardwareMetrics(config, session) {
@@ -514,9 +524,10 @@ async function collect(config) {
 
   const session = await login(config);
   try {
-    const [capacityResult, hardwareResult] = await Promise.allSettled([
+    const [capacityResult, hardwareResult, lunResult] = await Promise.allSettled([
       collectCapacityMetrics(config, session),
       collectHardwareMetrics(config, session),
+      collectLunMetrics(config, session),
     ]);
 
     const metrics = [];
@@ -524,6 +535,7 @@ async function collect(config) {
     let alarmSamples;
     let componentFaults;
     let componentChecks;
+    let luns;
     const rawEndpoints = {};
     if (capacityResult.status === "fulfilled") {
       metrics.push(...capacityResult.value.metrics);
@@ -540,6 +552,13 @@ async function collect(config) {
       Object.assign(rawEndpoints, hardwareResult.value.rawEndpoints);
     } else {
       config.logger?.warn(`Hardware-Kennzahlen konnten nicht erhoben werden: ${hardwareResult.reason.message}`);
+    }
+    if (lunResult.status === "fulfilled") {
+      metrics.push(...lunResult.value.metrics);
+      luns = lunResult.value.luns;
+      Object.assign(rawEndpoints, lunResult.value.rawEndpoints);
+    } else {
+      config.logger?.warn(`LUN-/Initiator-Übersicht konnte nicht erhoben werden: ${lunResult.reason.message}`);
     }
 
     if (metrics.length === 0) {
@@ -559,6 +578,7 @@ async function collect(config) {
     // Reine Momentaufnahme (kein aktiv/gelöst-Historienkonzept wie bei
     // componentFaults) — wird bei jedem Ingest einfach überschrieben.
     if (componentChecks?.length > 0) meta.componentChecks = componentChecks;
+    if (luns?.length > 0) meta.luns = luns;
     // Vollständige Rohantworten aller abgefragten Endpunkte (siehe captureRaw
     // oben) — für spätere Auswertungen, ohne dafür einen neuen Collector zu
     // benötigen, falls in einem Adapter mal ein Feld vergessen wurde.

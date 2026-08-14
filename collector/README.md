@@ -38,26 +38,45 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    vertrauen).
 3b. Für OceanStor (z. B. 5310) braucht `adapters/oceanstor.js` nur **eine**
    REST-API — dieselbe DeviceManager-API wie bei OceanProtect Backup Storage
-   (Login, Alarme, Controller/Disk/Fan/Power, Kapazität), Standardport 8088,
-   siehe den `oceanstor`-Block im zweiten `devices`-Eintrag in
-   `config.example.json`. Kein DataBackup-Teil, da OceanStor reiner
+   (Login, Alarme, Controller/Disk/Fan/Power, Kapazität, LUNs/Initiatoren),
+   Standardport 8088, siehe den `oceanstor`-Block im zweiten `devices`-Eintrag
+   in `config.example.json`. Kein DataBackup-Teil, da OceanStor reiner
    Primärspeicher ist. Quelle: `docs/Rest/OceanStor V700R001C30 REST
    Interface Reference` (im Repo, nicht öffentlich).
+
+   **LUNs + Initiatoren** (OceanStor sowie OceanProtects Storage-Ebene, siehe
+   `collectLunOverview` in `adapters/shared.js`): der DeviceManager kennt
+   keinen direkten LUN->Initiator-Join, daher löst der Collector die Kette
+   `LUN -> LUN-Gruppe -> Mapping View <- Host-Gruppe <- Host -> Initiator`
+   über mehrere Zusatzaufrufe auf (`GET /lun`, `/mappingview`, `/lungroup`,
+   `/hostgroup`, `/host`, `/iscsi_initiator`, `/fc_initiator`). Die dabei
+   verwendeten `ASSOCIATEOBJTYPE`-Codes (245 = Mapping View, 256 = LUN-Gruppe,
+   14 = Host-Gruppe) und `PARENTTYPE=21` für Host-gebundene Initiatoren folgen
+   der allgemeinen DeviceManager-API-Konvention, sind aber **NICHT gegen ein
+   reales Gerät verifiziert**. Jeder Teilschritt ist einzeln fehlertolerant
+   (fetchOptional) — ein falscher Code führt bestenfalls dazu, dass eine LUN
+   fälschlich als "nicht gemappt" erscheint, nie zum Abbruch des ganzen Laufs.
+   Bei Abweichungen `meta.rawEndpoints["/lun"]`, `["/mappingview"]` etc. am
+   ersten echten Ingest prüfen und `shared.js` bei Bedarf anpassen.
 3c. Für NetApp AFF/ONTAP (z. B. A400) braucht `adapters/netapp.js` nur die
    **ONTAP REST API** des Clusters selbst (kein separater Login/Session-Token
    nötig — HTTP Basic Auth pro Request), Standard-HTTPS-Port 443, siehe den
    `netapp`-Block im dritten `devices`-Eintrag in `config.example.json`.
    Der Service-Account braucht mindestens **read-only** Zugriff auf
    `/api/cluster`, `/api/cluster/nodes`, `/api/storage/aggregates`,
-   `/api/storage/disks`, `/api/storage/shelves`, `/api/storage/volumes` und
-   `/api/support/ems/events`
+   `/api/storage/disks`, `/api/storage/shelves`, `/api/storage/volumes`,
+   `/api/storage/luns`, `/api/protocols/san/lun-maps`,
+   `/api/protocols/san/igroups` und `/api/support/ems/events`
    (in ONTAP System Manager z. B. über die eingebaute `readonly`-Rolle, oder
    eine eigene Rolle mit `GET`-Rechten auf die genannten REST-Pfade). Quelle
    der Endpunkte: NetApps öffentliche ONTAP-REST-API-Referenz
    (docs.netapp.com/us-en/ontap-restapi/) — anders als bei Huawei online
    recherchiert statt aus kundenspezifischer PDF-Doku, da NetApp die
-   REST-API-Referenz öffentlich zugänglich macht. **Noch nicht gegen ein
-   reales Gerät verifiziert** — beim ersten echten Ingest `meta.rawEndpoints`
+   REST-API-Referenz öffentlich zugänglich macht. Die LUN<->Initiator-
+   Zuordnung ist bei ONTAP anders als bei Huawei ein direkter Join über
+   `/protocols/san/lun-maps` (LUN<->Igroup) + `/protocols/san/igroups`
+   (Igroup<->Initiatoren), kein mehrstufiges Auflösen über Gruppen nötig.
+   **Noch nicht gegen ein reales Gerät verifiziert** — beim ersten echten Ingest `meta.rawEndpoints`
    im Admin-Bereich prüfen und `adapters/netapp.js` bei Abweichungen im
    tatsächlichen Antwortformat anpassen.
    Läuft der Cluster mit einem selbstsignierten Zertifikat im internen Netz,

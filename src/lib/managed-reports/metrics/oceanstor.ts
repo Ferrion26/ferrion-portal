@@ -171,6 +171,31 @@ export const OCEANSTOR_METRICS: MetricDefinition[] = [
     trendGood: "down",
   },
   {
+    key: "luns_faulty",
+    label: { de: "LUNs mit Fehlstatus", en: "Unhealthy LUNs" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+    severeIfNonZero: true,
+    methodology: {
+      de: "Anzahl der LUNs mit HEALTHSTATUS ungleich 1 (Normal) (Quelle: DeviceManager-REST GET /lun) — als kritisch eingestuft, da ein LUN-Fehlstatus ein Verfügbarkeitsrisiko für die zugreifenden Hosts ist.",
+      en: "Number of LUNs with HEALTHSTATUS other than 1 (Normal) (source: DeviceManager REST GET /lun) — treated as critical, since an unhealthy LUN is an availability risk for the hosts accessing it.",
+    },
+  },
+  {
+    key: "luns_unmapped",
+    label: { de: "Nicht gemappte LUNs", en: "Unmapped LUNs" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+    methodology: {
+      de: "Anzahl der LUNs ohne auflösbare Host-/Initiator-Zuordnung über eine Mapping View (Quelle: DeviceManager-REST GET /mappingview, /lungroup, /hostgroup) — kann auch eine bewusst in Vorbereitung befindliche Provisionierung sein, daher nur als Hinweis statt kritisch eingestuft.",
+      en: "Number of LUNs with no resolvable host/initiator assignment via a mapping view (source: DeviceManager REST GET /mappingview, /lungroup, /hostgroup) — can also be an intentional provisioning-in-progress state, so treated as informational rather than critical.",
+    },
+  },
+  {
     key: "fans_faulty",
     label: { de: "Fehlerhafte Lüfter", en: "Faulty Fans" },
     format: "count",

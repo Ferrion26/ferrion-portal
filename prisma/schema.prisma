@@ -250,6 +250,11 @@ model ManagedServiceSubscription {
   // wie gewohnt in DeviceFinding über componentFaults).
   volumes Json?
 
+  // Übersicht je LUN (Huawei OceanStor/OceanProtect-Storage-Ebene, NetApp) —
+  // Zustand/Kapazität sowie die darauf gemappten Initiatoren (iSCSI-IQN/
+  // FC-WWN), vom letzten Ingest überschrieben, keine Historie (wie volumes).
+  luns Json?
+
   // Freitext, den ein Admin manuell pflegt, um eine Beziehung zu einem
   // anderen System zu dokumentieren (z. B. "Snapshots werden von
   // OceanProtect X8000 repliziert") — im Bericht als Hinweiszeile gezeigt.

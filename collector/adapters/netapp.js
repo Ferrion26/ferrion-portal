@@ -74,7 +74,7 @@ async function collect(config) {
   const base = joinUrl(na.managementUrl, "/api");
   const authHeaders = { Authorization: `Basic ${Buffer.from(`${na.username}:${na.password}`).toString("base64")}` };
 
-  const [cluster, nodes, aggregates, disks, shelves, volumes, emsEvents] = await Promise.all([
+  const [cluster, nodes, aggregates, disks, shelves, volumes, emsEvents, luns, lunMaps, igroups] = await Promise.all([
     requestJson(config, joinUrl(base, "/cluster?fields=name,uuid,version"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/cluster/nodes?fields=name,model,serial_number,version,uptime,state,ha"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/storage/aggregates?fields=uuid,name,state,space,block_storage"), { headers: authHeaders }),
@@ -106,6 +106,28 @@ async function collect(config) {
         { headers: authHeaders }
       )
     ),
+    fetchOptional(
+      config,
+      "LUN-Status",
+      requestJson(
+        config,
+        joinUrl(base, "/storage/luns?fields=name,svm,location.volume,os_type,space.size,space.used,status.state"),
+        { headers: authHeaders }
+      )
+    ),
+    // Direkter LUN<->Igroup-Join, den ONTAP anders als Huaweis DeviceManager
+    // (siehe collector/adapters/shared.js) in einem einzigen Endpunkt anbietet.
+    fetchOptional(
+      config,
+      "LUN-Mappings",
+      requestJson(config, joinUrl(base, "/protocols/san/lun-maps?fields=lun,igroup,logical_unit_number,svm"), { headers: authHeaders })
+    ),
+    // initiators[].name = iSCSI-IQN oder FC-WWN, je nach igroup.protocol.
+    fetchOptional(
+      config,
+      "Initiator-Gruppen",
+      requestJson(config, joinUrl(base, "/protocols/san/igroups?fields=name,svm,protocol,os_type,initiators"), { headers: authHeaders })
+    ),
   ]);
 
   const rawEndpoints = {};
@@ -116,6 +138,9 @@ async function collect(config) {
   captureRaw(rawEndpoints, "/storage/shelves", shelves);
   captureRaw(rawEndpoints, "/storage/volumes", volumes);
   captureRaw(rawEndpoints, "/support/ems/events", emsEvents);
+  captureRaw(rawEndpoints, "/storage/luns", luns);
+  captureRaw(rawEndpoints, "/protocols/san/lun-maps", lunMaps);
+  captureRaw(rawEndpoints, "/protocols/san/igroups", igroups);
 
   const metrics = [];
   const componentFaults = [];
@@ -302,6 +327,64 @@ async function collect(config) {
     }
   }
 
+  // --- LUNs + darauf gemappte Initiatoren ---
+  // Anders als bei Huawei (siehe collector/adapters/shared.js) liefert ONTAP
+  // den LUN<->Igroup-Join direkt über /protocols/san/lun-maps — kein
+  // mehrstufiges Auflösen über LUN-/Host-Gruppen nötig. Igroup-Name dient
+  // hier als "hostName", da eine Igroup begrifflich genau das ist: die
+  // Gruppe der Initiatoren eines Hosts/Host-Clusters.
+  const lunList = Array.isArray(luns?.body?.records) ? luns.body.records : [];
+  const lunOverview = [];
+  if (lunList.length > 0) {
+    const igroupByUuid = new Map((Array.isArray(igroups?.body?.records) ? igroups.body.records : []).map((g) => [g.uuid, g]));
+    const mapsByLunUuid = new Map();
+    for (const m of Array.isArray(lunMaps?.body?.records) ? lunMaps.body.records : []) {
+      const lunUuid = m.lun?.uuid;
+      if (!lunUuid) continue;
+      if (!mapsByLunUuid.has(lunUuid)) mapsByLunUuid.set(lunUuid, []);
+      mapsByLunUuid.get(lunUuid).push(m);
+    }
+
+    // "online" ist bei LUNs (anders als bei Volumes/Aggregaten) laut ONTAP-
+    // REST-Doku der einzige gesunde status.state-Wert.
+    metrics.push({ key: "luns_faulty", value: lunList.filter((l) => l.status?.state !== "online").length, unit: "count" });
+    let unmappedCount = 0;
+    for (const l of lunList) {
+      const ok = l.status?.state === "online";
+      const id = l.name || "LUN";
+      componentChecks.push({ category: "LUN", id, description: l.status?.state ?? "unbekannt", ok });
+      if (!ok) componentFaults.push({ category: "LUN", id, description: l.status?.state ?? "unbekannt" });
+
+      const maps = mapsByLunUuid.get(l.uuid) ?? [];
+      const initiators = [];
+      for (const m of maps) {
+        const igroup = igroupByUuid.get(m.igroup?.uuid);
+        if (!igroup) continue;
+        const type = igroup.protocol === "fcp" ? "fc" : "iscsi";
+        for (const init of igroup.initiators ?? []) {
+          if (init.name) initiators.push({ type, name: String(init.name), hostName: igroup.name });
+        }
+      }
+      const mapped = maps.length > 0;
+      if (!mapped) unmappedCount += 1;
+
+      const sizeBytes = Number(l.space?.size);
+      if (Number.isFinite(sizeBytes)) {
+        const usedBytes = Number(l.space?.used);
+        lunOverview.push({
+          id: l.uuid || id,
+          name: id,
+          healthStatus: l.status?.state ?? "unbekannt",
+          capacityTB: bytesToTB(sizeBytes),
+          ...(Number.isFinite(usedBytes) ? { allocatedTB: bytesToTB(usedBytes) } : {}),
+          mapped,
+          ...(initiators.length > 0 ? { initiators: initiators.slice(0, 20) } : {}),
+        });
+      }
+    }
+    metrics.push({ key: "luns_unmapped", value: unmappedCount, unit: "count" });
+  }
+
   // --- EMS-Ereignisse (Alarme) ---
   let alarmSamples;
   if (emsEvents) {
@@ -344,6 +427,7 @@ async function collect(config) {
   if (componentChecks.length > 0) meta.componentChecks = componentChecks;
   if (capacityBreakdown.length > 0) meta.capacityBreakdown = capacityBreakdown;
   if (volumeOverview.length > 0) meta.volumes = volumeOverview;
+  if (lunOverview.length > 0) meta.luns = lunOverview;
   if (Object.keys(rawEndpoints).length > 0) meta.rawEndpoints = rawEndpoints;
 
   return { metrics, meta: Object.keys(meta).length > 0 ? meta : undefined };
