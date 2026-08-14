@@ -40,14 +40,45 @@ export async function getBaselineForProduct(productSlug: string) {
 
 type Policy = NonNullable<Awaited<ReturnType<typeof getBaselineForProduct>>>;
 
-// Grober, whitespace-/case-toleranter Teilstring-Abgleich statt eines
-// Versions-Parsers — Huawei-Versionsstrings (z. B. "V700R001C20SPH106")
-// folgen keinem einfachen numerischen Schema, ein selbstgebauter Parser
-// wäre fragiler als ein einfacher Abgleich gegen die gepflegten
-// Baseline-Einträge (siehe collectorVersion.ts, das für ein anderes,
-// tatsächlich numerisches Versionsformat gedacht ist und hier NICHT passt).
-function normalize(s: string): string {
-  return s.toLowerCase().replace(/\s+/g, "");
+// Der vom Collector gemeldete deviceSoftwareVersion-Rohstring folgt NICHT
+// demselben Format wie der gepflegte Baseline-Eintrag — z. B. meldet ein
+// echtes NetApp-System "NetApp Release 9.15.1P13: Tue Jul 15 14:07:45 UTC
+// 2025", während die Baseline nur "ONTAP 9.15.1P13" führt (Huawei analog:
+// Baseline "OceanStor Series V700R001C20SPH106" vs. Collector-Rohwert wie
+// "V700R001C20SPC100 SPH106"). Ein reiner Teilstring-Vergleich der ganzen
+// Strings würde hier scheitern. Stattdessen wird aus beiden Strings der
+// strukturierte Versions-Code extrahiert (Huawei-Schema V<n>R<n>C<n>[SP<L><n>]
+// oder punktierte Schemata wie NetApps "9.15.1P13"/Huaweis "8.10.0") und nur
+// diese Codes verglichen — kein selbstgebauter Versions-ORDNER (siehe
+// publicationDate dafür), nur ein robusterer Identitäts-Abgleich als
+// "ein String enthält den anderen".
+const VERSION_TOKEN_PATTERNS = [
+  /V\d+R\d+C\d+(?:SP[A-Z]\d+)?/gi, // Huawei, z. B. V700R001C20SPH106
+  /\d+\.\d+\.\d+(?:P\d+)?/g, // punktiert, z. B. 9.15.1P13, 8.10.0
+];
+
+function extractVersionTokens(s: string): string[] {
+  const tokens: string[] = [];
+  for (const pattern of VERSION_TOKEN_PATTERNS) {
+    const matches = s.match(pattern);
+    if (matches) tokens.push(...matches.map((m) => m.toLowerCase()));
+  }
+  return tokens;
+}
+
+function versionsMatch(baselineVersionNumber: string, installed: string): boolean {
+  const baselineTokens = extractVersionTokens(baselineVersionNumber);
+  const installedTokens = extractVersionTokens(installed);
+  if (baselineTokens.length === 0 || installedTokens.length === 0) {
+    // Kein strukturierter Code in einem der beiden Strings gefunden (z. B.
+    // ein exotisches Versionsformat) — Rückfall auf einen einfachen,
+    // whitespace-/case-toleranten Teilstring-Abgleich der Gesamtstrings.
+    const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
+    const a = norm(baselineVersionNumber);
+    const b = norm(installed);
+    return a.includes(b) || b.includes(a);
+  }
+  return baselineTokens.some((t) => installedTokens.includes(t));
 }
 
 // Vergleicht die vom Collector gemeldete Geräte-Version (subscription.
@@ -66,11 +97,7 @@ export function evaluateVersionStatus(installedVersion: string | null | undefine
     return { status: "unknown", recommendedVersion: recommended.versionNumber, pendingFeatures: [], pendingFixes: [] };
   }
 
-  const normInstalled = normalize(installedVersion);
-  const current = policy.softwareVersions.find((v) => {
-    const normEntry = normalize(v.versionNumber);
-    return normEntry.includes(normInstalled) || normInstalled.includes(normEntry);
-  });
+  const current = policy.softwareVersions.find((v) => versionsMatch(v.versionNumber, installedVersion));
 
   if (!current) {
     return { status: "unknown", installedVersion, recommendedVersion: recommended.versionNumber, pendingFeatures: [], pendingFixes: [] };
