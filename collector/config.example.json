@@ -13,7 +13,10 @@
         "deviceManagerPassword": "…",
         "dataBackupUrl": "https://<oceanprotect-x8000-host>:25081",
         "dataBackupUsername": "collector_ro",
-        "dataBackupPassword": "…"
+        "dataBackupPassword": "…",
+        "_comment_airgap": "Optional, nur für den Air-Gap-Policy-Healthcheck: eigene und Partner-deviceId des Air-Gap-Pairings. Ohne beide Felder wird der Check übersprungen (kein Fehler).",
+        "airGapDeviceId": "",
+        "airGapRemoteDeviceId": ""
       }
     },
     {

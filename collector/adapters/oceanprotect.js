@@ -19,7 +19,7 @@
 // metricKeys müssen exakt zu den Definitionen in
 // src/lib/managed-reports/metrics/oceanprotect.ts passen.
 const { requestJson, joinUrl } = require("../httpClient");
-const { componentGroup, collectLunOverview } = require("./shared");
+const { componentGroup, collectLunOverview, collectPathsPortsAndNtp } = require("./shared");
 
 async function loginStorage(config) {
   const { deviceManagerUrl, deviceManagerUsername, deviceManagerPassword } = config.oceanprotect;
@@ -193,6 +193,30 @@ async function collectStorageMetrics(config, session) {
     metrics.push({ key: "storage_pool_fill_level", value: fillLevel, unit: "%" });
   }
 
+  // Thin-Provisioning-Überbuchung: SUBSCRIBEDCAPACITY ist die zugesagte
+  // (logische) Kapazität aller Thin-LUNs/-Dateisysteme in diesem Pool,
+  // USERTOTALCAPACITY die physisch vorhandene — das Verhältnis ist rein
+  // informativ (Überbuchung ist gewollte Kapazitätsplanung, keine Störung
+  // für sich). PROVISIONINGLIMIT ist Huaweis EIGENER, geräteseitig
+  // konfigurierter Überbuchungs-Schwellwert (nur gültig, wenn
+  // PROVISIONINGLIMITSWITCH aktiv ist) — wird als Vergleichswert verwendet
+  // statt einen eigenen Schwellwert zu erfinden.
+  const subscribedSectors = Number(poolInfo.body.data.SUBSCRIBEDCAPACITY);
+  if (Number.isFinite(subscribedSectors) && Number.isFinite(totalSectors) && totalSectors > 0) {
+    const oversubscriptionPct = (subscribedSectors / totalSectors) * 100;
+    metrics.push({ key: "storage_pool_oversubscription_pct", value: oversubscriptionPct, unit: "%" });
+
+    const limitSwitchOn = Number(poolInfo.body.data.PROVISIONINGLIMITSWITCH) === 1;
+    const provisioningLimit = Number(poolInfo.body.data.PROVISIONINGLIMIT);
+    if (limitSwitchOn && Number.isFinite(provisioningLimit) && provisioningLimit >= 0) {
+      metrics.push({
+        key: "storage_pool_over_provisioning_limit",
+        value: oversubscriptionPct > provisioningLimit ? 1 : 0,
+        unit: "count",
+      });
+    }
+  }
+
   // Alarm-Level laut Doku: 3 = warning, 5 = major, 6 = critical — als drei
   // getrennte Kennzahlen gemeldet (deckt sich mit der Darstellung im
   // DeviceManager selbst: "0 Critical / 1 Major / 1 Warning").
@@ -215,6 +239,15 @@ async function collectLunMetrics(config, session) {
   const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
   const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
   return collectLunOverview(config, base, authHeaders, fetchOptional, describeHealthStatus);
+}
+
+// Host-Pfade/FC-Ports/NTP — eigener Erhebungsschritt aus demselben Grund wie
+// collectLunMetrics (siehe dort).
+async function collectPathsPortsAndNtpMetrics(config, session) {
+  const { deviceManagerUrl } = config.oceanprotect;
+  const authHeaders = { iBaseToken: session.iBaseToken, Cookie: session.cookie };
+  const base = joinUrl(deviceManagerUrl, `/deviceManager/rest/${session.deviceId}`);
+  return collectPathsPortsAndNtp(config, base, authHeaders, fetchOptional);
 }
 
 async function collectHardwareMetrics(config, session) {
@@ -311,6 +344,17 @@ async function collectHardwareMetrics(config, session) {
   // abschließenden "erfolgreich geprüft"-Referenzabschnitt im Bericht.
   const componentChecks = [];
 
+  // Ablauf-Vorlauf aus dem Inspector-Healthcheck, gemeinsam von SED-
+  // Schlüssel-, Lizenz- und Zertifikatsablauf genutzt. 30 Tage Vorlauf als
+  // bewusst konservative Schwelle, um rechtzeitig vor Ablauf zu warnen.
+  const EXPIRY_WARNING_DAYS = 30;
+  const now = Date.now();
+  function daysUntil(dateStr) {
+    if (!dateStr || dateStr === "--") return null;
+    const t = new Date(dateStr).getTime();
+    return Number.isFinite(t) ? Math.floor((t - now) / (1000 * 60 * 60 * 24)) : null;
+  }
+
   // System HEALTHSTATUS/RUNNINGSTATUS: 1 = Normal für beide.
   const sys = system.body.data;
   const systemHealthy = Number(sys.HEALTHSTATUS) === 1 && Number(sys.RUNNINGSTATUS) === 1 ? 100 : 0;
@@ -371,6 +415,26 @@ async function collectHardwareMetrics(config, session) {
   metrics.push({ key: "disks_faulty", value: diskList.filter((d) => Number(d.HEALTHSTATUS) !== 1).length, unit: "count" });
   collectFaultDetails(componentFaults, componentChecks, "Festplatte", diskList, (s) => s === 1);
 
+  // Verschlüsselungsstatus: ENCRYPTDISKTYPE 0 = normale Disk, 1 = Self-
+  // Encrypting Disk (SED). Rein informativ (kein severeIfNonZero) — viele
+  // Kunden nutzen bewusst keine SEDs, das ist kein Fehlerzustand.
+  const unencryptedDisks = diskList.filter((d) => Number(d.ENCRYPTDISKTYPE) === 0).length;
+  metrics.push({ key: "disks_unencrypted", value: unencryptedDisks, unit: "count" });
+  const sedDisks = diskList.filter((d) => Number(d.ENCRYPTDISKTYPE) === 1);
+  if (sedDisks.length > 0) {
+    const sedExpiringSoon = sedDisks
+      .map((d) => ({ id: componentDisplayName(d), days: daysUntil(d.KEYEXPIRATIONTIME) }))
+      .filter((d) => d.days !== null && d.days <= EXPIRY_WARNING_DAYS);
+    metrics.push({ key: "sed_keys_expiring_soon", value: sedExpiringSoon.length, unit: "count" });
+    for (const d of sedExpiringSoon) {
+      componentFaults.push({
+        category: "Verschlüsselung",
+        id: `Disk ${d.id}`,
+        description: d.days < 0 ? "Schlüssel abgelaufen" : `Schlüssel läuft in ${d.days} Tagen ab`,
+      });
+    }
+  }
+
   const fanList = Array.isArray(fans.body.data) ? fans.body.data : [];
   metrics.push({ key: "fans_faulty", value: fanList.filter((f) => Number(f.HEALTHSTATUS) !== 1).length, unit: "count" });
   collectFaultDetails(componentFaults, componentChecks, "Lüfter", fanList, (s) => s === 1);
@@ -406,16 +470,6 @@ async function collectHardwareMetrics(config, session) {
       unit: "count",
     });
     collectFaultDetails(componentFaults, componentChecks, "Optikmodul", sfpList, (s) => s === 0 || s === 1);
-  }
-
-  // Lizenz-/Zertifikatsablauf aus dem Inspector-Healthcheck. 30 Tage Vorlauf
-  // als bewusst konservative Schwelle, um rechtzeitig vor Ablauf zu warnen.
-  const EXPIRY_WARNING_DAYS = 30;
-  const now = Date.now();
-  function daysUntil(dateStr) {
-    if (!dateStr || dateStr === "--") return null;
-    const t = new Date(dateStr).getTime();
-    return Number.isFinite(t) ? Math.floor((t - now) / (1000 * 60 * 60 * 24)) : null;
   }
 
   if (license) {
@@ -491,6 +545,29 @@ async function collectHardwareMetrics(config, session) {
       unit: "count",
     });
     collectFaultDetails(componentFaults, componentChecks, "Replikationspaar", replicationPairList, (s) => s === 1);
+
+    // Replikationslag: TIMEDIFFERENCE ist laut Doku nur für asynchrone,
+    // bereits synchronisierte Paare gesetzt (Sekunden, "-1" = ungültig/n. a.).
+    // 3600s (1h) ist ein bewusst konservativer, fest im Code hinterlegter
+    // Schwellwert — kein geräteseitig konfigurierter Lag-Schwellwert
+    // dokumentiert (anders als bei der Überbuchung), daher keine
+    // Pseudo-Konfigurierbarkeit vortäuschen.
+    const LAG_WARNING_SECONDS = 3600;
+    const laggingPairs = replicationPairList.filter((r) => {
+      const diff = Number(r.TIMEDIFFERENCE);
+      return Number.isFinite(diff) && diff > LAG_WARNING_SECONDS;
+    });
+    metrics.push({ key: "replication_pairs_lagging", value: laggingPairs.length, unit: "count" });
+    for (const r of laggingPairs) {
+      const diff = Number(r.TIMEDIFFERENCE);
+      const hours = Math.floor(diff / 3600);
+      const minutes = Math.floor((diff % 3600) / 60);
+      componentFaults.push({
+        category: "Replikationslag",
+        id: componentDisplayName(r),
+        description: `Verzögerung: ${hours} Std. ${minutes} Min.`,
+      });
+    }
   }
 
   // Remote-Devices: eigenständiger Verbindungsstatus zu Replikationszielen
@@ -527,6 +604,26 @@ async function collectHardwareMetrics(config, session) {
   if (filesystemList.length > 0) {
     metrics.push({ key: "filesystems_faulty", value: filesystemList.filter((f) => Number(f.HEALTHSTATUS) !== 1).length, unit: "count" });
     collectFaultDetails(componentFaults, componentChecks, "Dateisystem", filesystemList, (s) => s === 1);
+
+    // Snapshot-Reserve: SNAPSHOTUSECAPACITY >= SNAPSHOTRESERVECAPACITY
+    // bedeutet, die reservierte Snapshot-Kapazität ist vollständig
+    // ausgeschöpft — neue Snapshots können fehlschlagen oder ältere werden
+    // automatisch verworfen.
+    const reserveExhausted = filesystemList.filter((f) => {
+      const used = Number(f.SNAPSHOTUSECAPACITY);
+      const reserved = Number(f.SNAPSHOTRESERVECAPACITY);
+      return Number.isFinite(used) && Number.isFinite(reserved) && reserved > 0 && used >= reserved;
+    });
+    metrics.push({ key: "filesystems_snapshot_reserve_exhausted", value: reserveExhausted.length, unit: "count" });
+    for (const f of reserveExhausted) {
+      const used = Number(f.SNAPSHOTUSECAPACITY);
+      const reserved = Number(f.SNAPSHOTRESERVECAPACITY);
+      componentFaults.push({
+        category: "Snapshot-Reserve",
+        id: componentDisplayName(f),
+        description: `Auslastung ${Math.round((used / reserved) * 100)}%`,
+      });
+    }
   }
 
   // Alle Storage Pools (HEALTHSTATUS 1 = Normal, 2 = Faulty, 5 = Degraded) —
@@ -721,12 +818,115 @@ function topFailuresFrom(summary, nameField) {
     .slice(0, TOP_FAILURES_LIMIT);
 }
 
+// Air-Gap-Policy-Status: der dokumentierte Endpunkt braucht sowohl die
+// eigene deviceId als auch die des Air-Gap-Partnergeräts — beide sind aus
+// den übrigen Ingest-Daten nicht zuverlässig ableitbar und müssen daher als
+// optionale Config-Felder (airGapDeviceId/airGapRemoteDeviceId) hinterlegt
+// werden. Ohne beide wird der Check übersprungen (kein Fehler — nicht jede
+// Umgebung hat ein Air-Gap-Pairing eingerichtet).
+async function collectAirGapPolicyStatus(config, dataBackupUrl, authHeaders, rawEndpoints) {
+  const { airGapDeviceId, airGapRemoteDeviceId } = config.oceanprotect;
+  if (!airGapDeviceId || !airGapRemoteDeviceId) return { metrics: [], componentFaults: [] };
+
+  const metrics = [];
+  const componentFaults = [];
+  try {
+    const { body } = await requestJson(
+      config,
+      joinUrl(
+        dataBackupUrl,
+        `/v1/anti-ransomware/airgap/device/detail?deviceId=${encodeURIComponent(airGapDeviceId)}&remoteDeviceId=${encodeURIComponent(airGapRemoteDeviceId)}`
+      ),
+      { headers: authHeaders }
+    );
+    if (rawEndpoints) rawEndpoints["/v1/anti-ransomware/airgap/device/detail"] = body;
+
+    // Feldwerte (String- vs. numerischer Code) laut extrahierter Doku nicht
+    // eindeutig belegt — beide Formen werden toleriert, statt an einer
+    // ungeprüften Formatannahme zu scheitern.
+    const isHealthy = (v) => v === undefined || v === null || /^(normal|online|ok)$/i.test(String(v)) || Number(v) === 1;
+    const healthy = isHealthy(body.airGapPolicyStatus) && isHealthy(body.linkStatus) && isHealthy(body.replicationLinkStatus);
+
+    metrics.push({ key: "airgap_policy_unhealthy", value: healthy ? 0 : 1, unit: "count" });
+    if (!healthy) {
+      componentFaults.push({
+        category: "Air-Gap",
+        id: "Air-Gap-Policy",
+        description: `Policy: ${body.airGapPolicyStatus ?? "unbekannt"}, Link: ${body.linkStatus ?? "unbekannt"}, Replikationslink: ${body.replicationLinkStatus ?? "unbekannt"}`,
+      });
+    }
+  } catch (err) {
+    config.logger?.warn(`Air-Gap-Policy-Status konnte nicht abgerufen werden (übersprungen): ${err.message}`);
+  }
+  return { metrics, componentFaults };
+}
+
+// Retention-Compliance: markiert Kopien, deren Aufbewahrungsfrist laut
+// Konfiguration bereits abgelaufen ist, die aber trotzdem noch nicht
+// gelöscht wurden (deletable = true) — deutet auf einen hängenden
+// Cleanup-/Housekeeping-Job hin. Paginiert über page_no/page_size, mit einer
+// Sicherheitsgrenze von COPIES_SCAN_LIMIT gescannten Kopien gegen
+// Endlosschleifen bei sehr großen Umgebungen.
+const COPIES_PAGE_SIZE = 200;
+const COPIES_SCAN_LIMIT = 1000;
+
+async function collectRetentionCompliance(config, dataBackupUrl, authHeaders, rawEndpoints) {
+  const metrics = [];
+  const componentFaults = [];
+  const now = Date.now();
+  const overdueCopies = [];
+  let scanned = 0;
+  let pageNo = 0;
+
+  try {
+    while (scanned < COPIES_SCAN_LIMIT) {
+      const { body } = await requestJson(config, joinUrl(dataBackupUrl, `/v1/copies?page_no=${pageNo}&page_size=${COPIES_PAGE_SIZE}`), {
+        headers: authHeaders,
+      });
+      const items = Array.isArray(body.items) ? body.items : Array.isArray(body.records) ? body.records : [];
+      if (pageNo === 0 && rawEndpoints) rawEndpoints["/v1/copies"] = items.slice(0, 50);
+      if (items.length === 0) break;
+      scanned += items.length;
+
+      for (const copy of items) {
+        if (Number(copy.retention_type) !== 2) continue; // nur befristete Retention (1 = permanent)
+        if (copy.deletable !== true) continue;
+        const expiration = Number(copy.expiration_time);
+        if (!Number.isFinite(expiration)) continue;
+        // expiration_time-Einheit (Sekunden vs. Millisekunden) laut Doku
+        // nicht eindeutig belegt — Heuristik wie bei anderen Zeitstempel-
+        // feldern dieses Codebases: Werte über 1e12 gelten als bereits
+        // Millisekunden, sonst als Sekunden.
+        const expirationMs = expiration > 1e12 ? expiration : expiration * 1000;
+        if (now > expirationMs) {
+          overdueCopies.push({
+            name: String(copy.name ?? copy.resource_name ?? copy.copy_id ?? "Kopie"),
+            daysOverdue: Math.floor((now - expirationMs) / (1000 * 60 * 60 * 24)),
+          });
+        }
+      }
+      if (items.length < COPIES_PAGE_SIZE) break;
+      pageNo++;
+    }
+  } catch (err) {
+    config.logger?.warn(`Retention-Compliance konnte nicht abgerufen werden (übersprungen): ${err.message}`);
+    return { metrics, componentFaults };
+  }
+
+  metrics.push({ key: "copies_retention_overdue", value: overdueCopies.length, unit: "count" });
+  for (const c of overdueCopies.slice(0, 50)) {
+    componentFaults.push({ category: "Retention", id: c.name, description: `${c.daysOverdue} Tage über Aufbewahrungsfrist` });
+  }
+  return { metrics, componentFaults };
+}
+
 async function collectDataBackupMetrics(config, token) {
   const { dataBackupUrl } = config.oceanprotect;
   const authHeaders = { "X-Auth-Token": token };
   const rawEndpoints = {};
 
-  const [sla, jobStatsByResource, jobStatsBySla, jobSummary, airgap, drills, ransomware, protection, nodeDetail, dbCapacity] = await Promise.all([
+  const [sla, jobStatsByResource, jobStatsBySla, jobSummary, airgap, drills, ransomware, protection, nodeDetail, dbCapacity, airGapPolicy, retention] =
+    await Promise.all([
     fetchOptional(config, "SLA-Compliance", requestJson(config, joinUrl(dataBackupUrl, "/v1/protected-objects/sla-compliance"), { headers: authHeaders })),
     fetchOptional(
       config,
@@ -790,6 +990,10 @@ async function collectDataBackupMetrics(config, token) {
     // logische vs. physische Backup-Datenmenge auf DataBackup-Ebene
     // (deutlich höhere Reduktionsrate wegen vieler ähnlicher Backup-Kopien).
     fetchOptional(config, "DataBackup-Kapazität", requestJson(config, joinUrl(dataBackupUrl, "/v1/clusters/capacity"), { headers: authHeaders })),
+    // Beide Funktionen fangen ihre eigenen Fehler bereits intern ab (siehe
+    // dort) — kein zusätzliches fetchOptional nötig.
+    collectAirGapPolicyStatus(config, dataBackupUrl, authHeaders, rawEndpoints),
+    collectRetentionCompliance(config, dataBackupUrl, authHeaders, rawEndpoints),
   ]);
   captureRaw(rawEndpoints, "/v1/protected-objects/sla-compliance", sla);
   captureRaw(rawEndpoints, "/v1/report-data/jobs?type=RESOURCE", jobStatsByResource);
@@ -801,7 +1005,8 @@ async function collectDataBackupMetrics(config, token) {
   captureRaw(rawEndpoints, "/v1/clusters/backup/local-node/detail", nodeDetail);
   captureRaw(rawEndpoints, "/v1/clusters/capacity", dbCapacity);
 
-  const metrics = [];
+  const metrics = [...airGapPolicy.metrics, ...retention.metrics];
+  const componentFaults = [...airGapPolicy.componentFaults, ...retention.componentFaults];
   let dataBackupVersion;
   let resourceBreakdown;
   let topJobFailures;
@@ -917,7 +1122,7 @@ async function collectDataBackupMetrics(config, token) {
     if (Number.isFinite(physicalKB)) metrics.push({ key: "databackup_physical_usage_tb", value: physicalKB / 1024 ** 3, unit: "TB" });
   }
 
-  return { metrics, dataBackupVersion, resourceBreakdown, topJobFailures, rawEndpoints };
+  return { metrics, dataBackupVersion, resourceBreakdown, topJobFailures, componentFaults, rawEndpoints };
 }
 
 // Storage und DataBackup sind unabhängige Dienste mit unabhängigem Login.
@@ -938,10 +1143,11 @@ async function tryCollectStorage(config) {
     return { metrics: [], deviceSerialNumber: null, deviceInfo: null, alarmSamples: undefined, componentFaults: undefined };
   }
   try {
-    const [capacityResult, hardwareResult, lunResult] = await Promise.allSettled([
+    const [capacityResult, hardwareResult, lunResult, pathsPortsNtpResult] = await Promise.allSettled([
       collectStorageMetrics(config, session),
       collectHardwareMetrics(config, session),
       collectLunMetrics(config, session),
+      collectPathsPortsAndNtpMetrics(config, session),
     ]);
     const metrics = [];
     let deviceInfo = null;
@@ -972,6 +1178,18 @@ async function tryCollectStorage(config) {
       Object.assign(rawEndpoints, lunResult.value.rawEndpoints);
     } else {
       config.logger?.warn(`LUN-/Initiator-Übersicht konnte nicht erhoben werden: ${lunResult.reason.message}`);
+    }
+    if (pathsPortsNtpResult.status === "fulfilled") {
+      metrics.push(...pathsPortsNtpResult.value.metrics);
+      if (pathsPortsNtpResult.value.componentFaults.length > 0) {
+        componentFaults = [...(componentFaults ?? []), ...pathsPortsNtpResult.value.componentFaults];
+      }
+      if (pathsPortsNtpResult.value.componentChecks.length > 0) {
+        componentChecks = [...(componentChecks ?? []), ...pathsPortsNtpResult.value.componentChecks];
+      }
+      Object.assign(rawEndpoints, pathsPortsNtpResult.value.rawEndpoints);
+    } else {
+      config.logger?.warn(`Host-Pfad-/Port-/NTP-Kennzahlen konnten nicht erhoben werden: ${pathsPortsNtpResult.reason.message}`);
     }
     // deviceId aus der Login-Antwort ist bei Huawei die Geräte-ESN
     // (Seriennummer) — dieselbe Kennung, die schon in jeder Request-URL steckt.
@@ -1025,7 +1243,12 @@ async function collect(config) {
   // dagegen ein echtes Ergebnis und wird bewusst mitgeschickt, damit das
   // Portal zuvor offene Findings als behoben erkennen kann.
   if (storageResult.alarmSamples !== undefined) meta.alarmSamples = storageResult.alarmSamples;
-  if (storageResult.componentFaults !== undefined) meta.componentFaults = storageResult.componentFaults;
+  // Air-Gap-/Retention-Checks (DataBackup-Ebene) fließen in dieselbe
+  // componentFaults-Liste wie die Storage-Ebene — beide Quellen ergänzen
+  // sich, keine überschreibt die andere.
+  if (storageResult.componentFaults !== undefined || dataBackupResult.componentFaults?.length > 0) {
+    meta.componentFaults = [...(storageResult.componentFaults ?? []), ...(dataBackupResult.componentFaults ?? [])];
+  }
   // Reine Momentaufnahme (kein aktiv/gelöst-Historienkonzept wie bei
   // componentFaults) — wird bei jedem Ingest einfach überschrieben.
   if (storageResult.componentChecks?.length > 0) meta.componentChecks = storageResult.componentChecks;

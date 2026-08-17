@@ -31,6 +31,18 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    Huawei-REST-Doku (`docs/Rest/` im Repo — "OceanProtect Backup Storage REST
    Interface Reference" und "OceanProtect DataBackup REST Interface
    Reference").
+
+   **Air-Gap-Policy-Status** (optionaler Healthcheck, `collectAirGapPolicyStatus`
+   in `adapters/oceanprotect.js`): braucht die optionalen Config-Felder
+   `oceanprotect.airGapDeviceId`/`oceanprotect.airGapRemoteDeviceId` (eigene
+   sowie Partner-`deviceId` des Air-Gap-Pairings, siehe
+   `config.example.json`) — ohne beide Felder wird der Check stillschweigend
+   übersprungen (kein Fehler, nicht jede Umgebung hat ein Air-Gap-Pairing
+   eingerichtet). Endpunkt `GET /v1/anti-ransomware/airgap/device/detail`.
+   **Retention-Compliance** (`collectRetentionCompliance`, ebenfalls
+   `oceanprotect.js`): paginiert über `GET /v1/copies`, meldet Kopien, deren
+   konfigurierte Aufbewahrungsfrist bereits abgelaufen ist, obwohl sie noch
+   nicht gelöscht wurden — braucht keine zusätzliche Konfiguration.
    Läuft die Appliance mit einem selbstsignierten Zertifikat im internen Netz,
    `allowInsecureTls: true` setzen (deaktiviert die TLS-Zertifikatsprüfung nur
    für die Collector-Requests an diese eine Appliance — bewusster
@@ -58,6 +70,17 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    fälschlich als "nicht gemappt" erscheint, nie zum Abbruch des ganzen Laufs.
    Bei Abweichungen `meta.rawEndpoints["/lun"]`, `["/mappingview"]` etc. am
    ersten echten Ingest prüfen und `shared.js` bei Bedarf anpassen.
+
+   **Host-Pfade, FC-Ports, NTP** (OceanStor sowie OceanProtects Storage-Ebene,
+   siehe `collectPathsPortsAndNtp` in `adapters/shared.js`): `GET /host_link`
+   meldet Hosts mit mindestens einem ausgefallenen Pfad (Multipath-
+   Redundanzverlust), `GET /fc_port` FC-Port-Status/-Geschwindigkeit
+   (separat von `/eth_port`), `GET /ntp_client_config/get_ntp_status` die
+   NTP-Zeitsynchronisation. Alle drei Endpunkte sind in `docs/Rest/`
+   dokumentiert; die dabei interpretierten `RUNNINGSTATUS`-Codes von
+   `/host_link` folgen der allgemeinen DeviceManager-Konvention und sind
+   **nicht gegen ein reales Gerät verifiziert** (bei Abweichungen
+   `meta.rawEndpoints["/host_link"]` prüfen).
 3c. Für NetApp AFF/ONTAP (z. B. A400) braucht `adapters/netapp.js` nur die
    **ONTAP REST API** des Clusters selbst (kein separater Login/Session-Token
    nötig — HTTP Basic Auth pro Request), Standard-HTTPS-Port 443, siehe den
@@ -66,7 +89,9 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    `/api/cluster`, `/api/cluster/nodes`, `/api/storage/aggregates`,
    `/api/storage/disks`, `/api/storage/shelves`, `/api/storage/volumes`,
    `/api/storage/luns`, `/api/protocols/san/lun-maps`,
-   `/api/protocols/san/igroups` und `/api/support/ems/events`
+   `/api/protocols/san/igroups`, `/api/network/ethernet/ports`,
+   `/api/network/fc/ports`, `/api/snapmirror/relationships` und
+   `/api/support/ems/events`
    (in ONTAP System Manager z. B. über die eingebaute `readonly`-Rolle, oder
    eine eigene Rolle mit `GET`-Rechten auf die genannten REST-Pfade). Quelle
    der Endpunkte: NetApps öffentliche ONTAP-REST-API-Referenz
@@ -78,7 +103,12 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    (Igroup<->Initiatoren), kein mehrstufiges Auflösen über Gruppen nötig.
    **Noch nicht gegen ein reales Gerät verifiziert** — beim ersten echten Ingest `meta.rawEndpoints`
    im Admin-Bereich prüfen und `adapters/netapp.js` bei Abweichungen im
-   tatsächlichen Antwortformat anpassen.
+   tatsächlichen Antwortformat anpassen. Die Port-/SnapMirror-/NTP-Endpunkte
+   sind dabei die am schwächsten belegten (reine Namenskonvention, kein
+   Abgleich gegen eine öffentliche Doku-Spiegelseite wie bei
+   cluster/node/aggregate/disk/shelf/ems_event) — **NTP-Sync-Status wurde bei
+   NetApp deshalb bewusst NICHT umgesetzt** (nur bei OceanStor/OceanProtect),
+   da selbst die Existenz/Form des Endpunkts unsicher ist.
    Läuft der Cluster mit einem selbstsignierten Zertifikat im internen Netz,
    auch hier `allowInsecureTls: true` setzen (siehe oben).
 3d. Für Huawei DCS/FusionCompute (VRM-Management) braucht

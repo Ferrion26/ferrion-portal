@@ -188,4 +188,133 @@ async function collectLunOverview(config, base, authHeaders, fetchOptional, desc
   return { luns, metrics, rawEndpoints };
 }
 
-module.exports = { componentGroup, collectLunOverview };
+// RUNNINGSTATUS-Codes von /host_link laut DeviceManager-REST-Doku: 10 = Link
+// up, 27 = Online, 101 = Connecting (alle drei "in Ordnung"); 11 = Link
+// down, 28 = Offline, 31 = Disabled ("Problem"). Statt einer erfundenen
+// "erwarteten Pfadanzahl" (nirgends konfiguriert) wird jeder Host mit
+// mindestens einem down-Link gemeldet — die direkt aus den Daten ablesbare
+// Aussage, ohne eine Schwelle zu erfinden.
+const HOST_LINK_DOWN_STATUSES = new Set([11, 28, 31]);
+
+// Ermittelt Hosts mit mindestens einem ausgefallenen Pfad (/host_link) sowie
+// den Status/die Geschwindigkeit der FC-Ports (/fc_port, separat von
+// /eth_port) — beide Endpunkte sind in der Huawei-DeviceManager-REST-Doku
+// identisch für OceanStor und OceanProtects Storage-Ebene dokumentiert.
+async function collectPathAndPortFaults(config, base, authHeaders, fetchOptional) {
+  const rawEndpoints = {};
+  const componentFaults = [];
+  const componentChecks = [];
+  const metrics = [];
+
+  const hostLinkRes = await fetchOptional(config, "Host-Links", requestJson(config, joinUrl(base, "/host_link"), { headers: authHeaders }));
+  const hostLinks = Array.isArray(hostLinkRes?.body?.data) ? hostLinkRes.body.data : [];
+  if (hostLinkRes) rawEndpoints["/host_link"] = hostLinkRes.body?.data ?? hostLinkRes.body;
+
+  if (hostLinks.length > 0) {
+    const byHost = new Map();
+    for (const link of hostLinks) {
+      const hostId = String(link.PARENTID ?? link.parentId ?? "");
+      if (!hostId) continue;
+      const hostName = String(link.PARENTNAME ?? link.parentName ?? hostId);
+      if (!byHost.has(hostId)) byHost.set(hostId, { name: hostName, links: [] });
+      byHost.get(hostId).links.push(link);
+    }
+    let hostsWithDownLinks = 0;
+    for (const host of byHost.values()) {
+      const downLinks = host.links.filter((l) => HOST_LINK_DOWN_STATUSES.has(Number(l.RUNNINGSTATUS)));
+      const ok = downLinks.length === 0;
+      if (!ok) {
+        hostsWithDownLinks++;
+        for (const l of downLinks) {
+          const targetWwn = String(l.TARGET_PORT_WWN ?? l.targetPortWwn ?? "—");
+          componentFaults.push({ category: "Host-Pfad", id: host.name, description: `Pfad zu Ziel-WWN ${targetWwn}: offline` });
+        }
+      }
+      const activeCount = host.links.length - downLinks.length;
+      componentChecks.push({ category: "Host-Pfad", id: host.name, description: `${activeCount} von ${host.links.length} Pfaden aktiv`, ok });
+    }
+    metrics.push({ key: "hosts_with_down_links", value: hostsWithDownLinks, unit: "count" });
+  }
+
+  const fcPortRes = await fetchOptional(config, "FC-Port-Status", requestJson(config, joinUrl(base, "/fc_port"), { headers: authHeaders }));
+  const fcPorts = Array.isArray(fcPortRes?.body?.data) ? fcPortRes.body.data : [];
+  if (fcPortRes) rawEndpoints["/fc_port"] = fcPortRes.body?.data ?? fcPortRes.body;
+
+  if (fcPorts.length > 0) {
+    let portsDown = 0;
+    let portsDegraded = 0;
+    for (const p of fcPorts) {
+      const id = String(p.NAME ?? p.name ?? p.ID ?? p.id ?? "—");
+      const group = componentGroup(p);
+      const down = Number(p.RUNNINGSTATUS) === 11;
+      if (down) {
+        portsDown++;
+        componentFaults.push({ category: "FC-Port", id, description: "Offline", ...(group ? { group } : {}) });
+        componentChecks.push({ category: "FC-Port", id, description: "Offline", ok: false, ...(group ? { group } : {}) });
+        continue;
+      }
+      // RUNSPEED = ausgehandelte Geschwindigkeit, MAXSUPPORTSPEED = maximal
+      // vom Port unterstützte Geschwindigkeit (beide Mbit/s laut Doku) —
+      // niedriger als das Maximum deutet auf ein Kabel-/SFP-/Gegenstellen-
+      // problem hin, nicht zwingend auf einen Ausfall.
+      const runSpeed = Number(p.RUNSPEED);
+      const maxSpeed = Number(p.MAXSUPPORTSPEED);
+      const degraded = Number.isFinite(runSpeed) && Number.isFinite(maxSpeed) && maxSpeed > 0 && runSpeed > 0 && runSpeed < maxSpeed;
+      if (degraded) portsDegraded++;
+      const description = degraded ? `Läuft mit ${runSpeed} statt ${maxSpeed} Mbit/s` : "Online";
+      if (degraded) componentFaults.push({ category: "FC-Port", id, description, ...(group ? { group } : {}) });
+      componentChecks.push({ category: "FC-Port", id, description, ok: !degraded, ...(group ? { group } : {}) });
+    }
+    metrics.push({ key: "fc_ports_down", value: portsDown, unit: "count" });
+    metrics.push({ key: "fc_ports_degraded_speed", value: portsDegraded, unit: "count" });
+  }
+
+  return { metrics, componentFaults, componentChecks, rawEndpoints };
+}
+
+// NTP-Sync-Status über /ntp_client_config/get_ntp_status (in OceanStor- und
+// OceanProtect-Backup-Storage-REST-Doku identisch dokumentiert). status:
+// 0 = Normal, 1 = Abnormal, 2 = "--" (keine Angabe) — nur 0 gilt als
+// synchronisiert.
+async function collectNtpStatus(config, base, authHeaders, fetchOptional) {
+  const rawEndpoints = {};
+  const metrics = [];
+  const componentFaults = [];
+
+  const res = await fetchOptional(
+    config,
+    "NTP-Status",
+    requestJson(config, joinUrl(base, "/ntp_client_config/get_ntp_status"), { headers: authHeaders })
+  );
+  if (!res) return { metrics, componentFaults, rawEndpoints };
+  const data = Array.isArray(res.body?.data) ? res.body.data[0] : res.body?.data;
+  rawEndpoints["/ntp_client_config/get_ntp_status"] = res.body?.data ?? res.body;
+  if (!data) return { metrics, componentFaults, rawEndpoints };
+
+  const outOfSync = Number(data.status) !== 0 ? 1 : 0;
+  metrics.push({ key: "ntp_out_of_sync", value: outOfSync, unit: "count" });
+  if (outOfSync) {
+    const server = data.currentConnectedNTPServer || "—";
+    const offset = data.offset || "unbekannt";
+    componentFaults.push({ category: "NTP", id: "Zeitsynchronisation", description: `Server ${server}, Abweichung ${offset}` });
+  }
+  return { metrics, componentFaults, rawEndpoints };
+}
+
+// Bündelt Host-Pfad-/FC-Port- und NTP-Erhebung in einem einzigen
+// Promise.allSettled-Zweig in oceanstor.js/oceanprotect.js, statt für jeden
+// einzelnen neuen Endpunkt einen eigenen Zweig anzulegen.
+async function collectPathsPortsAndNtp(config, base, authHeaders, fetchOptional) {
+  const [pathPort, ntp] = await Promise.all([
+    collectPathAndPortFaults(config, base, authHeaders, fetchOptional),
+    collectNtpStatus(config, base, authHeaders, fetchOptional),
+  ]);
+  return {
+    metrics: [...pathPort.metrics, ...ntp.metrics],
+    componentFaults: [...pathPort.componentFaults, ...ntp.componentFaults],
+    componentChecks: pathPort.componentChecks,
+    rawEndpoints: { ...pathPort.rawEndpoints, ...ntp.rawEndpoints },
+  };
+}
+
+module.exports = { componentGroup, collectLunOverview, collectPathsPortsAndNtp };

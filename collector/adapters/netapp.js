@@ -74,10 +74,13 @@ async function collect(config) {
   const base = joinUrl(na.managementUrl, "/api");
   const authHeaders = { Authorization: `Basic ${Buffer.from(`${na.username}:${na.password}`).toString("base64")}` };
 
-  const [cluster, nodes, aggregates, disks, shelves, volumes, emsEvents, luns, lunMaps, igroups] = await Promise.all([
+  const [cluster, nodes, aggregates, disks, shelves, volumes, emsEvents, luns, lunMaps, igroups, ethernetPorts, fcPorts, snapmirrorRelationships] =
+    await Promise.all([
     requestJson(config, joinUrl(base, "/cluster?fields=name,uuid,version"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/cluster/nodes?fields=name,model,serial_number,version,uptime,state,ha"), { headers: authHeaders }),
-    requestJson(config, joinUrl(base, "/storage/aggregates?fields=uuid,name,state,space,block_storage"), { headers: authHeaders }),
+    // encryption: NetApp Aggregate Encryption (NAE) — Feldname nicht gegen
+    // ein reales Gerät verifiziert (wie der übrige NetApp-Adapter).
+    requestJson(config, joinUrl(base, "/storage/aggregates?fields=uuid,name,state,space,block_storage,encryption"), { headers: authHeaders }),
     fetchOptional(
       config,
       "Disk-Status",
@@ -93,7 +96,14 @@ async function collect(config) {
       "Volume-Status",
       requestJson(
         config,
-        joinUrl(base, "/storage/volumes?fields=name,state,style,svm,aggregates,space.size,space.used"),
+        // space.snapshot.reserve_percent/used sowie encryption.enabled sind
+        // nur durch Analogie zum bereits genutzten space.*-Schema plausibel
+        // (space.snapshot.*) bzw. zum bereits genutzten ha.enabled-Muster
+        // (encryption.enabled) — nicht gegen ein reales Gerät verifiziert.
+        joinUrl(
+          base,
+          "/storage/volumes?fields=name,state,style,svm,aggregates,space.size,space.used,space.snapshot.reserve_percent,space.snapshot.used,encryption.enabled"
+        ),
         { headers: authHeaders }
       )
     ),
@@ -128,6 +138,30 @@ async function collect(config) {
       "Initiator-Gruppen",
       requestJson(config, joinUrl(base, "/protocols/san/igroups?fields=name,svm,protocol,os_type,initiators"), { headers: authHeaders })
     ),
+    // Port-Linkstatus — Endpunkte/Feldnamen nach allgemeiner ONTAP-REST-
+    // Konvention, nicht gegen ein reales Gerät verifiziert (wie der übrige
+    // NetApp-Adapter). FC-Ports nur vorhanden, wenn FC lizenziert ist —
+    // fetchOptional lässt ein leeres/fehlendes Ergebnis ohne Warnung durch.
+    fetchOptional(
+      config,
+      "Ethernet-Port-Status",
+      requestJson(config, joinUrl(base, "/network/ethernet/ports?fields=name,node,state,enabled,speed"), { headers: authHeaders })
+    ),
+    fetchOptional(
+      config,
+      "FC-Port-Status",
+      requestJson(config, joinUrl(base, "/network/fc/ports?fields=name,node,state,enabled,speed"), { headers: authHeaders })
+    ),
+    // SnapMirror — nur vorhanden, wenn Replikation lizenziert/konfiguriert
+    // ist. Endpunkt/Feldnamen nach allgemeiner ONTAP-REST-Konvention, nicht
+    // gegen ein reales Gerät verifiziert.
+    fetchOptional(
+      config,
+      "SnapMirror-Beziehungen",
+      requestJson(config, joinUrl(base, "/snapmirror/relationships?fields=healthy,state,lag_time,source.path,destination.path"), {
+        headers: authHeaders,
+      })
+    ),
   ]);
 
   const rawEndpoints = {};
@@ -141,6 +175,9 @@ async function collect(config) {
   captureRaw(rawEndpoints, "/storage/luns", luns);
   captureRaw(rawEndpoints, "/protocols/san/lun-maps", lunMaps);
   captureRaw(rawEndpoints, "/protocols/san/igroups", igroups);
+  captureRaw(rawEndpoints, "/network/ethernet/ports", ethernetPorts);
+  captureRaw(rawEndpoints, "/network/fc/ports", fcPorts);
+  captureRaw(rawEndpoints, "/snapmirror/relationships", snapmirrorRelationships);
 
   const metrics = [];
   const componentFaults = [];
@@ -215,11 +252,17 @@ async function collect(config) {
   let cloudUsedBytesTotal = 0;
   const ratios = [];
   const capacityBreakdown = [];
+  // Physische Kapazität je Aggregat (uuid -> Bytes) — Grundlage für die
+  // Thin-Provisioning-Überbuchungsberechnung weiter unten (nach dem
+  // Volume-Block, da dort die je Aggregat zugesagte/logische Kapazität
+  // aufsummiert wird).
+  const aggregateSizeByUuid = new Map();
   for (const a of aggregateList) {
     const size = Number(a.space?.block_storage?.size);
     const used = Number(a.space?.block_storage?.used);
     if (Number.isFinite(size)) totalBytes += size;
     if (Number.isFinite(used)) usedBytes += used;
+    if (Number.isFinite(size) && a.uuid) aggregateSizeByUuid.set(a.uuid, size);
     const ratio = Number(a.space?.efficiency?.ratio);
     if (Number.isFinite(ratio)) ratios.push(ratio);
 
@@ -292,6 +335,39 @@ async function collect(config) {
     metrics.push({ key: "power_modules_faulty", value: psuFaulty, unit: "count" });
   }
 
+  // --- Netzwerk-Ports (Ethernet + FC) ---
+  // Nicht gegen ein reales Gerät verifiziert (wie der übrige NetApp-Adapter)
+  // — Endpunkte/Feldnamen nach allgemeiner ONTAP-REST-Konvention. Nur
+  // aktivierte Ports zählen (deaktivierte Ports sind kein Fehlerzustand,
+  // analog zu den ausgeschlossenen Wartungsports bei Huawei).
+  const portList = [
+    ...(Array.isArray(ethernetPorts?.body?.records) ? ethernetPorts.body.records : []),
+    ...(Array.isArray(fcPorts?.body?.records) ? fcPorts.body.records : []),
+  ].filter((p) => p.enabled !== false);
+  if (portList.length > 0) {
+    const downPorts = portList.filter((p) => p.state !== "up");
+    metrics.push({ key: "network_ports_down", value: downPorts.length, unit: "count" });
+    for (const p of portList) {
+      const ok = p.state === "up";
+      const id = `${p.node?.name ?? ""} ${p.name ?? "Port"}`.trim();
+      componentChecks.push({ category: "Netzwerk-Port", id, description: p.state ?? "unbekannt", ok });
+      if (!ok) componentFaults.push({ category: "Netzwerk-Port", id, description: p.state ?? "unbekannt" });
+    }
+  }
+
+  // --- SnapMirror-Beziehungen ---
+  // Nicht gegen ein reales Gerät verifiziert (wie der übrige NetApp-Adapter).
+  const snapmirrorList = Array.isArray(snapmirrorRelationships?.body?.records) ? snapmirrorRelationships.body.records : [];
+  if (snapmirrorList.length > 0) {
+    const unhealthy = snapmirrorList.filter((r) => r.healthy !== true);
+    metrics.push({ key: "snapmirror_relationships_unhealthy", value: unhealthy.length, unit: "count" });
+    for (const r of unhealthy) {
+      const id = r.destination?.path || r.source?.path || "SnapMirror";
+      const lag = r.lag_time ? `, Lag: ${r.lag_time}` : "";
+      componentFaults.push({ category: "SnapMirror", id, description: `${r.state ?? "unbekannt"}${lag}` });
+    }
+  }
+
   // --- Volumes: Status je Volume + Übersichtstabelle für den Bericht ---
   // "state" ist bei ONTAP-Volumes online/offline/error/mixed — anders als
   // die anderen Health-Felder hier (die durchgehend "state === 'ok'/'online'"
@@ -300,6 +376,13 @@ async function collect(config) {
   // durchrutscht.
   const volumeList = Array.isArray(volumes?.body?.records) ? volumes.body.records : [];
   const volumeOverview = [];
+  // Zugesagte (logische) Kapazität je Aggregat (uuid -> Bytes) — nur
+  // Volumes mit GENAU EINEM Aggregat werden gezählt (FlexGroups über
+  // mehrere Aggregate hinweg würden sonst mehrfach gezählt); Grundlage der
+  // Überbuchungsberechnung weiter unten.
+  const subscribedBytesByAggregateUuid = new Map();
+  let unencryptedVolumes = 0;
+  let snapshotReserveExhausted = 0;
   if (volumeList.length > 0) {
     metrics.push({ key: "volumes_faulty", value: volumeList.filter((v) => v.state !== "online").length, unit: "count" });
     for (const v of volumeList) {
@@ -323,8 +406,50 @@ async function collect(config) {
           usedTB: Number.isFinite(usedBytes) ? bytesToTB(usedBytes) : 0,
           totalTB: bytesToTB(sizeBytes),
         });
+
+        const aggUuids = (v.aggregates ?? []).map((a) => a.uuid).filter(Boolean);
+        if (aggUuids.length === 1) {
+          const uuid = aggUuids[0];
+          subscribedBytesByAggregateUuid.set(uuid, (subscribedBytesByAggregateUuid.get(uuid) ?? 0) + sizeBytes);
+        }
+      }
+
+      // Verschlüsselungsstatus: encryption.enabled nur durch Analogie zum
+      // bereits genutzten ha.enabled-Muster plausibel, nicht gegen ein
+      // reales Gerät verifiziert.
+      if (v.encryption?.enabled === false) unencryptedVolumes++;
+
+      // Snapshot-Reserve: space.snapshot.used >= space.snapshot.reserve_percent
+      // des Gesamtvolumens bedeutet, die reservierte Snapshot-Kapazität ist
+      // ausgeschöpft — Felder nur durch Analogie zum space.*-Schema
+      // plausibel, nicht gegen ein reales Gerät verifiziert.
+      const snapshotUsedBytes = Number(v.space?.snapshot?.used);
+      const reservePercent = Number(v.space?.snapshot?.reserve_percent);
+      if (Number.isFinite(snapshotUsedBytes) && Number.isFinite(reservePercent) && reservePercent > 0 && Number.isFinite(sizeBytes)) {
+        const reserveBytes = (sizeBytes * reservePercent) / 100;
+        if (snapshotUsedBytes >= reserveBytes) {
+          snapshotReserveExhausted++;
+          componentFaults.push({ category: "Snapshot-Reserve", id, description: `Auslastung ${Math.round((snapshotUsedBytes / reserveBytes) * 100)}%` });
+        }
       }
     }
+    metrics.push({ key: "volumes_unencrypted", value: unencryptedVolumes, unit: "count" });
+    metrics.push({ key: "volumes_snapshot_reserve_exhausted", value: snapshotReserveExhausted, unit: "count" });
+  }
+
+  // --- Thin-Provisioning-Überbuchung ---
+  // Kein NetApp-eigener konfigurierter Schwellwert wie bei Huaweis
+  // PROVISIONINGLIMIT bekannt — daher nur der informative Prozentwert, als
+  // Maximum über alle Aggregate gemeldet (Worst-Case je Cluster).
+  let maxOversubscriptionPct;
+  for (const [uuid, subscribedBytes] of subscribedBytesByAggregateUuid) {
+    const aggSize = aggregateSizeByUuid.get(uuid);
+    if (!aggSize || aggSize <= 0) continue;
+    const pct = (subscribedBytes / aggSize) * 100;
+    if (maxOversubscriptionPct === undefined || pct > maxOversubscriptionPct) maxOversubscriptionPct = pct;
+  }
+  if (maxOversubscriptionPct !== undefined) {
+    metrics.push({ key: "aggregate_oversubscription_pct", value: maxOversubscriptionPct, unit: "%" });
   }
 
   // --- LUNs + darauf gemappte Initiatoren ---
