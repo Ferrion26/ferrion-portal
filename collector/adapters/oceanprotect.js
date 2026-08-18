@@ -19,7 +19,7 @@
 // metricKeys müssen exakt zu den Definitionen in
 // src/lib/managed-reports/metrics/oceanprotect.ts passen.
 const { requestJson, joinUrl } = require("../httpClient");
-const { componentGroup, collectLunOverview, collectPathsPortsAndNtp } = require("./shared");
+const { componentGroup, collectLunOverview, collectPathsPortsAndNtp, extractNetworkPorts } = require("./shared");
 
 async function loginStorage(config) {
   const { deviceManagerUrl, deviceManagerUsername, deviceManagerPassword } = config.oceanprotect;
@@ -449,6 +449,9 @@ async function collectHardwareMetrics(config, session) {
   // Wartungsport sind (z. B. "CTE0.A.MAINTENANCE") — die sind laut Kunde
   // regulär nicht angeschlossen und würden sonst dauerhaft als "down" zählen.
   const ethList = Array.isArray(ethPorts.body.data) ? ethPorts.body.data : [];
+  // Netzwerk-Identität für die Systemdokumentation — siehe oceanstor.js für
+  // die ausführliche Begründung (kein neuer HTTP-Aufruf).
+  const networkPorts = extractNetworkPorts(ethList);
   const activePorts = ethList.filter((p) => Number(p.HEALTHSTATUS) !== 0 && !/maintenance/i.test(String(p.NAME ?? p.ID ?? "")));
   const downPorts = activePorts.filter((p) => Number(p.RUNNINGSTATUS) === 11);
   metrics.push({ key: "eth_ports_down", value: downPorts.length, unit: "count" });
@@ -654,7 +657,7 @@ async function collectHardwareMetrics(config, session) {
     if (containerMetrics) metrics.push(...containerMetrics);
   }
 
-  return { metrics, deviceInfo, componentFaults, componentChecks, rawEndpoints };
+  return { metrics, deviceInfo, componentFaults, componentChecks, networkPorts, rawEndpoints };
 }
 
 // Eckdaten des Backup-Software-Containers (aktiv/inaktiv, zugeteilte
@@ -920,13 +923,75 @@ async function collectRetentionCompliance(config, dataBackupUrl, authHeaders, ra
   return { metrics, componentFaults };
 }
 
+// Client-/Ressourcenliste für die Systemdokumentation (nicht für den
+// Healthcheck-Bericht) — GET /v1/resource liefert laut Vendor-Doku eine
+// vollständige Liste der bei DataBackup bekannten geschützten Ressourcen
+// (Name, Umgebungs-IP, OS, Schutz-/SLA-Status), anders als
+// /v1/resource/protection/summary oben, das nur aggregierte Zählungen je
+// Typ liefert. Bisher ungenutzt. Paginiert wie collectRetentionCompliance,
+// mit derselben Sicherheitsgrenze gegen Endlosschleifen.
+const CLIENTS_PAGE_SIZE = 200;
+const CLIENTS_SCAN_LIMIT = 500;
+
+async function collectClientInventory(config, dataBackupUrl, authHeaders, rawEndpoints) {
+  const clients = [];
+  let scanned = 0;
+  let pageNo = 0;
+
+  try {
+    while (scanned < CLIENTS_SCAN_LIMIT) {
+      const { body } = await requestJson(config, joinUrl(dataBackupUrl, `/v1/resource?page_no=${pageNo}&page_size=${CLIENTS_PAGE_SIZE}`), {
+        headers: authHeaders,
+      });
+      const items = Array.isArray(body.items) ? body.items : Array.isArray(body.records) ? body.records : [];
+      if (pageNo === 0 && rawEndpoints) rawEndpoints["/v1/resource"] = items.slice(0, 50);
+      if (items.length === 0) break;
+      scanned += items.length;
+
+      for (const r of items) {
+        if (clients.length >= CLIENTS_SCAN_LIMIT) break;
+        clients.push({
+          name: String(r.name ?? r.environment_name ?? "Ressource"),
+          ...(r.environment_name ? { environmentName: String(r.environment_name) } : {}),
+          ...(r.environment_endpoint ? { ip: String(r.environment_endpoint) } : {}),
+          ...(r.environment_os_type ? { osType: String(r.environment_os_type) } : {}),
+          ...(r.type ?? r.environment_sub_type ? { type: String(r.type ?? r.environment_sub_type) } : {}),
+          ...(r.protection_status ? { protectionStatus: String(r.protection_status) } : {}),
+          ...(r.sla_compliance !== undefined ? { slaCompliant: Boolean(r.sla_compliance) } : {}),
+          ...(r.parent_name ? { parentName: String(r.parent_name) } : {}),
+        });
+      }
+      if (items.length < CLIENTS_PAGE_SIZE) break;
+      pageNo++;
+    }
+  } catch (err) {
+    config.logger?.warn(`Client-/Ressourcenliste konnte nicht abgerufen werden (übersprungen): ${err.message}`);
+    return { clients: [] };
+  }
+
+  return { clients };
+}
+
 async function collectDataBackupMetrics(config, token) {
   const { dataBackupUrl } = config.oceanprotect;
   const authHeaders = { "X-Auth-Token": token };
   const rawEndpoints = {};
 
-  const [sla, jobStatsByResource, jobStatsBySla, jobSummary, airgap, drills, ransomware, protection, nodeDetail, dbCapacity, airGapPolicy, retention] =
-    await Promise.all([
+  const [
+    sla,
+    jobStatsByResource,
+    jobStatsBySla,
+    jobSummary,
+    airgap,
+    drills,
+    ransomware,
+    protection,
+    nodeDetail,
+    dbCapacity,
+    airGapPolicy,
+    retention,
+    clientInventory,
+  ] = await Promise.all([
     fetchOptional(config, "SLA-Compliance", requestJson(config, joinUrl(dataBackupUrl, "/v1/protected-objects/sla-compliance"), { headers: authHeaders })),
     fetchOptional(
       config,
@@ -994,6 +1059,7 @@ async function collectDataBackupMetrics(config, token) {
     // dort) — kein zusätzliches fetchOptional nötig.
     collectAirGapPolicyStatus(config, dataBackupUrl, authHeaders, rawEndpoints),
     collectRetentionCompliance(config, dataBackupUrl, authHeaders, rawEndpoints),
+    collectClientInventory(config, dataBackupUrl, authHeaders, rawEndpoints),
   ]);
   captureRaw(rawEndpoints, "/v1/protected-objects/sla-compliance", sla);
   captureRaw(rawEndpoints, "/v1/report-data/jobs?type=RESOURCE", jobStatsByResource);
@@ -1122,7 +1188,15 @@ async function collectDataBackupMetrics(config, token) {
     if (Number.isFinite(physicalKB)) metrics.push({ key: "databackup_physical_usage_tb", value: physicalKB / 1024 ** 3, unit: "TB" });
   }
 
-  return { metrics, dataBackupVersion, resourceBreakdown, topJobFailures, componentFaults, rawEndpoints };
+  return {
+    metrics,
+    dataBackupVersion,
+    resourceBreakdown,
+    topJobFailures,
+    componentFaults,
+    clients: clientInventory.clients,
+    rawEndpoints,
+  };
 }
 
 // Storage und DataBackup sind unabhängige Dienste mit unabhängigem Login.
@@ -1155,6 +1229,7 @@ async function tryCollectStorage(config) {
     let componentFaults;
     let componentChecks;
     let luns;
+    let networkPorts;
     const rawEndpoints = {};
     if (capacityResult.status === "fulfilled") {
       metrics.push(...capacityResult.value.metrics);
@@ -1168,6 +1243,7 @@ async function tryCollectStorage(config) {
       deviceInfo = hardwareResult.value.deviceInfo;
       componentFaults = hardwareResult.value.componentFaults;
       componentChecks = hardwareResult.value.componentChecks;
+      networkPorts = hardwareResult.value.networkPorts;
       Object.assign(rawEndpoints, hardwareResult.value.rawEndpoints);
     } else {
       config.logger?.warn(`Hardware-Kennzahlen konnten nicht erhoben werden: ${hardwareResult.reason.message}`);
@@ -1193,7 +1269,7 @@ async function tryCollectStorage(config) {
     }
     // deviceId aus der Login-Antwort ist bei Huawei die Geräte-ESN
     // (Seriennummer) — dieselbe Kennung, die schon in jeder Request-URL steckt.
-    return { metrics, deviceSerialNumber: session.deviceId, deviceInfo, alarmSamples, componentFaults, componentChecks, luns, rawEndpoints };
+    return { metrics, deviceSerialNumber: session.deviceId, deviceInfo, alarmSamples, componentFaults, componentChecks, luns, networkPorts, rawEndpoints };
   } finally {
     await logoutStorage(config, session);
   }
@@ -1253,11 +1329,13 @@ async function collect(config) {
   // componentFaults) — wird bei jedem Ingest einfach überschrieben.
   if (storageResult.componentChecks?.length > 0) meta.componentChecks = storageResult.componentChecks;
   if (storageResult.luns?.length > 0) meta.luns = storageResult.luns;
+  if (storageResult.networkPorts?.length > 0) meta.networkPorts = storageResult.networkPorts;
   if (dataBackupResult.dataBackupVersion) meta.dataBackupVersion = dataBackupResult.dataBackupVersion;
   if (dataBackupResult.resourceBreakdown?.length > 0) meta.resourceBreakdown = dataBackupResult.resourceBreakdown;
   if (dataBackupResult.topJobFailures && (dataBackupResult.topJobFailures.bySla.length > 0 || dataBackupResult.topJobFailures.byResource.length > 0)) {
     meta.topJobFailures = dataBackupResult.topJobFailures;
   }
+  if (dataBackupResult.clients?.length > 0) meta.clients = dataBackupResult.clients;
   // Vollständige Rohantworten aller abgefragten Endpunkte (siehe captureRaw
   // oben) — für spätere Auswertungen, ohne dafür einen neuen Collector zu
   // benötigen, falls in einem Adapter mal ein Feld vergessen wurde.

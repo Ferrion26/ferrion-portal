@@ -12,7 +12,7 @@
 // metricKeys müssen exakt zu den Definitionen in
 // src/lib/managed-reports/metrics/oceanstor.ts passen.
 const { requestJson, joinUrl } = require("../httpClient");
-const { componentGroup, collectLunOverview, collectPathsPortsAndNtp } = require("./shared");
+const { componentGroup, collectLunOverview, collectPathsPortsAndNtp, extractNetworkPorts } = require("./shared");
 
 async function login(config) {
   const { deviceManagerUrl, username, password } = config.oceanstor;
@@ -434,6 +434,10 @@ async function collectHardwareMetrics(config, session) {
   // Wartungsports (z. B. "CTE0.A.MAINTENANCE") sind regulär nicht
   // angeschlossen und würden sonst dauerhaft als "down" mitgezählt.
   const ethList = Array.isArray(ethPorts.body.data) ? ethPorts.body.data : [];
+  // Netzwerk-Identität (IP/Maske/Gateway/MAC/MTU/Zweck) für die
+  // Systemdokumentation — aus denselben, ohnehin schon abgerufenen
+  // /eth_port-Daten, kein neuer HTTP-Aufruf (siehe shared.js).
+  const networkPorts = extractNetworkPorts(ethList);
   const activePorts = ethList.filter((p) => Number(p.HEALTHSTATUS) !== 0 && !/maintenance/i.test(String(p.NAME ?? p.ID ?? "")));
   const downPorts = activePorts.filter((p) => Number(p.RUNNINGSTATUS) === 11);
   metrics.push({ key: "eth_ports_down", value: downPorts.length, unit: "count" });
@@ -611,7 +615,7 @@ async function collectHardwareMetrics(config, session) {
     }
   }
 
-  return { metrics, deviceInfo, componentFaults, componentChecks, rawEndpoints };
+  return { metrics, deviceInfo, componentFaults, componentChecks, networkPorts, rawEndpoints };
 }
 
 async function collect(config) {
@@ -637,6 +641,7 @@ async function collect(config) {
     let componentFaults;
     let componentChecks;
     let luns;
+    let networkPorts;
     const rawEndpoints = {};
     if (capacityResult.status === "fulfilled") {
       metrics.push(...capacityResult.value.metrics);
@@ -650,6 +655,7 @@ async function collect(config) {
       deviceInfo = hardwareResult.value.deviceInfo;
       componentFaults = hardwareResult.value.componentFaults;
       componentChecks = hardwareResult.value.componentChecks;
+      networkPorts = hardwareResult.value.networkPorts;
       Object.assign(rawEndpoints, hardwareResult.value.rawEndpoints);
     } else {
       config.logger?.warn(`Hardware-Kennzahlen konnten nicht erhoben werden: ${hardwareResult.reason.message}`);
@@ -692,6 +698,7 @@ async function collect(config) {
     // componentFaults) — wird bei jedem Ingest einfach überschrieben.
     if (componentChecks?.length > 0) meta.componentChecks = componentChecks;
     if (luns?.length > 0) meta.luns = luns;
+    if (networkPorts?.length > 0) meta.networkPorts = networkPorts;
     // Vollständige Rohantworten aller abgefragten Endpunkte (siehe captureRaw
     // oben) — für spätere Auswertungen, ohne dafür einen neuen Collector zu
     // benötigen, falls in einem Adapter mal ein Feld vergessen wurde.

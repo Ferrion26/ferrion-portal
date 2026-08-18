@@ -301,6 +301,39 @@ async function collectNtpStatus(config, base, authHeaders, fetchOptional) {
   return { metrics, componentFaults, rawEndpoints };
 }
 
+// Klartext für LOGICTYPE laut DeviceManager-REST-Doku — welchem Zweck ein
+// Ethernet-Port dient.
+const PORT_LOGIC_TYPE_LABELS = {
+  0: "Front-end",
+  2: "Management",
+  4: "Wartung",
+  5: "Management/Service",
+};
+
+// Extrahiert die Netzwerk-Identität (IP/Maske/Gateway/MAC/MTU/Bond/Zweck) aus
+// der /eth_port-Liste, die collectHardwareMetrics in oceanstor.js/
+// oceanprotect.js ohnehin schon für den Link-Status abruft — KEIN eigener
+// HTTP-Aufruf. Nur für die Systemdokumentation gedacht (nicht für den
+// Healthcheck-Bericht) — daher reine Mapping-Funktion ohne Metrik-/
+// componentFault-Ausgabe.
+function extractNetworkPorts(ethPortList) {
+  return ethPortList.map((p) => {
+    const logicType = Number(p.LOGICTYPE);
+    return {
+      name: String(p.NAME ?? p.ID ?? p.id ?? "—"),
+      ...(p.IPV4ADDR ? { ip: String(p.IPV4ADDR) } : {}),
+      ...(p.IPV4MASK ? { mask: String(p.IPV4MASK) } : {}),
+      ...(p.IPV4GATEWAY ? { gateway: String(p.IPV4GATEWAY) } : {}),
+      ...(p.MACADDRESS ? { mac: String(p.MACADDRESS) } : {}),
+      ...(Number.isFinite(Number(p.MTU)) ? { mtu: Number(p.MTU) } : {}),
+      ...(p.BONDNAME ? { bondName: String(p.BONDNAME) } : {}),
+      ...(PORT_LOGIC_TYPE_LABELS[logicType] ? { purpose: PORT_LOGIC_TYPE_LABELS[logicType] } : {}),
+      ...(Number.isFinite(Number(p.SPEED)) ? { speedMbps: Number(p.SPEED) } : {}),
+      healthy: Number(p.RUNNINGSTATUS) !== 11,
+    };
+  });
+}
+
 // Bündelt Host-Pfad-/FC-Port- und NTP-Erhebung in einem einzigen
 // Promise.allSettled-Zweig in oceanstor.js/oceanprotect.js, statt für jeden
 // einzelnen neuen Endpunkt einen eigenen Zweig anzulegen.
@@ -317,4 +350,4 @@ async function collectPathsPortsAndNtp(config, base, authHeaders, fetchOptional)
   };
 }
 
-module.exports = { componentGroup, collectLunOverview, collectPathsPortsAndNtp };
+module.exports = { componentGroup, collectLunOverview, collectPathsPortsAndNtp, extractNetworkPorts };

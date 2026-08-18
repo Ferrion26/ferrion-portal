@@ -22,6 +22,8 @@ export function buildDeviceUpdate(payload: Pick<IngestPayload, "collectorVersion
   if (meta?.capacityBreakdown) deviceUpdate.capacityBreakdown = meta.capacityBreakdown;
   if (meta?.volumes) deviceUpdate.volumes = meta.volumes;
   if (meta?.luns) deviceUpdate.luns = meta.luns;
+  if (meta?.networkPorts) deviceUpdate.networkPorts = meta.networkPorts;
+  if (meta?.clients) deviceUpdate.clients = meta.clients;
   return deviceUpdate;
 }
 

@@ -74,8 +74,22 @@ async function collect(config) {
   const base = joinUrl(na.managementUrl, "/api");
   const authHeaders = { Authorization: `Basic ${Buffer.from(`${na.username}:${na.password}`).toString("base64")}` };
 
-  const [cluster, nodes, aggregates, disks, shelves, volumes, emsEvents, luns, lunMaps, igroups, ethernetPorts, fcPorts, snapmirrorRelationships] =
-    await Promise.all([
+  const [
+    cluster,
+    nodes,
+    aggregates,
+    disks,
+    shelves,
+    volumes,
+    emsEvents,
+    luns,
+    lunMaps,
+    igroups,
+    ethernetPorts,
+    fcPorts,
+    snapmirrorRelationships,
+    ipInterfaces,
+  ] = await Promise.all([
     requestJson(config, joinUrl(base, "/cluster?fields=name,uuid,version"), { headers: authHeaders }),
     requestJson(config, joinUrl(base, "/cluster/nodes?fields=name,model,serial_number,version,uptime,state,ha"), { headers: authHeaders }),
     // encryption: NetApp Aggregate Encryption (NAE) — Feldname nicht gegen
@@ -162,6 +176,18 @@ async function collect(config) {
         headers: authHeaders,
       })
     ),
+    // IP-Interfaces (LIFs) für die Systemdokumentation (nicht für den
+    // Healthcheck-Bericht) — anders als /network/ethernet/ports oben (reiner
+    // Link-Status) tragen LIFs die eigentliche IP-Adresse/Subnetzmaske.
+    // Endpunkt/Feldnamen nach allgemeiner ONTAP-REST-Konvention, nicht gegen
+    // ein reales Gerät verifiziert (wie der übrige NetApp-Adapter).
+    fetchOptional(
+      config,
+      "IP-Interfaces",
+      requestJson(config, joinUrl(base, "/network/ip/interfaces?fields=name,svm,ip.address,ip.netmask,location.port,services"), {
+        headers: authHeaders,
+      })
+    ),
   ]);
 
   const rawEndpoints = {};
@@ -178,6 +204,7 @@ async function collect(config) {
   captureRaw(rawEndpoints, "/network/ethernet/ports", ethernetPorts);
   captureRaw(rawEndpoints, "/network/fc/ports", fcPorts);
   captureRaw(rawEndpoints, "/snapmirror/relationships", snapmirrorRelationships);
+  captureRaw(rawEndpoints, "/network/ip/interfaces", ipInterfaces);
 
   const metrics = [];
   const componentFaults = [];
@@ -368,6 +395,21 @@ async function collect(config) {
     }
   }
 
+  // --- IP-Interfaces (LIFs) für die Systemdokumentation ---
+  // Nicht für den Healthcheck-Bericht gedacht (kein Metrik-/componentFault-
+  // Beitrag hier, siehe oben bei den Netzwerk-Ports für den Link-Status) —
+  // nur die IP-Identität für networkPorts. Nicht gegen ein reales Gerät
+  // verifiziert (wie der übrige NetApp-Adapter).
+  const ipInterfaceList = Array.isArray(ipInterfaces?.body?.records) ? ipInterfaces.body.records : [];
+  const networkPortOverview = ipInterfaceList.map((i) => ({
+    name: String(i.name ?? "Interface"),
+    ...(i.ip?.address ? { ip: String(i.ip.address) } : {}),
+    ...(i.ip?.netmask ? { mask: String(i.ip.netmask) } : {}),
+    ...(i.svm?.name ? { purpose: String(i.svm.name) } : {}),
+    ...(Array.isArray(i.services) && i.services.length > 0 ? { bondName: i.services.join(", ") } : {}),
+    healthy: true,
+  }));
+
   // --- Volumes: Status je Volume + Übersichtstabelle für den Bericht ---
   // "state" ist bei ONTAP-Volumes online/offline/error/mixed — anders als
   // die anderen Health-Felder hier (die durchgehend "state === 'ok'/'online'"
@@ -553,6 +595,7 @@ async function collect(config) {
   if (capacityBreakdown.length > 0) meta.capacityBreakdown = capacityBreakdown;
   if (volumeOverview.length > 0) meta.volumes = volumeOverview;
   if (lunOverview.length > 0) meta.luns = lunOverview;
+  if (networkPortOverview.length > 0) meta.networkPorts = networkPortOverview;
   if (Object.keys(rawEndpoints).length > 0) meta.rawEndpoints = rawEndpoints;
 
   return { metrics, meta: Object.keys(meta).length > 0 ? meta : undefined };

@@ -72,6 +72,14 @@ enum FindingKind {
   COMPONENT_FAULT
 }
 
+// Lebenszyklus-Status eines Systems, von einem Admin manuell gepflegt (siehe
+// ManagedServiceSubscription.lifecycleStatus) — nicht vom Collector ableitbar.
+enum LifecycleStatus {
+  ACTIVE
+  PHASING_OUT
+  END_OF_LIFE
+}
+
 model SiteSetting {
   key       String   @id
   value     Json
@@ -155,6 +163,9 @@ model Document {
 
   reportId String?          @unique
   report   QuarterlyReport? @relation(fields: [reportId], references: [id])
+
+  systemDocumentationId String?              @unique
+  systemDocumentation   SystemDocumentation? @relation(fields: [systemDocumentationId], references: [id])
 
   @@index([customerId])
   @@index([orderId])
@@ -255,6 +266,32 @@ model ManagedServiceSubscription {
   // FC-WWN), vom letzten Ingest überschrieben, keine Historie (wie volumes).
   luns Json?
 
+  // Netzwerk-Port-/Interface-Übersicht für die Systemdokumentation (IP/
+  // Maske/Gateway/MAC/MTU je Port bzw. Interface) — bei Huawei aus den
+  // ohnehin abgerufenen /eth_port-Daten extrahiert, bei NetApp aus den
+  // IP-Interfaces (LIFs). Vom letzten Ingest überschrieben, keine Historie
+  // (wie volumes/luns). Getrennt vom Healthcheck-Bericht — fließt nur in
+  // die Systemdokumentation (generateSystemDocumentation.ts) ein.
+  networkPorts Json?
+
+  // Client-/Ressourcenliste für die Systemdokumentation (nur OceanProtect
+  // DataBackup — Name, Umgebungs-IP, OS, Schutz-/SLA-Status je geschützter
+  // Ressource). Vom letzten Ingest überschrieben, keine Historie.
+  clients Json?
+
+  // Lebenszyklus-Status + optionales End-of-Life-Datum — von einem Admin
+  // manuell gepflegt (siehe LifecycleStatus), nicht collector-erhoben.
+  lifecycleStatus  LifecycleStatus?
+  lifecycleEndDate DateTime?
+
+  // Ansprechpartner für dieses System — von einem Admin manuell gepflegt,
+  // ein Kontakt je Subscription (wie location/replicationNote nicht
+  // collector-erhoben).
+  contactName  String?
+  contactRole  String?
+  contactEmail String?
+  contactPhone String?
+
   // Freitext, den ein Admin manuell pflegt, um eine Beziehung zu einem
   // anderen System zu dokumentieren (z. B. "Snapshots werden von
   // OceanProtect X8000 repliziert") — im Bericht als Hinweiszeile gezeigt.
@@ -281,11 +318,12 @@ model ManagedServiceSubscription {
   customerId String
   customer   User   @relation(fields: [customerId], references: [id])
 
-  apiKeys    CollectorApiKey[]
-  ingestions CollectorIngestion[]
-  metrics    ManagedServiceMetric[]
-  reports    QuarterlyReport[]
-  findings   DeviceFinding[]
+  apiKeys              CollectorApiKey[]
+  ingestions           CollectorIngestion[]
+  metrics              ManagedServiceMetric[]
+  reports              QuarterlyReport[]
+  findings             DeviceFinding[]
+  systemDocumentations SystemDocumentation[]
 
   @@index([customerId])
   @@index([productSlug])
@@ -450,6 +488,22 @@ model QuarterlyReport {
 
   @@index([subscriptionId])
   @@index([periodStart, periodEnd])
+}
+
+// Systemdokumentation (Aufbau/Netzwerk/Backup/Clients) als editierbares
+// Word-Dokument — bewusst getrennt vom QuarterlyReport (kein Zeitraum-/
+// Aggregations-Konzept, reine Momentaufnahme des aktuellen Systemzustands
+// zum Generierungszeitpunkt, siehe generateSystemDocumentation.ts).
+model SystemDocumentation {
+  id          String   @id @default(cuid())
+  generatedAt DateTime @default(now())
+
+  subscriptionId String
+  subscription   ManagedServiceSubscription @relation(fields: [subscriptionId], references: [id])
+
+  document Document?
+
+  @@index([subscriptionId])
 }
 
 // Empfohlene/erwartete Werte für ein Produkt (nicht für eine einzelne

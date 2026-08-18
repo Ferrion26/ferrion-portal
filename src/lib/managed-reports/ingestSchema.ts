@@ -130,6 +130,44 @@ export const ingestPayloadSchema = z.object({
         )
         .max(300)
         .optional(),
+      // Netzwerk-Port-/Interface-Übersicht (IP/Maske/Gateway/MAC/MTU/Zweck)
+      // für die Systemdokumentation — bei Huawei aus /eth_port extrahiert,
+      // bei NetApp aus den IP-Interfaces (LIFs). Fließt NICHT in den
+      // Healthcheck-Bericht ein, nur in generateSystemDocumentation.ts.
+      networkPorts: z
+        .array(
+          z.object({
+            name: z.string().min(1).max(100),
+            ip: z.string().max(50).optional(),
+            mask: z.string().max(50).optional(),
+            gateway: z.string().max(50).optional(),
+            mac: z.string().max(50).optional(),
+            mtu: z.number().min(0).optional(),
+            bondName: z.string().max(200).optional(),
+            purpose: z.string().max(100).optional(),
+            speedMbps: z.number().min(0).optional(),
+            healthy: z.boolean(),
+          })
+        )
+        .max(100)
+        .optional(),
+      // Client-/Ressourcenliste für die Systemdokumentation (nur OceanProtect
+      // DataBackup). Fließt NICHT in den Healthcheck-Bericht ein.
+      clients: z
+        .array(
+          z.object({
+            name: z.string().min(1).max(200),
+            environmentName: z.string().max(200).optional(),
+            ip: z.string().max(50).optional(),
+            osType: z.string().max(100).optional(),
+            type: z.string().max(100).optional(),
+            protectionStatus: z.string().max(100).optional(),
+            slaCompliant: z.boolean().optional(),
+            parentName: z.string().max(200).optional(),
+          })
+        )
+        .max(500)
+        .optional(),
       // Die am häufigsten fehlgeschlagenen Jobs, getrennt nach SLA-Richtlinie
       // und nach Ressource.
       topJobFailures: z

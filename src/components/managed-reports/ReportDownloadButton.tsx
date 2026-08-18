@@ -1,6 +1,13 @@
 "use client";
 
-export default function ReportDownloadButton({ documentId }: { documentId: string; fileName?: string }) {
+export default function ReportDownloadButton({
+  documentId,
+  label = "PDF öffnen →",
+}: {
+  documentId: string;
+  fileName?: string;
+  label?: string;
+}) {
   async function handleOpen() {
     // Tab muss synchron im Click-Handler geöffnet werden, sonst blockieren
     // Popup-Blocker den erst nach dem await zurückkommenden Aufruf.
@@ -18,7 +25,7 @@ export default function ReportDownloadButton({ documentId }: { documentId: strin
 
   return (
     <button onClick={handleOpen} className="text-sm text-[#c9a84c] hover:text-[#e0bc5a] font-medium">
-      PDF öffnen →
+      {label}
     </button>
   );
 }

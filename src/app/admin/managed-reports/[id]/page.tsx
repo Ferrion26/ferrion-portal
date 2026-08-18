@@ -8,11 +8,15 @@ import { getCollectorBaseline } from "@/lib/settings";
 import { Badge } from "@/components/ui/Badge";
 import ApiKeyManager from "./ApiKeyManager";
 import GenerateReportButton from "./GenerateReportButton";
+import GenerateSystemDocumentationButton from "./GenerateSystemDocumentationButton";
 import IngestionTable from "./IngestionTable";
 import ReportsTable from "./ReportsTable";
 import ReplicationNoteForm from "./ReplicationNoteForm";
 import LocationForm from "./LocationForm";
 import RetentionForm from "./RetentionForm";
+import LifecycleForm from "./LifecycleForm";
+import ContactForm from "./ContactForm";
+import ReportDownloadButton from "@/components/managed-reports/ReportDownloadButton";
 
 export const metadata = { title: "Subscription — Managed Reports — Admin" };
 
@@ -23,6 +27,7 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
       customer: true,
       apiKeys: { orderBy: { createdAt: "desc" } },
       reports: { orderBy: { generatedAt: "desc" }, include: { document: true } },
+      systemDocumentations: { orderBy: { generatedAt: "desc" }, include: { document: true } },
       _count: { select: { metrics: true } },
     },
   });
@@ -149,6 +154,27 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
       </div>
 
       <div className="bg-[#111827] border border-white/10 p-6">
+        <h2 className="font-semibold text-white mb-2">Lebenszyklus</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Status und optionales End-of-Life-Datum des Systems — von einem Admin manuell gepflegt, nicht automatisiert erhebbar. Erscheint in der
+          Systemdokumentation.
+        </p>
+        <LifecycleForm subscriptionId={subscription.id} initialStatus={subscription.lifecycleStatus} initialEndDate={subscription.lifecycleEndDate?.toISOString() ?? null} />
+      </div>
+
+      <div className="bg-[#111827] border border-white/10 p-6">
+        <h2 className="font-semibold text-white mb-2">Ansprechpartner</h2>
+        <p className="text-xs text-gray-500 mb-4">Kontaktperson für dieses System — erscheint in der Systemdokumentation.</p>
+        <ContactForm
+          subscriptionId={subscription.id}
+          initialName={subscription.contactName}
+          initialRole={subscription.contactRole}
+          initialEmail={subscription.contactEmail}
+          initialPhone={subscription.contactPhone}
+        />
+      </div>
+
+      <div className="bg-[#111827] border border-white/10 p-6">
         <h2 className="font-semibold text-white mb-2">Hinweis für den Bericht</h2>
         <p className="text-xs text-gray-500 mb-4">
           Freitext, z. B. um eine Beziehung zu einem anderen System zu dokumentieren — erscheint als Hinweiszeile im Bericht.
@@ -164,6 +190,32 @@ export default async function ManagedReportDetailPage({ params }: { params: { id
           Nachtragen neuer Kennzahlen (Backfill) für die betroffenen Ingestions nicht mehr möglich, da die zugrunde liegenden Rohdaten dann gelöscht sind.
         </p>
         <RetentionForm subscriptionId={subscription.id} initialDays={subscription.metricsRetentionDays} />
+      </div>
+
+      <div className="bg-[#111827] border border-white/10 p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h2 className="font-semibold text-white">Systemdokumentation</h2>
+            <p className="text-xs text-gray-500 mt-1 max-w-lg">
+              Editierbares Word-Dokument (Aufbau, Netzwerk, Backup, Clients) — eine Momentaufnahme des aktuellen Systemzustands zum Erstellzeitpunkt, kein
+              Zeitraum-Bericht.
+            </p>
+          </div>
+          <GenerateSystemDocumentationButton subscriptionId={subscription.id} />
+        </div>
+
+        {subscription.systemDocumentations.length === 0 ? (
+          <p className="text-sm text-gray-500">Noch keine Systemdokumentation erstellt.</p>
+        ) : (
+          <ul className="divide-y divide-white/5">
+            {subscription.systemDocumentations.map((doc) => (
+              <li key={doc.id} className="flex items-center justify-between py-2">
+                <span className="text-sm text-gray-300">{formatDate(doc.generatedAt)}</span>
+                {doc.document && <ReportDownloadButton documentId={doc.document.id} label="Word-Dokument öffnen →" />}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="bg-[#111827] border border-white/10 p-6">

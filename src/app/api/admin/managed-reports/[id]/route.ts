@@ -17,6 +17,16 @@ const patchSchema = z.object({
   // diese Subscription aufbewahrt werden, bevor der Cleanup-Cron sie löscht.
   // null = unbegrenzt.
   metricsRetentionDays: z.number().int().min(1).max(3650).nullable().optional(),
+  // Lebenszyklus-Status + optionales End-of-Life-Datum, von einem Admin
+  // manuell gepflegt — nicht collector-erhoben (siehe LifecycleStatus in
+  // prisma/schema.prisma).
+  lifecycleStatus: z.enum(["ACTIVE", "PHASING_OUT", "END_OF_LIFE"]).nullable().optional(),
+  lifecycleEndDate: z.coerce.date().nullable().optional(),
+  // Ansprechpartner für dieses System, von einem Admin manuell gepflegt.
+  contactName: z.string().max(200).nullable().optional(),
+  contactRole: z.string().max(200).nullable().optional(),
+  contactEmail: z.string().max(200).nullable().optional(),
+  contactPhone: z.string().max(100).nullable().optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -37,6 +47,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if ("replicationNote" in body) data.replicationNote = parsed.data.replicationNote;
   if ("location" in body) data.location = parsed.data.location;
   if ("metricsRetentionDays" in body) data.metricsRetentionDays = parsed.data.metricsRetentionDays;
+  if ("lifecycleStatus" in body) data.lifecycleStatus = parsed.data.lifecycleStatus;
+  if ("lifecycleEndDate" in body) data.lifecycleEndDate = parsed.data.lifecycleEndDate;
+  if ("contactName" in body) data.contactName = parsed.data.contactName;
+  if ("contactRole" in body) data.contactRole = parsed.data.contactRole;
+  if ("contactEmail" in body) data.contactEmail = parsed.data.contactEmail;
+  if ("contactPhone" in body) data.contactPhone = parsed.data.contactPhone;
 
   const subscription = await prisma.managedServiceSubscription.update({
     where: { id: params.id },

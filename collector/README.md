@@ -43,6 +43,15 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    `oceanprotect.js`): paginiert über `GET /v1/copies`, meldet Kopien, deren
    konfigurierte Aufbewahrungsfrist bereits abgelaufen ist, obwohl sie noch
    nicht gelöscht wurden — braucht keine zusätzliche Konfiguration.
+   **Client-/Ressourcenliste für die Systemdokumentation**
+   (`collectClientInventory`, ebenfalls `oceanprotect.js`): paginiert über
+   `GET /v1/resource` (bisher ungenutzt — liefert Name, Umgebungs-IP,
+   Betriebssystem sowie Schutz-/SLA-Status je bei DataBackup bekannter
+   Ressource, anders als `/v1/resource/protection/summary`, das nur
+   aggregierte Zählungen liefert), max. 500 Ressourcen. Fließt in
+   `meta.clients` — nicht in den Healthcheck-Bericht, sondern nur in die neue
+   Systemdokumentation (Word-Dokument, im Admin-Bereich unter der jeweiligen
+   Subscription generierbar). Braucht keine zusätzliche Konfiguration.
    Läuft die Appliance mit einem selbstsignierten Zertifikat im internen Netz,
    `allowInsecureTls: true` setzen (deaktiviert die TLS-Zertifikatsprüfung nur
    für die Collector-Requests an diese eine Appliance — bewusster
@@ -81,6 +90,13 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    `/host_link` folgen der allgemeinen DeviceManager-Konvention und sind
    **nicht gegen ein reales Gerät verifiziert** (bei Abweichungen
    `meta.rawEndpoints["/host_link"]` prüfen).
+
+   **Netzwerk-Port-Identität für die Systemdokumentation**
+   (`extractNetworkPorts` in `adapters/shared.js`): reine Mapping-Funktion
+   auf der ohnehin schon in `collectHardwareMetrics` abgerufenen
+   `/eth_port`-Liste (IP/Maske/Gateway/MAC/MTU/Bond/Zweck je Port) — **kein
+   neuer HTTP-Aufruf**. Fließt in `meta.networkPorts`, nicht in den
+   Healthcheck-Bericht, sondern nur in die neue Systemdokumentation.
 3c. Für NetApp AFF/ONTAP (z. B. A400) braucht `adapters/netapp.js` nur die
    **ONTAP REST API** des Clusters selbst (kein separater Login/Session-Token
    nötig — HTTP Basic Auth pro Request), Standard-HTTPS-Port 443, siehe den
@@ -90,8 +106,8 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    `/api/storage/disks`, `/api/storage/shelves`, `/api/storage/volumes`,
    `/api/storage/luns`, `/api/protocols/san/lun-maps`,
    `/api/protocols/san/igroups`, `/api/network/ethernet/ports`,
-   `/api/network/fc/ports`, `/api/snapmirror/relationships` und
-   `/api/support/ems/events`
+   `/api/network/fc/ports`, `/api/network/ip/interfaces`,
+   `/api/snapmirror/relationships` und `/api/support/ems/events`
    (in ONTAP System Manager z. B. über die eingebaute `readonly`-Rolle, oder
    eine eigene Rolle mit `GET`-Rechten auf die genannten REST-Pfade). Quelle
    der Endpunkte: NetApps öffentliche ONTAP-REST-API-Referenz
@@ -101,6 +117,10 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    Zuordnung ist bei ONTAP anders als bei Huawei ein direkter Join über
    `/protocols/san/lun-maps` (LUN<->Igroup) + `/protocols/san/igroups`
    (Igroup<->Initiatoren), kein mehrstufiges Auflösen über Gruppen nötig.
+   `/api/network/ip/interfaces` (LIFs) liefert zusätzlich die IP-Adresse/
+   Subnetzmaske je Interface für die Systemdokumentation — anders als
+   `/api/network/ethernet/ports`/`/api/network/fc/ports` oben, die nur den
+   reinen Link-Status für den Healthcheck-Bericht liefern.
    **Noch nicht gegen ein reales Gerät verifiziert** — beim ersten echten Ingest `meta.rawEndpoints`
    im Admin-Bereich prüfen und `adapters/netapp.js` bei Abweichungen im
    tatsächlichen Antwortformat anpassen. Die Port-/SnapMirror-/NTP-Endpunkte
