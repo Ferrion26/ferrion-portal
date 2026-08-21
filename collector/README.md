@@ -158,6 +158,50 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    node index.js maintenance enter <hostId> [config.json]
    node index.js maintenance exit  <hostId> [config.json]
    ```
+3e. Für **Commvault** braucht `adapters/commvault.js` Zugangsdaten zur
+   **Commvault-REST-API** (`POST <baseUrl>/commandcenter/api/Login` mit
+   Benutzername + Base64-kodiertem Passwort, liefert einen Token, danach
+   Header `Authtoken: <token>` auf allen Folgeaufrufen — kein
+   `Authorization: Bearer`), siehe den `commvault`-Block im fünften
+   `devices`-Eintrag in `config.example.json` (`productSlug: "commvault"`).
+   Der Service-Account braucht mindestens read-only Zugriff auf
+   `/Job`, `/Client`, `/ClientOperations/get-client-checkreadiness`,
+   `/CommServ`, `/api/cv/DashboardOperations/get-commcellsladetails`,
+   `/StoragePool`, `/V2/MediaAgents`, `/Events` und
+   `/api/cv/OpenAPI3/get-license-info`.
+
+   Quelle der Endpunkte: Commvaults öffentliche REST-API-Doku
+   (documentation.commvault.com) — online recherchiert, **nicht** an einem
+   realen CommCell verifiziert (wie beim NetApp-Adapter). Unterschiedlich
+   gut belegt:
+   - **Solide bestätigt** (vollständig abrufbare Doku-Seite mit
+     Beispiel-Feldern): Login-Flow, `/Job`-Liste, `/Client`-Liste,
+     Check-Readiness-Endpunkt.
+   - **Nur über Suchergebnis-Snippets belegt** (Endpunkt-Pfad plausibel,
+     Antwortschema nicht bestätigt): CommCell-Stammdaten (`/CommServ`),
+     SLA-Compliance, Storage-Pool-Kapazität, Lizenzablauf, Ereignisse.
+   - **Am unsichersten**: MediaAgent-Status (`/V2/MediaAgents`) —
+     ausschließlich aus einem Commvault-Community-Forenpost belegt, laut
+     dortigem Autor selbst von Commvault Support und nicht öffentlich
+     dokumentiert.
+
+   Alle Bereiche mit unsicherem Schema sind bewusst defensiv geschrieben
+   (mehrere Feldnamen-Kandidaten je Objekt probiert, `try/catch` um die
+   Feld-Interpretation) — ein falsches Schema lässt bestenfalls die
+   einzelne Kennzahl weg, nie den ganzen Lauf abstürzen. **Beim ersten
+   echten Ingest bitte `meta.rawEndpoints` im Admin-Bereich prüfen** und
+   `adapters/commvault.js` bei Abweichungen im tatsächlichen Antwortformat
+   anpassen (analog zu netapp.js/fusioncompute.js).
+
+   Client-Bereitschaft ist pro Client ein eigener API-Aufruf
+   (`get-client-checkreadiness`) — bei mehr als 50 Clients werden nur die
+   ersten 50 geprüft (`CLIENT_READINESS_LIMIT` in `adapters/commvault.js`),
+   mit Log-Hinweis statt stillschweigend unvollständig zu bleiben.
+
+   Läuft die Appliance mit einem selbstsignierten Zertifikat im internen
+   Netz, auch hier `allowInsecureTls: true` setzen (siehe oben). Nutzt den
+   bereits im Katalog vorhandenen Produkteintrag `commvault`
+   (`src/app/produkte/products-data.ts`) — keine Änderung dort nötig.
 4. Node.js 18+ auf dem Collector-Host voraussetzen (nutzt das eingebaute
    `fetch`), keine weiteren Abhängigkeiten nötig.
 5. Testlauf: `node index.js config.json`

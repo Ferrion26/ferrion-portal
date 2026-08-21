@@ -63,6 +63,7 @@ const ADAPTERS = {
   // "fusioncompute" (technisch treffender, wie oceanstor/oceanstor-hybrid-
   // flash ebenfalls unterschiedliche Namen haben).
   "huawei-dcs": require("./adapters/fusioncompute"),
+  commvault: require("./adapters/commvault"),
 };
 
 function printUsage() {

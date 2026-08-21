@@ -46,6 +46,16 @@
         "username": "collector_ro",
         "password": "…"
       }
+    },
+    {
+      "productSlug": "commvault",
+      "apiKey": "fcs_… (Subscription 5 — im Admin-Bereich unter Managed Reports > Commvault-Subscription > API-Keys erzeugen)",
+      "commvault": {
+        "baseUrl": "https://<commserve-oder-command-center-host>",
+        "username": "collector_ro",
+        "password": "…",
+        "domain": ""
+      }
     }
   ],
   "_comment_single_device": "Nur ein Gerät am Standort? Das 'devices'-Array weglassen und productSlug/apiKey/den passenden Zugangsdaten-Block (z. B. 'oceanprotect') direkt auf oberster Ebene setzen — funktioniert weiterhin genauso.",

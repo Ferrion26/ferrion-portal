@@ -3,6 +3,7 @@ import { OCEANPROTECT_METRICS } from "./oceanprotect";
 import { OCEANSTOR_METRICS } from "./oceanstor";
 import { NETAPP_METRICS } from "./netapp";
 import { FUSIONCOMPUTE_METRICS } from "./fusioncompute";
+import { COMMVAULT_METRICS } from "./commvault";
 
 export * from "./types";
 
@@ -21,6 +22,7 @@ const METRIC_DEFINITIONS: Record<string, MetricDefinition[]> = {
   // Collector-Adapter/dieselbe Kennzahlen-Definition unter dem bestehenden
   // Slug statt eines verwirrenden Duplikats.
   "huawei-dcs": FUSIONCOMPUTE_METRICS,
+  commvault: COMMVAULT_METRICS,
 };
 
 export function getMetricDefinitions(productSlug: string): MetricDefinition[] {

@@ -61,6 +61,15 @@ const PRODUCT_FIELD_SPECS = {
       { key: "password", label: "Passwort", password: true },
     ],
   },
+  commvault: {
+    block: "commvault",
+    fields: [
+      { key: "baseUrl", label: "CommServe/Command-Center-URL (z. B. https://<commserve-host>)" },
+      { key: "username", label: "Benutzername", default: DEFAULT_USERNAME },
+      { key: "password", label: "Passwort", password: true },
+      { key: "domain", label: "Domäne (nur bei AD-Benutzern, sonst leer lassen)", default: "" },
+    ],
+  },
 };
 
 function ask(rl, question) {

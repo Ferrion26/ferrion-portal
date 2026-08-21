@@ -4,6 +4,7 @@ import { OCEANPROTECT_EXTRACTORS } from "./oceanprotect";
 import { OCEANSTOR_EXTRACTORS } from "./oceanstor";
 import { NETAPP_EXTRACTORS } from "./netapp";
 import { FUSIONCOMPUTE_EXTRACTORS } from "./fusioncompute";
+import { COMMVAULT_EXTRACTORS } from "./commvault";
 
 export * from "./types";
 
@@ -16,6 +17,7 @@ const METRIC_EXTRACTORS: Record<string, MetricExtractor[]> = {
   "oceanstor-hybrid-flash": OCEANSTOR_EXTRACTORS,
   "netapp-aff": NETAPP_EXTRACTORS,
   "huawei-dcs": FUSIONCOMPUTE_EXTRACTORS,
+  commvault: COMMVAULT_EXTRACTORS,
 };
 
 // Extractor-Keys und vom Collector gesendete Kennzahl-Keys landen in
