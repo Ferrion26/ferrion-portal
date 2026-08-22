@@ -165,25 +165,32 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    `Authorization: Bearer`), siehe den `commvault`-Block im fünften
    `devices`-Eintrag in `config.example.json` (`productSlug: "commvault"`).
    Der Service-Account braucht mindestens read-only Zugriff auf
-   `/Job`, `/Client`, `/ClientOperations/get-client-checkreadiness`,
-   `/CommServ`, `/api/cv/DashboardOperations/get-commcellsladetails`,
-   `/StoragePool`, `/V2/MediaAgents`, `/Events` und
-   `/api/cv/OpenAPI3/get-license-info`.
+   `/Job`, `/V4/Servers`, `/CommServ`,
+   `/api/cv/DashboardOperations/get-commcellsladetails`, `/StoragePool`,
+   `/V2/MediaAgents`, `/Events`, `/api/cv/OpenAPI3/get-license-info`,
+   `/IndexServers`, `/Library`, `/V4/Storage/Tape` und `/StoragePolicy`.
 
    Quelle der Endpunkte: Commvaults öffentliche REST-API-Doku
-   (documentation.commvault.com) — online recherchiert, **nicht** an einem
+   (documentation.commvault.com/api.commvault.com) sowie — als zusätzliche,
+   code-basierte Referenz — Commvaults offizieller Python-SDK-Quellcode
+   (github.com/Commvault/cvpysdk) — online recherchiert, **nicht** an einem
    realen CommCell verifiziert (wie beim NetApp-Adapter). Unterschiedlich
    gut belegt:
    - **Solide bestätigt** (vollständig abrufbare Doku-Seite mit
-     Beispiel-Feldern): Login-Flow, `/Job`-Liste, `/Client`-Liste,
-     Check-Readiness-Endpunkt.
-   - **Nur über Suchergebnis-Snippets belegt** (Endpunkt-Pfad plausibel,
-     Antwortschema nicht bestätigt): CommCell-Stammdaten (`/CommServ`),
-     SLA-Compliance, Storage-Pool-Kapazität, Lizenzablauf, Ereignisse.
+     Beispiel-Antwort): Login-Flow, `/Job`-Liste, Client-Netzwerkstatus
+     (`/V4/Servers`), Storage-Pool-Kapazität **und** -Status
+     (`/StoragePool`), Index-Server-Liste (`/IndexServers`), Storage-
+     Policy-Liste (`/StoragePolicy`).
+   - **Nur über Suchergebnis-Snippets bzw. SDK-Quellcode belegt**
+     (Endpunkt-Pfad plausibel, Antwortschema nicht aus einer abrufbaren
+     Doku-Seite bestätigt): CommCell-Stammdaten (`/CommServ`), SLA-
+     Compliance, Lizenzablauf, Ereignisse, Library-Inventar (`/Library`).
    - **Am unsichersten**: MediaAgent-Status (`/V2/MediaAgents`) —
      ausschließlich aus einem Commvault-Community-Forenpost belegt, laut
      dortigem Autor selbst von Commvault Support und nicht öffentlich
-     dokumentiert.
+     dokumentiert; Tape-Bibliotheken (`/V4/Storage/Tape`) — Endpunkt-
+     Existenz über SDK-Quellcode + Forenpost belegt, aber nirgends ein
+     abrufbares Antwortschema gefunden.
 
    Alle Bereiche mit unsicherem Schema sind bewusst defensiv geschrieben
    (mehrere Feldnamen-Kandidaten je Objekt probiert, `try/catch` um die
@@ -193,10 +200,14 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    `adapters/commvault.js` bei Abweichungen im tatsächlichen Antwortformat
    anpassen (analog zu netapp.js/fusioncompute.js).
 
-   Client-Bereitschaft ist pro Client ein eigener API-Aufruf
-   (`get-client-checkreadiness`) — bei mehr als 50 Clients werden nur die
-   ersten 50 geprüft (`CLIENT_READINESS_LIMIT` in `adapters/commvault.js`),
-   mit Log-Hinweis statt stillschweigend unvollständig zu bleiben.
+   Der Client-Netzwerkstatus (`clients_not_ready`) deckt über
+   `GET /V4/Servers?showOnlyInfrastructureMachines=0` in einem einzigen
+   Aufruf **alle** Clients ab (kein Deckel wie ursprünglich bei der
+   Pro-Client-Bereitschaftsprüfung). Index Server und Storage Policies
+   erscheinen als reines Inventar (immer "erfolgreich geprüft") — die
+   Commvault-REST-API liefert dafür laut Doku kein Status-/Health-Feld;
+   Storage Pools und Tape-Bibliotheken bekommen dagegen einen echten
+   Gut/Schlecht-Status-Check.
 
    Läuft die Appliance mit einem selbstsignierten Zertifikat im internen
    Netz, auch hier `allowInsecureTls: true` setzen (siehe oben). Nutzt den

@@ -6,11 +6,13 @@ import { MetricDefinition, ALERT_COUNT_METHODOLOGY } from "./types";
 //
 // Quelle: Commvaults öffentliche REST-API-Doku — wie bei NetApp/
 // FusionCompute online recherchiert statt an einem realen CommCell
-// verifiziert. Login/Job-/Client-Liste sind aus abrufbaren Doku-Seiten
-// bestätigt; sla_compliance_rate/storage_*_tb/media_agents_down/
-// license_expiring_soon stammen aus Endpunkten, deren Antwortschema nur
-// über Suchergebnis-Snippets bzw. (MediaAgent) einen Community-Forenpost
-// belegt ist — siehe die ausführlichen Kommentare im Adapter.
+// verifiziert. Login/Job-/Client-Liste, Storage-Pool-Kapazität+Status,
+// Index-Server-/Storage-Policy-Liste sind aus abrufbaren Doku-Seiten MIT
+// Beispiel-Antwort bestätigt; sla_compliance_rate/license_expiring_soon
+// stammen aus Endpunkten, deren Antwortschema nur über Suchergebnis-
+// Snippets belegt ist; media_agents_down/tape_libraries_unhealthy sind am
+// unsichersten (MediaAgent ausschließlich über einen Community-Forenpost
+// belegt) — siehe die ausführlichen Kommentare im Adapter.
 export const COMMVAULT_METRICS: MetricDefinition[] = [
   {
     key: "backup_success_rate",
@@ -49,8 +51,8 @@ export const COMMVAULT_METRICS: MetricDefinition[] = [
     trendGood: "down",
     severeIfNonZero: true,
     methodology: {
-      de: "Anzahl der Clients, deren Check-Readiness-Prüfung (GET /ClientOperations/get-client-checkreadiness) fehlschlägt oder einen Nicht-Bereit-Status meldet — geprüft werden höchstens die ersten 50 Clients je Lauf.",
-      en: "Number of clients whose check-readiness probe (GET /ClientOperations/get-client-checkreadiness) fails or reports a not-ready status — at most the first 50 clients are checked per run.",
+      de: "Anzahl der Clients mit networkReadiness ungleich \"ONLINE\" (Quelle: GET /V4/Servers?showOnlyInfrastructureMachines=0, ein einziger Aufruf für ALLE Clients). Clients mit networkReadiness \"NOT_APPLICABLE\" (kein eigenes Netzwerk-Konzept) zählen nicht mit.",
+      en: "Number of clients with networkReadiness other than \"ONLINE\" (source: GET /V4/Servers?showOnlyInfrastructureMachines=0, a single call covering ALL clients). Clients with networkReadiness \"NOT_APPLICABLE\" (no network concept of their own) do not count.",
     },
   },
   {
@@ -76,8 +78,8 @@ export const COMMVAULT_METRICS: MetricDefinition[] = [
     headline: true,
     derived: true,
     methodology: {
-      de: "Summe totalCapacity über alle Storage Pools (Quelle: GET /StoragePool). Einheit/Feldschema nicht gegen ein reales CommCell verifiziert.",
-      en: "Sum of totalCapacity across all storage pools (source: GET /StoragePool). Unit/field schema not verified against a real CommCell.",
+      de: "Summe totalCapacity über alle Storage Pools (Quelle: GET /StoragePool, aus abrufbarer Doku-Seite mit Beispiel-Antwort bestätigt, Byte).",
+      en: "Sum of totalCapacity across all storage pools (source: GET /StoragePool, confirmed from a fetchable doc page with example response, bytes).",
     },
   },
   {
@@ -92,6 +94,54 @@ export const COMMVAULT_METRICS: MetricDefinition[] = [
     methodology: {
       de: "Gesamtkapazität abzüglich totalFreeSpace, summiert über alle Storage Pools.",
       en: "Total capacity minus totalFreeSpace, summed across all storage pools.",
+    },
+  },
+  {
+    key: "storage_pools_unhealthy",
+    label: { de: "Storage Pools mit Fehlstatus", en: "Unhealthy Storage Pools" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+    severeIfNonZero: true,
+    methodology: {
+      de: "Anzahl der Storage Pools mit statusCode ungleich 0 bzw. status ungleich \"Online\" (Quelle: GET /StoragePool, Beispiel-Antwort bestätigt).",
+      en: "Number of storage pools with statusCode other than 0 or status other than \"Online\" (source: GET /StoragePool, confirmed via example response).",
+    },
+  },
+  {
+    key: "index_servers_count",
+    label: { de: "Index Server", en: "Index Servers" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    methodology: {
+      de: "Anzahl der registrierten Index Server (Quelle: GET /IndexServers). Rein informativ — die REST-API liefert laut Doku keinen Status- oder Kapazitätswert für Index Server, nur im Command Center selbst sichtbar.",
+      en: "Number of registered Index Servers (source: GET /IndexServers). Informational only — per the docs, the REST API exposes no status or capacity value for Index Servers, visible only in Command Center itself.",
+    },
+  },
+  {
+    key: "tape_libraries_unhealthy",
+    label: { de: "Tape-Bibliotheken mit Fehlstatus", en: "Unhealthy Tape Libraries" },
+    format: "count",
+    aggregation: "last",
+    section: "hardware",
+    trendGood: "down",
+    severeIfNonZero: true,
+    methodology: {
+      de: "Anzahl der Tape-Bibliotheken mit erkennbarem Fehlstatus (Quelle: GET /V4/Storage/Tape). Endpunkt-Existenz über Commvaults SDK-Quellcode/einen Community-Forenpost belegt, Antwortschema nirgends abrufbar — mit Abstand die unsicherste Kennzahl dieses Produkts, siehe Adapter-Kommentar.",
+      en: "Number of tape libraries with a recognizable fault status (source: GET /V4/Storage/Tape). Endpoint existence confirmed via Commvault's SDK source/a community forum post, response schema not found anywhere fetchable — by far the least certain metric for this product, see adapter comment.",
+    },
+  },
+  {
+    key: "storage_policies_count",
+    label: { de: "Storage Policies", en: "Storage Policies" },
+    format: "count",
+    aggregation: "last",
+    section: "capacity",
+    methodology: {
+      de: "Anzahl der konfigurierten Storage Policies (Quelle: GET /StoragePolicy, Beispiel-Antwort bestätigt). Rein informatives Inventar — eine Storage Policy ist ein Konfigurationsobjekt ohne eigenes Status-/Health-Feld.",
+      en: "Number of configured storage policies (source: GET /StoragePolicy, confirmed via example response). Purely informational inventory — a storage policy is a configuration object with no status/health field of its own.",
     },
   },
   {

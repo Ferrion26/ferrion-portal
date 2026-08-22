@@ -1,23 +1,34 @@
 // Adapter für Commvault (Backup-Software): liest Job-/Client-/Storage-/
-// Lizenz-/Ereignis-Status über die Commvault-REST-API aus.
+// Infrastruktur-/Lizenz-/Ereignis-Status über die Commvault-REST-API aus.
 //
-// Quelle: Commvaults öffentliche REST-API-Doku (documentation.commvault.com,
-// vormals api.commvault.com) — online recherchiert, wie beim NetApp- und
-// FusionCompute-Adapter, NICHT an einem realen CommCell verifiziert.
-// Unterschiedlich gut belegt je Bereich:
-//   - Login/Client-Liste/Job-Liste: aus vollständig abrufbaren Doku-Seiten
-//     bestätigt (Endpunkt, Methode, Feldnamen).
-//   - CommCell-Stammdaten, SLA-Compliance, Storage-Pool-Kapazität, Lizenz-
-//     Ablauf, Ereignisse: nur aus Suchergebnis-Snippets bzw. (MediaAgent-
-//     Status) einem einzelnen Commvault-Community-Forenpost belegt, NICHT
-//     aus einer vollständig abrufbaren, offiziellen Doku-Seite mit
-//     Beispiel-Antwort. Diese Bereiche sind bewusst besonders defensiv
-//     geschrieben (mehrere Feldnamen-Kandidaten, try/catch um die
-//     Feld-Interpretation) — ein falsches Schema führt bestenfalls dazu,
-//     dass die jeweilige Kennzahl fehlt, nie zum Abbruch des Laufs. Beim
-//     ersten echten Ingest bitte meta.rawEndpoints im Admin-Bereich prüfen
-//     und diese Datei bei Abweichungen anpassen (wie bereits bei
-//     netapp.js/fusioncompute.js praktiziert).
+// Quelle: Commvaults öffentliche REST-API-Doku (documentation.commvault.com/
+// api.commvault.com) sowie — als zusätzliche, code-basierte Referenz —
+// Commvaults offizieller Python-SDK-Quellcode (github.com/Commvault/
+// cvpysdk, öffentlich, parst dieselbe REST-API) — online recherchiert, wie
+// beim NetApp-/FusionCompute-Adapter, NICHT an einem realen CommCell
+// verifiziert. Unterschiedlich gut belegt je Bereich:
+//   - Login, Client-/Job-Liste, Storage-Pool-Kapazität+Status (GET
+//     /StoragePool), Index-Server-Liste (GET /IndexServers), Storage-
+//     Policy-Liste (GET /StoragePolicy), umfassender Client-Netzwerkstatus
+//     (GET /V4/Servers): aus vollständig abrufbaren Doku-Seiten MIT
+//     Beispiel-Antwort bestätigt (Endpunkt, Methode, Feldnamen).
+//   - CommCell-Stammdaten, SLA-Compliance, Lizenz-Ablauf, Ereignisse,
+//     Library-Inventar (GET /Library): nur aus Suchergebnis-Snippets bzw.
+//     cvpysdk-Quellcode belegt, NICHT aus einer abrufbaren Doku-Seite mit
+//     Beispiel-Antwort.
+//   - MediaAgent-Status (GET /V2/MediaAgents), Tape-Bibliotheken (GET
+//     /V4/Storage/Tape): am unsichersten — MediaAgent ausschließlich aus
+//     einem Commvault-Community-Forenpost belegt (laut Autor selbst von
+//     Commvault Support, nicht öffentlich dokumentiert), Tape-Endpunkt-
+//     Existenz zwar über SDK+Forenpost bestätigt, aber nirgends ein
+//     abrufbares Antwortschema gefunden.
+//   Alle Bereiche mit unsicherem Schema sind bewusst besonders defensiv
+//   geschrieben (mehrere Feldnamen-Kandidaten, try/catch um die
+//   Feld-Interpretation) — ein falsches Schema führt bestenfalls dazu,
+//   dass die jeweilige Kennzahl fehlt, nie zum Abbruch des Laufs. Beim
+//   ersten echten Ingest bitte meta.rawEndpoints im Admin-Bereich prüfen
+//   und diese Datei bei Abweichungen anpassen (wie bereits bei
+//   netapp.js/fusioncompute.js praktiziert).
 //
 // metricKeys müssen exakt zu den Definitionen in
 // src/lib/managed-reports/metrics/commvault.ts passen.
@@ -134,69 +145,44 @@ async function collectJobMetrics(config, session, rawEndpoints) {
   return metrics;
 }
 
-// --- Client-Bereitschaft ---
-// GET /Client (Liste) ist aus abrufbarer Doku bestätigt (clientName/
-// clientId/hostName), aber OHNE Status-/Bereitschaftsfeld — Bereitschaft
-// ist ein separater, pro Client abzufragender Endpunkt
-// (GET /ClientOperations/get-client-checkreadiness/{clientId}, ebenfalls
-// aus abrufbarer Doku bestätigt). Da das ein Aufruf PRO Client ist, wird
-// auf CLIENT_READINESS_LIMIT gedeckelt (analog LUN_LIMIT/CLIENTS_SCAN_LIMIT
-// bei den Huawei-Adaptern) — bei mehr Clients werden nur die ersten
-// geprüft, mit Log-Hinweis statt stillschweigend unvollständig zu bleiben.
-const CLIENT_READINESS_LIMIT = 50;
-
-function resolveClientNameId(raw) {
-  const c = raw.client ?? raw.clientEntity ?? raw;
-  const name = String(c.clientName ?? c.hostName ?? raw.clientName ?? "—");
-  const id = c.clientId ?? raw.clientId;
-  return { name, id };
-}
-
+// --- Client-Netzwerkstatus (ALLE Clients, ein einziger Aufruf) ---
+// GET /V4/Servers?showOnlyInfrastructureMachines=0 ist aus einer
+// vollständig abrufbaren Doku-Seite MIT Beispiel-Antwort bestätigt —
+// liefert in einem einzigen Aufruf jeden Client (nicht nur Infrastruktur-
+// Rollen) inkl. networkReadiness-Feld (ONLINE/OFFLINE/UNKNOWN/
+// NOT_APPLICABLE). Ersetzt die ursprüngliche, auf 50 Clients gedeckelte
+// Pro-Client-Bereitschaftsprüfung (GET .../get-client-checkreadiness)
+// vollständig — die ist sowohl teurer (ein Aufruf je Client) als auch
+// zwangsläufig unvollständig bei mehr als 50 Clients. OFFLINE/UNKNOWN
+// gelten als Fehlstatus, NOT_APPLICABLE (Client-Typen ohne eigenes
+// Netzwerk-Konzept, z. B. reine Konfigurationsobjekte) nicht.
 async function collectClientMetrics(config, session, rawEndpoints) {
   const metrics = [];
   const componentFaults = [];
   const componentChecks = [];
 
-  const listRes = await fetchOptional(config, "Client-Liste", requestJson(config, joinUrl(session.base, "/Client"), { headers: authHeaders(session) }));
-  if (!listRes) return { metrics, componentFaults, componentChecks };
-  captureRaw(rawEndpoints, "/Client", listRes);
-  const rawClients = extractList(listRes.body, "clientProperties", "clients");
-  const clients = rawClients.map(resolveClientNameId).filter((c) => c.id !== undefined && c.id !== null);
-  if (clients.length === 0) return { metrics, componentFaults, componentChecks };
-
-  const checked = clients.slice(0, CLIENT_READINESS_LIMIT);
-  if (clients.length > CLIENT_READINESS_LIMIT) {
-    config.logger?.warn(`Commvault: nur die ersten ${CLIENT_READINESS_LIMIT} von ${clients.length} Clients werden auf Bereitschaft geprüft.`);
-  }
+  const res = await fetchOptional(
+    config,
+    "Client-Netzwerkstatus",
+    requestJson(config, joinUrl(session.base, "/V4/Servers?showOnlyInfrastructureMachines=0"), { headers: authHeaders(session) })
+  );
+  if (!res) return { metrics, componentFaults, componentChecks };
+  captureRaw(rawEndpoints, "/V4/Servers", res);
+  const servers = extractList(res.body, "servers");
+  if (servers.length === 0) return { metrics, componentFaults, componentChecks };
 
   let notReady = 0;
-  await Promise.all(
-    checked.map(async (c) => {
-      const res = await fetchOptional(
-        config,
-        `Client-Bereitschaft (${c.name})`,
-        requestJson(config, joinUrl(session.base, `/ClientOperations/get-client-checkreadiness/${c.id}`), { headers: authHeaders(session) })
-      );
-      if (!res) return; // Abruf fehlgeschlagen -> weder als bereit noch als nicht bereit gewertet
-      const summary = extractList(res.body, "summary");
-      // entityStatus (0 = erfolgreich) ist laut Doku das primäre Feld — nur
-      // wenn es fehlt/kein gültiger Zahlenwert ist, wird auf den status-Text
-      // zurückgefallen. Wichtig: /^ready/ statt /ready/, sonst matcht der
-      // Regex fälschlich auch "Not Ready." (enthält "Ready" als Teilstring).
-      const ready =
-        summary.length === 0 ||
-        summary.every((s) => {
-          const entityStatus = Number(s.entityStatus);
-          if (Number.isFinite(entityStatus)) return entityStatus === 0;
-          return /^ready/i.test(String(s.status ?? "").trim());
-        });
-      componentChecks.push({ category: "Client", id: c.name, description: ready ? "Bereit" : "Nicht bereit", ok: ready });
-      if (!ready) {
-        notReady++;
-        componentFaults.push({ category: "Client", id: c.name, description: "Nicht bereit (Check-Readiness fehlgeschlagen)" });
-      }
-    })
-  );
+  for (const s of servers) {
+    const name = String(s.name ?? s.displayName ?? s.hostName ?? "—");
+    const readiness = String(s.networkReadiness ?? "").toUpperCase();
+    if (readiness === "NOT_APPLICABLE") continue; // kein Netzwerk-Konzept für diesen Client-Typ, weder ok noch Fehler
+    const ok = readiness === "ONLINE";
+    componentChecks.push({ category: "Client", id: name, description: readiness || "Unbekannt", ok });
+    if (!ok) {
+      notReady++;
+      componentFaults.push({ category: "Client", id: name, description: `Netzwerkstatus: ${readiness || "unbekannt"}` });
+    }
+  }
   metrics.push({ key: "clients_not_ready", value: notReady, unit: "count" });
   return { metrics, componentFaults, componentChecks };
 }
@@ -265,9 +251,11 @@ async function collectStorageMediaAndEvents(config, session, rawEndpoints) {
   const componentFaults = [];
   const componentChecks = [];
 
-  // Storage-Pool-Kapazität: Endpunkt-Titel mehrfach belegt, Feldschema nur
-  // aus Suchergebnis-Snippets (totalFreeSpace/totalCapacity, vermutlich
-  // Byte) — nicht gegen eine echte Antwort verifiziert.
+  // Storage-Pool-Kapazität + Status: GET /StoragePool ist aus einer
+  // vollständig abrufbaren Doku-Seite MIT Beispiel-Antwort bestätigt —
+  // storagePoolList[] mit totalCapacity/totalFreeSpace (Byte) sowie einem
+  // status/statusCode-Feldpaar je Pool (Beispiel: status="Online",
+  // statusCode=0).
   const storageRes = await fetchOptional(
     config,
     "Storage-Pool-Details",
@@ -278,11 +266,24 @@ async function collectStorageMediaAndEvents(config, session, rawEndpoints) {
     const pools = extractList(storageRes.body, "storagePoolList", "storagePools");
     let totalBytes = 0;
     let freeBytes = 0;
+    let unhealthy = 0;
     for (const p of pools) {
       const total = Number(p.totalCapacity);
       const free = Number(p.totalFreeSpace);
       if (Number.isFinite(total)) totalBytes += total;
       if (Number.isFinite(free)) freeBytes += free;
+
+      const name = String(p.storagePoolEntity?.storagePoolName ?? p.name ?? "—");
+      const statusCode = Number(p.statusCode);
+      const ok = Number.isFinite(statusCode) ? statusCode === 0 : String(p.status ?? "").toLowerCase() === "online";
+      componentChecks.push({ category: "Storage Pool", id: name, description: p.status ?? "unbekannt", ok });
+      if (!ok) {
+        unhealthy++;
+        componentFaults.push({ category: "Storage Pool", id: name, description: p.status ?? "unbekannt" });
+      }
+    }
+    if (pools.length > 0) {
+      metrics.push({ key: "storage_pools_unhealthy", value: unhealthy, unit: "count" });
     }
     if (totalBytes > 0) {
       metrics.push({ key: "storage_total_tb", value: totalBytes / 1024 ** 4, unit: "TB" });
@@ -339,6 +340,130 @@ async function collectStorageMediaAndEvents(config, session, rawEndpoints) {
   return { metrics, componentFaults, componentChecks };
 }
 
+// --- Infrastruktur-Inventar: Index Server, Libraries, Tape, Storage Policies ---
+// Vier voneinander unabhängige, je einzeln fetchOptional-geschützte
+// Teilschritte — ein fehlender/falsch geformter Endpunkt lässt nur diesen
+// einen Teil weg, nie den ganzen Zweig abstürzen.
+async function collectInfrastructureInventory(config, session, rawEndpoints) {
+  const metrics = [];
+  const componentFaults = [];
+  const componentChecks = [];
+
+  // Index Server: GET /IndexServers ist aus einer abrufbaren Doku-Seite
+  // bestätigt (Name/OS/Cloud-Zuordnung), enthält aber laut derselben Doku
+  // KEIN Status- oder Kapazitätsfeld — das ist im Command Center nur über
+  // die UI sichtbar, nicht über die REST-API. Wird deshalb bewusst als
+  // reines Inventar (immer ok: true) statt als erfundener Gut/Schlecht-
+  // Check umgesetzt.
+  const indexServerRes = await fetchOptional(
+    config,
+    "Index-Server-Liste",
+    requestJson(config, joinUrl(session.base, "/IndexServers"), { headers: authHeaders(session) })
+  );
+  if (indexServerRes) {
+    captureRaw(rawEndpoints, "/IndexServers", indexServerRes);
+    const servers = extractList(indexServerRes.body, "indexServers");
+    if (servers.length > 0) {
+      for (const s of servers) {
+        const name = String(s.name ?? s.displayName ?? "—");
+        const os = s.OS ? ` (${s.OS})` : "";
+        componentChecks.push({ category: "Index Server", id: name, description: `Inventar${os} — kein Status über REST-API verfügbar`, ok: true });
+      }
+      metrics.push({ key: "index_servers_count", value: servers.length, unit: "count" });
+    }
+  }
+
+  // Libraries (Disk/Tape/Cloud): GET /Library ist als Endpunkt über
+  // Commvaults SDK-Quellcode bestätigt, liefert dort aber nur Name/ID
+  // zuverlässig — libraryType (Typ-Unterscheidung) nur aus
+  // Suchergebnis-Snippets belegt. Reines Best-Effort-Inventar (immer
+  // ok: true, kein bestätigtes Status-Feld) — Kapazität/Status für
+  // Disk-Libraries kommt stattdessen aus dem besser belegten
+  // GET /StoragePool oben.
+  const LIBRARY_TYPE_LABELS = { 0: "Disk", 1: "Tape", 2: "Cloud" };
+  const libraryRes = await fetchOptional(
+    config,
+    "Library-Liste",
+    requestJson(config, joinUrl(session.base, "/Library"), { headers: authHeaders(session) })
+  );
+  if (libraryRes) {
+    captureRaw(rawEndpoints, "/Library", libraryRes);
+    const libraries = extractList(libraryRes.body, "libraryList", "response");
+    for (const l of libraries) {
+      const entity = l.library ?? l.libraryEntity ?? l;
+      const name = String(entity.libraryName ?? entity.name ?? "—");
+      const type = LIBRARY_TYPE_LABELS[Number(l.libraryType)] ?? "Unbekannt";
+      componentChecks.push({ category: "Library", id: name, description: `Typ: ${type} — Inventar, kein bestätigtes Status-Feld`, ok: true });
+    }
+  }
+
+  // Tape-Bibliotheken: GET /V4/Storage/Tape ist als Endpunkt über
+  // Commvaults SDK-Quellcode + einen Community-Forenpost belegt, aber
+  // NIRGENDS ein abrufbares Antwortschema gefunden — mit Abstand die
+  // unsicherste Quelle in dieser Datei. Mehrere Feldnamen-Kandidaten +
+  // try/catch, damit ein falsches Schema die Kennzahl nur weglässt statt
+  // den Lauf abzubrechen.
+  const tapeRes = await fetchOptional(
+    config,
+    "Tape-Bibliotheken",
+    requestJson(config, joinUrl(session.base, "/V4/Storage/Tape"), { headers: authHeaders(session) })
+  );
+  if (tapeRes) {
+    captureRaw(rawEndpoints, "/V4/Storage/Tape", tapeRes);
+    try {
+      const tapeLibraries = extractList(tapeRes.body, "tapeLibraryList", "libraries", "tapeLibraries");
+      if (tapeLibraries.length > 0) {
+        let unhealthy = 0;
+        for (const t of tapeLibraries) {
+          const name = String(t.name ?? t.libraryName ?? "—");
+          const status = String(t.status ?? t.state ?? "").toLowerCase();
+          // Ohne bestätigtes Schema wird nur bei einem erkennbaren
+          // "offline"/"error"/"disabled"-Text als Fehler gewertet — ein
+          // unbekannter/leerer Status gilt bewusst NICHT als Fehler (sonst
+          // würde ein falsches Feld beim ersten echten Ingest sofort
+          // fälschlich Alarm schlagen).
+          const faulty = /offline|error|disabled|fault/.test(status);
+          componentChecks.push({ category: "Tape-Bibliothek", id: name, description: t.status ?? t.state ?? "unbekannt", ok: !faulty });
+          if (faulty) {
+            unhealthy++;
+            componentFaults.push({ category: "Tape-Bibliothek", id: name, description: t.status ?? t.state ?? "unbekannt" });
+          }
+        }
+        metrics.push({ key: "tape_libraries_unhealthy", value: unhealthy, unit: "count" });
+      }
+    } catch (err) {
+      config.logger?.warn(`Commvault: Tape-Bibliotheks-Antwort hatte unerwartetes Format (übersprungen): ${err.message}`);
+    }
+  }
+
+  // Storage Policies: GET /StoragePolicy ist aus einer abrufbaren Doku-
+  // Seite MIT Beispiel-Antwort UND Commvaults SDK-Quellcode bestätigt —
+  // liefert Name/ID/Stream-/Kopienzahl, aber KEIN Status-/Health-Feld
+  // (reine Konfigurationsobjekte). Wird als Inventarliste umgesetzt
+  // (immer ok: true), nicht als Gut/Schlecht-Check.
+  const policyRes = await fetchOptional(
+    config,
+    "Storage-Policy-Liste",
+    requestJson(config, joinUrl(session.base, "/StoragePolicy"), { headers: authHeaders(session) })
+  );
+  if (policyRes) {
+    captureRaw(rawEndpoints, "/StoragePolicy", policyRes);
+    const policies = extractList(policyRes.body, "policies");
+    if (policies.length > 0) {
+      for (const p of policies) {
+        const name = String(p.storagePolicy?.storagePolicyName ?? p.name ?? "—");
+        const streams = p.numberOfStreams !== undefined ? `${p.numberOfStreams} Streams` : null;
+        const copies = p.numberOfCopies !== undefined ? `${p.numberOfCopies} Kopien` : null;
+        const description = [copies, streams].filter(Boolean).join(", ") || "Inventar";
+        componentChecks.push({ category: "Storage Policy", id: name, description, ok: true });
+      }
+      metrics.push({ key: "storage_policies_count", value: policies.length, unit: "count" });
+    }
+  }
+
+  return { metrics, componentFaults, componentChecks };
+}
+
 async function collect(config) {
   const cv = config.commvault ?? {};
   const required = ["baseUrl", "username", "password"];
@@ -350,12 +475,13 @@ async function collect(config) {
   const session = await login(config);
   try {
     const rawEndpoints = {};
-    const [commCellInfo, jobResult, clientResult, slaLicenseResult, storageResult] = await Promise.allSettled([
+    const [commCellInfo, jobResult, clientResult, slaLicenseResult, storageResult, infrastructureResult] = await Promise.allSettled([
       collectCommCellInfo(config, session, rawEndpoints),
       collectJobMetrics(config, session, rawEndpoints),
       collectClientMetrics(config, session, rawEndpoints),
       collectSlaAndLicense(config, session, rawEndpoints),
       collectStorageMediaAndEvents(config, session, rawEndpoints),
+      collectInfrastructureInventory(config, session, rawEndpoints),
     ]);
 
     const metrics = [];
@@ -386,6 +512,14 @@ async function collect(config) {
       componentChecks.push(...storageResult.value.componentChecks);
     } else {
       config.logger?.warn(`Commvault: Storage-/MediaAgent-/Ereignis-Kennzahlen konnten nicht erhoben werden: ${storageResult.reason.message}`);
+    }
+
+    if (infrastructureResult.status === "fulfilled") {
+      metrics.push(...infrastructureResult.value.metrics);
+      componentFaults.push(...infrastructureResult.value.componentFaults);
+      componentChecks.push(...infrastructureResult.value.componentChecks);
+    } else {
+      config.logger?.warn(`Commvault: Infrastruktur-Inventar konnte nicht erhoben werden: ${infrastructureResult.reason.message}`);
     }
 
     if (metrics.length === 0) {
