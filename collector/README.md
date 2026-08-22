@@ -168,7 +168,8 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    `/Job`, `/V4/Servers`, `/CommServ`,
    `/api/cv/DashboardOperations/get-commcellsladetails`, `/StoragePool`,
    `/V2/MediaAgents`, `/Events`, `/api/cv/OpenAPI3/get-license-info`,
-   `/IndexServers`, `/Library`, `/V4/Storage/Tape` und `/StoragePolicy`.
+   `/IndexServers`, `/Library`, `/V4/Storage/Tape`, `/StoragePolicy` und
+   `/Commcell/DRBackup/Options`.
 
    Quelle der Endpunkte: Commvaults öffentliche REST-API-Doku
    (documentation.commvault.com/api.commvault.com) sowie — als zusätzliche,
@@ -208,6 +209,33 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    Commvault-REST-API liefert dafür laut Doku kein Status-/Health-Feld;
    Storage Pools und Tape-Bibliotheken bekommen dagegen einen echten
    Gut/Schlecht-Status-Check.
+
+   **Disaster-Recovery-Backup**: `GET /Commcell/DRBackup/Options`
+   (Ziel-Pfad/Aufbewahrung der CommServe-Datenbank-Sicherung — über drei
+   unabhängige Quellen bestätigt: Doku-Snippet, abrufbare Beispiel-Antwort,
+   Commvaults SDK-Quellcode) meldet, ob überhaupt ein DR-Backup-Ziel
+   konfiguriert ist (kritisch, wenn nicht — ohne DR-Backup keine
+   CommServe-Wiederherstellung im Ernstfall). DR-Backup-**Jobs** brauchen
+   keinen eigenen Endpunkt — sie laufen als `jobType: "CS DR Backup"` durch
+   den ohnehin abgefragten `/Job`-Endpunkt, der dafür zusätzlich um
+   `&hideAdminJobs=false` ergänzt wurde (ohne dieses Flag werden
+   CommServe-interne Jobs laut einem Community-Post seit Version 11.28
+   unterdrückt). Alle `jobType`-Werte beginnend `"CS "` werden bewusst aus
+   der regulären `backup_success_rate`/`backup_jobs_failed`-Berechnung
+   ausgeschlossen, damit interne Admin-Jobs sie nicht verwässern.
+
+   **Software-Lebenszyklus**: CommServe- (`/CommServ`) und Client-Versionen
+   (`/V4/Servers`, dort bereits für den Netzwerkstatus abgerufen) werden
+   gegen Commvaults eigene Deprecated-Releases-Tabelle
+   (documentation.commvault.com/11.42/software/deprecated_releases.html)
+   geprüft — als Konstante `COMMVAULT_EOL_TABLE` im Adapter hinterlegt.
+   **Wichtig**: diese Tabelle wurde automatisiert abgerufen, nicht Zeile
+   für Zeile manuell gegen die Live-Seite nachgeprüft — bei Zweifel die
+   Seite direkt konsultieren und die Konstante aktualisieren (sie enthält
+   nur Major.Minor-Granularität, kein Patch-Level). Eine unbekannte
+   Version (nicht in der Tabelle) gilt NIE als veraltet. Bei MediaAgent/
+   Index Server gibt es bewusst keinen Lebenszyklus-Check — weder Doku
+   noch SDK-Quellcode zeigen dort ein Versionsfeld.
 
    Läuft die Appliance mit einem selbstsignierten Zertifikat im internen
    Netz, auch hier `allowInsecureTls: true` setzen (siehe oben). Nutzt den

@@ -25,8 +25,8 @@ export const COMMVAULT_METRICS: MetricDefinition[] = [
     headline: true,
     derived: true,
     methodology: {
-      de: "Anteil der im Zeitfenster (letzte 7 Tage) abgeschlossenen Jobs mit status = \"Completed\" an allen abgeschlossenen Jobs (Quelle: GET /Job?jobCategory=Finished). Jobs mit Warnungen (\"Completed w/ one or more errors\") zählen hier nicht als Erfolg, aber auch nicht in backup_jobs_failed.",
-      en: "Share of finished jobs (last 7 days) with status = \"Completed\" out of all finished jobs (source: GET /Job?jobCategory=Finished). Jobs completed with warnings count neither as success here nor toward backup_jobs_failed.",
+      de: "Anteil der im Zeitfenster (letzte 7 Tage) abgeschlossenen Jobs mit status = \"Completed\" an allen abgeschlossenen Jobs (Quelle: GET /Job?jobCategory=Finished). Jobs mit Warnungen (\"Completed w/ one or more errors\") zählen hier nicht als Erfolg, aber auch nicht in backup_jobs_failed. CommServe-interne Jobs (jobType beginnend \"CS \", z. B. das Disaster-Recovery-Backup) fließen NICHT in diese Kennzahl ein — siehe dr_backup_jobs_failed.",
+      en: "Share of finished jobs (last 7 days) with status = \"Completed\" out of all finished jobs (source: GET /Job?jobCategory=Finished). Jobs completed with warnings count neither as success here nor toward backup_jobs_failed. CommServe-internal jobs (jobType starting \"CS \", e.g. the Disaster Recovery Backup) are excluded from this metric — see dr_backup_jobs_failed.",
     },
   },
   {
@@ -38,8 +38,8 @@ export const COMMVAULT_METRICS: MetricDefinition[] = [
     trendGood: "down",
     severeIfNonZero: true,
     methodology: {
-      de: "Anzahl der Jobs der letzten 7 Tage mit Status \"Failed\", \"Killed\" oder \"Failed to Start\".",
-      en: "Number of jobs in the last 7 days with status \"Failed\", \"Killed\", or \"Failed to Start\".",
+      de: "Anzahl der Jobs der letzten 7 Tage mit Status \"Failed\", \"Killed\" oder \"Failed to Start\" (CommServe-interne Jobs ausgeschlossen, siehe backup_success_rate).",
+      en: "Number of jobs in the last 7 days with status \"Failed\", \"Killed\", or \"Failed to Start\" (CommServe-internal jobs excluded, see backup_success_rate).",
     },
   },
   {
@@ -194,6 +194,58 @@ export const COMMVAULT_METRICS: MetricDefinition[] = [
     methodology: {
       de: "1, wenn die Commvault-Lizenz laut GET /api/cv/OpenAPI3/get-license-info innerhalb von 30 Tagen abläuft, sonst 0. Endpunkt-Pfad/Feldformat nicht gegen ein reales CommCell verifiziert.",
       en: "1 if the Commvault license (per GET /api/cv/OpenAPI3/get-license-info) expires within 30 days, else 0. Endpoint path/field format not verified against a real CommCell.",
+    },
+  },
+  {
+    key: "dr_backup_not_configured",
+    label: { de: "Kein DR-Backup konfiguriert", en: "No DR Backup Configured" },
+    format: "count",
+    aggregation: "last",
+    section: "availability",
+    trendGood: "down",
+    severeIfNonZero: true,
+    methodology: {
+      de: "1, wenn für das Disaster-Recovery-Backup (Sicherung der CommServe-Datenbank) laut GET /Commcell/DRBackup/Options kein Ziel-Pfad konfiguriert ist, sonst 0. Ohne konfiguriertes DR-Backup ist im Ernstfall keine CommServe-Wiederherstellung möglich. Endpunkt über Doku-Snippet, abrufbare Beispiel-Antwort und Commvaults SDK-Quellcode bestätigt.",
+      en: "1 if no destination path is configured for the Disaster Recovery Backup (CommServe database backup) per GET /Commcell/DRBackup/Options, else 0. Without a configured DR backup, CommServe recovery is impossible in a disaster scenario. Endpoint confirmed via a doc snippet, a fetchable example response, and Commvault's SDK source code.",
+    },
+  },
+  {
+    key: "dr_backup_jobs_failed",
+    label: { de: "Fehlgeschlagene DR-Backup-Jobs", en: "Failed DR Backup Jobs" },
+    format: "count",
+    aggregation: "last",
+    section: "availability",
+    trendGood: "down",
+    severeIfNonZero: true,
+    methodology: {
+      de: "Anzahl der Jobs der letzten 7 Tage mit jobType \"CS DR Backup\" und Status \"Failed\"/\"Killed\"/\"Failed to Start\" (Quelle: derselbe GET /Job-Aufruf wie backup_jobs_failed, hier auf DR-Backup-Jobs gefiltert).",
+      en: "Number of jobs in the last 7 days with jobType \"CS DR Backup\" and status \"Failed\"/\"Killed\"/\"Failed to Start\" (source: the same GET /Job call as backup_jobs_failed, filtered to DR backup jobs here).",
+    },
+  },
+  {
+    key: "commserve_outdated",
+    label: { de: "CommServe-Version veraltet (EOL)", en: "CommServe Version Outdated (EOL)" },
+    format: "count",
+    aggregation: "last",
+    section: "security",
+    trendGood: "down",
+    severeIfNonZero: true,
+    methodology: {
+      de: "1, wenn die CommServe-Version (Quelle: GET /CommServ) laut Commvaults eigener Lebenszyklus-Tabelle (documentation.commvault.com/.../deprecated_releases.html) bereits End-of-Life ist, sonst 0. Unbekannte Versionen (nicht in der Tabelle) zählen NICHT als veraltet.",
+      en: "1 if the CommServe version (source: GET /CommServ) is already end-of-life per Commvault's own lifecycle table (documentation.commvault.com/.../deprecated_releases.html), else 0. Unknown versions (not found in the table) do NOT count as outdated.",
+    },
+  },
+  {
+    key: "clients_outdated",
+    label: { de: "Clients mit veralteter Version (EOL)", en: "Clients with Outdated Version (EOL)" },
+    format: "count",
+    aggregation: "last",
+    section: "security",
+    trendGood: "down",
+    severeIfNonZero: true,
+    methodology: {
+      de: "Anzahl der Clients, deren gemeldete Version (Quelle: GET /V4/Servers) laut Commvaults eigener Lebenszyklus-Tabelle bereits End-of-Life ist. Unbekannte Versionen zählen NICHT als veraltet. MediaAgents/Index Server sind hier nicht enthalten — für sie ist laut Doku/SDK kein Versionsfeld auffindbar.",
+      en: "Number of clients whose reported version (source: GET /V4/Servers) is already end-of-life per Commvault's own lifecycle table. Unknown versions do NOT count as outdated. MediaAgents/Index Servers are not included here — no version field could be found for them in the docs/SDK.",
     },
   },
 ];

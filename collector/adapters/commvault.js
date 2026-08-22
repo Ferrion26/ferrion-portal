@@ -94,55 +94,148 @@ function extractList(body, ...candidateKeys) {
   return [];
 }
 
-// --- CommCell-Stammdaten (Gerätename/Version) ---
-// Kein einziger, aus abrufbarer Doku bestätigter Endpunkt gefunden — bester
-// verfügbarer Kandidat GET /CommServ, mit mehreren Feldnamen-Kandidaten
-// probiert. Liefert best-effort null statt den Lauf abzubrechen.
-async function collectCommCellInfo(config, session, rawEndpoints) {
-  const res = await fetchOptional(config, "CommCell-Info", requestJson(config, joinUrl(session.base, "/CommServ"), { headers: authHeaders(session) }));
-  if (!res) return {};
-  captureRaw(rawEndpoints, "/CommServ", res);
-  const data = Array.isArray(res.body) ? res.body[0] : res.body;
-  return {
-    name: data?.commservName ?? data?.commCellName ?? data?.name ?? null,
-    version: data?.version ?? data?.csVersionInfo ?? null,
-  };
+// --- Software-Lebenszyklus (End-of-Life) ---
+// Quelle: https://documentation.commvault.com/11.42/software/deprecated_releases.html
+// (Major.Minor -> End-of-Life-Datum). WICHTIG: automatisiert abgerufen und
+// NICHT Zeile für Zeile manuell gegen die Live-Seite nachgeprüft — bei
+// Zweifel die Seite direkt konsultieren und diese Tabelle aktualisieren.
+// Nur Major.Minor-Granularität, wie auf der Quellseite selbst (kein
+// Patch-Level). Ein Versionsfeld ist bestätigt vorhanden bei CommServe
+// (/CommServ) und Clients (/V4/Servers) — bei MediaAgent/Index Server ist
+// laut Doku/SDK kein Versionsfeld auffindbar, dafür gibt es bewusst keinen
+// Lebenszyklus-Check (kein Feld erfunden).
+const COMMVAULT_EOL_TABLE = {
+  "11.20": "2025-06-15",
+  "11.24": "2024-06-15",
+  "11.25": "2022-09-15",
+  "11.26": "2022-12-15",
+  "11.28": "2025-06-15",
+  "11.30": "2023-12-15",
+  "11.32": "2026-06-15",
+  "11.34": "2024-12-15",
+};
+
+// Gibt null zurück, wenn keine Version bekannt ist (kein Check möglich),
+// sonst { majorMinor, status, eolDate? }. status "unknown" (Version nicht
+// in der Tabelle) wird von den Aufrufern NIE als Fehler gewertet — nur
+// "eol" (Version steht in der Tabelle und das Datum liegt in der
+// Vergangenheit) gilt als Fehlstatus.
+function evaluateLifecycle(versionString) {
+  if (!versionString) return null;
+  const match = String(versionString).match(/(\d+\.\d+)/);
+  if (!match) return null;
+  const majorMinor = match[1];
+  const eolDate = COMMVAULT_EOL_TABLE[majorMinor];
+  if (!eolDate) return { majorMinor, status: "unknown" };
+  const isEol = new Date(eolDate).getTime() < Date.now();
+  return { majorMinor, status: isEol ? "eol" : "supported", eolDate };
 }
 
-// --- Backup-Jobs ---
+// --- CommCell-Stammdaten (Gerätename/Version) + CommServe-Lebenszyklus ---
+// Kein einziger, aus abrufbarer Doku bestätigter Endpunkt gefunden — bester
+// verfügbarer Kandidat GET /CommServ, mit mehreren Feldnamen-Kandidaten
+// probiert. Liefert best-effort null statt den Lauf abzubrechen. Die
+// ermittelte Version wird zusätzlich gegen COMMVAULT_EOL_TABLE geprüft
+// (immer genau ein componentChecks-Eintrag, da es nur eine CommServe-
+// Instanz gibt — kein Mengen-Risiko wie bei vielen Clients).
+async function collectCommCellInfo(config, session, rawEndpoints) {
+  const metrics = [];
+  const componentFaults = [];
+  const componentChecks = [];
+
+  const res = await fetchOptional(config, "CommCell-Info", requestJson(config, joinUrl(session.base, "/CommServ"), { headers: authHeaders(session) }));
+  if (!res) return { name: null, version: null, metrics, componentFaults, componentChecks };
+  captureRaw(rawEndpoints, "/CommServ", res);
+  const data = Array.isArray(res.body) ? res.body[0] : res.body;
+  const name = data?.commservName ?? data?.commCellName ?? data?.name ?? null;
+  const version = data?.version ?? data?.csVersionInfo ?? null;
+
+  const lifecycle = evaluateLifecycle(version);
+  if (lifecycle) {
+    const description =
+      lifecycle.status === "eol"
+        ? `Version ${lifecycle.majorMinor} — End-of-Life seit ${lifecycle.eolDate}`
+        : lifecycle.status === "unknown"
+          ? `Version ${lifecycle.majorMinor} — nicht in der Lebenszyklus-Tabelle gefunden`
+          : `Version ${lifecycle.majorMinor} — unterstützt`;
+    componentChecks.push({ category: "Software-Lebenszyklus", id: "CommServe", description, ok: lifecycle.status !== "eol" });
+    if (lifecycle.status === "eol") {
+      componentFaults.push({ category: "Software-Lebenszyklus", id: "CommServe", description });
+    }
+    metrics.push({ key: "commserve_outdated", value: lifecycle.status === "eol" ? 1 : 0, unit: "count" });
+  }
+
+  return { name, version, metrics, componentFaults, componentChecks };
+}
+
+// --- Backup-Jobs + Disaster-Recovery-Backup-Jobs ---
 // GET /Job?jobCategory=Finished&completedJobLookupTime=<Sekunden> ist aus
 // einer vollständig abrufbaren Doku-Seite bestätigt (Endpunkt, Query-
 // Parameter, status-Feld je Job). 7 Tage Rückblick als bewusst
 // konservatives Fenster (Backup-Jobs laufen i. d. R. täglich).
+//
+// &hideAdminJobs=false ist zusätzlich nötig, damit CommServe-interne Jobs
+// (u. a. das Disaster-Recovery-Backup, jobType "CS DR Backup") überhaupt
+// in der Antwort erscheinen — ohne dieses Flag werden sie laut einem
+// Commvault-Community-Post seit Version 11.28 unterdrückt (über den
+// hideAdminJobs-Feldnamen im offiziellen SDK-Quellcode zusätzlich
+// bestätigt). Da dadurch auch ANDERE CommServe-interne Jobtypen auftauchen
+// könnten, werden alle jobType-Werte, die mit "CS " beginnen, bewusst aus
+// der regulären Erfolgsquote ausgeschlossen (nicht nur der DR-Backup-Typ)
+// — sonst würde die reguläre Erfolgsquote durch interne Admin-Jobs verwässert.
 const JOB_LOOKBACK_SECONDS = 7 * 24 * 60 * 60;
 const JOB_FAILURE_STATUSES = new Set(["Failed", "Killed", "Failed to Start"]);
+const DR_BACKUP_JOB_TYPE = "CS DR Backup";
 
 async function collectJobMetrics(config, session, rawEndpoints) {
   const metrics = [];
+  const componentFaults = [];
+  const componentChecks = [];
+
   const res = await fetchOptional(
     config,
     "Job-Liste",
-    requestJson(config, joinUrl(session.base, `/Job?jobCategory=Finished&completedJobLookupTime=${JOB_LOOKBACK_SECONDS}&limit=1000`), {
-      headers: authHeaders(session),
-    })
+    requestJson(
+      config,
+      joinUrl(session.base, `/Job?jobCategory=Finished&completedJobLookupTime=${JOB_LOOKBACK_SECONDS}&limit=1000&hideAdminJobs=false`),
+      { headers: authHeaders(session) }
+    )
   );
-  if (!res) return metrics;
+  if (!res) return { metrics, componentFaults, componentChecks };
   captureRaw(rawEndpoints, "/Job", res);
-  const jobs = extractList(res.body, "jobs").map((j) => j.jobSummary ?? j);
-  if (jobs.length === 0) return metrics;
+  const allJobs = extractList(res.body, "jobs").map((j) => j.jobSummary ?? j);
+  if (allJobs.length === 0) return { metrics, componentFaults, componentChecks };
+
+  const regularJobs = allJobs.filter((j) => !String(j.jobType ?? "").startsWith("CS "));
+  const drJobs = allJobs.filter((j) => String(j.jobType ?? "") === DR_BACKUP_JOB_TYPE);
 
   let completed = 0;
   let failed = 0;
-  for (const j of jobs) {
+  for (const j of regularJobs) {
     const status = String(j.status ?? "");
     if (status === "Completed") completed++;
     if (JOB_FAILURE_STATUSES.has(status)) failed++;
   }
   metrics.push({ key: "backup_jobs_failed", value: failed, unit: "count" });
-  if (jobs.length > 0) {
-    metrics.push({ key: "backup_success_rate", value: (completed / jobs.length) * 100, unit: "%" });
+  if (regularJobs.length > 0) {
+    metrics.push({ key: "backup_success_rate", value: (completed / regularJobs.length) * 100, unit: "%" });
   }
-  return metrics;
+
+  if (drJobs.length > 0) {
+    const failedDr = drJobs.filter((j) => JOB_FAILURE_STATUSES.has(String(j.status ?? ""))).length;
+    metrics.push({ key: "dr_backup_jobs_failed", value: failedDr, unit: "count" });
+
+    // Jobs sind laut Doku üblicherweise zeitlich absteigend sortiert, zur
+    // Sicherheit wird trotzdem explizit nach jobStartTime sortiert.
+    const latest = [...drJobs].sort((a, b) => Number(b.jobStartTime ?? 0) - Number(a.jobStartTime ?? 0))[0];
+    const latestOk = String(latest.status ?? "") === "Completed";
+    componentChecks.push({ category: "Disaster Recovery", id: "Letztes DR-Backup", description: latest.status ?? "unbekannt", ok: latestOk });
+    if (!latestOk) {
+      componentFaults.push({ category: "Disaster Recovery", id: "Letztes DR-Backup", description: latest.status ?? "unbekannt" });
+    }
+  }
+
+  return { metrics, componentFaults, componentChecks };
 }
 
 // --- Client-Netzwerkstatus (ALLE Clients, ein einziger Aufruf) ---
@@ -172,18 +265,38 @@ async function collectClientMetrics(config, session, rawEndpoints) {
   if (servers.length === 0) return { metrics, componentFaults, componentChecks };
 
   let notReady = 0;
+  let outdated = 0;
   for (const s of servers) {
     const name = String(s.name ?? s.displayName ?? s.hostName ?? "—");
     const readiness = String(s.networkReadiness ?? "").toUpperCase();
-    if (readiness === "NOT_APPLICABLE") continue; // kein Netzwerk-Konzept für diesen Client-Typ, weder ok noch Fehler
-    const ok = readiness === "ONLINE";
-    componentChecks.push({ category: "Client", id: name, description: readiness || "Unbekannt", ok });
-    if (!ok) {
-      notReady++;
-      componentFaults.push({ category: "Client", id: name, description: `Netzwerkstatus: ${readiness || "unbekannt"}` });
+    if (readiness !== "NOT_APPLICABLE") {
+      // kein Netzwerk-Konzept für diesen Client-Typ, weder ok noch Fehler
+      const ok = readiness === "ONLINE";
+      componentChecks.push({ category: "Client", id: name, description: readiness || "Unbekannt", ok });
+      if (!ok) {
+        notReady++;
+        componentFaults.push({ category: "Client", id: name, description: `Netzwerkstatus: ${readiness || "unbekannt"}` });
+      }
+    }
+
+    // Software-Lebenszyklus je Client: version-Feld laut Beispiel-Antwort
+    // von GET /V4/Servers bestätigt (z. B. "11.22.5"). Anders als bei der
+    // Bereitschaftsprüfung oben wird HIER bewusst NUR bei tatsächlich
+    // veralteten Clients ein componentChecks-/componentFaults-Eintrag
+    // erzeugt (nicht für jeden Client) — sonst würde das componentChecks-
+    // Limit (300 je Ingest, siehe ingestSchema.ts) bei vielen Clients real
+    // gesprengt, da die Bereitschaftsprüfung oben bereits ungedeckelt
+    // einen Eintrag je Client erzeugt.
+    const lifecycle = evaluateLifecycle(s.version);
+    if (lifecycle?.status === "eol") {
+      outdated++;
+      const description = `Version ${lifecycle.majorMinor} — End-of-Life seit ${lifecycle.eolDate}`;
+      componentChecks.push({ category: "Software-Lebenszyklus", id: name, description, ok: false });
+      componentFaults.push({ category: "Software-Lebenszyklus", id: name, description });
     }
   }
   metrics.push({ key: "clients_not_ready", value: notReady, unit: "count" });
+  metrics.push({ key: "clients_outdated", value: outdated, unit: "count" });
   return { metrics, componentFaults, componentChecks };
 }
 
@@ -464,6 +577,43 @@ async function collectInfrastructureInventory(config, session, rawEndpoints) {
   return { metrics, componentFaults, componentChecks };
 }
 
+// --- Disaster-Recovery-Backup-Konfiguration ---
+// GET /Commcell/DRBackup/Options ist über drei unabhängige Quellen belegt
+// (Doku-Snippet, abrufbare Beispiel-Antwort auf api.commvault.com, sowie
+// Commvaults offener Python-SDK-Quellcode) — liefert Ziel-Pfad
+// (DRDumpLocation), Aufbewahrung (DRNumFulls) und Zeitplan (pattern). Ohne
+// konfiguriertes Ziel ist im Ernstfall keine CommServe-Wiederherstellung
+// möglich — daher severeIfNonZero.
+async function collectDisasterRecoveryConfig(config, session, rawEndpoints) {
+  const metrics = [];
+  const componentFaults = [];
+  const componentChecks = [];
+
+  const res = await fetchOptional(
+    config,
+    "DR-Backup-Konfiguration",
+    requestJson(config, joinUrl(session.base, "/Commcell/DRBackup/Options"), { headers: authHeaders(session) })
+  );
+  if (!res) return { metrics, componentFaults, componentChecks };
+  captureRaw(rawEndpoints, "/Commcell/DRBackup/Options", res);
+
+  const props = res.body?.properties ?? res.body;
+  const destination = props?.DRDumpLocation || (props?.uploadBackupMetadataToCloud ? props?.cloudLibrary?.libraryName : null);
+  const configured = Boolean(destination);
+  const retention = Number(props?.DRNumFulls);
+  const description = configured
+    ? `Ziel: ${destination}${Number.isFinite(retention) ? `, Aufbewahrung: ${retention} Sicherungen` : ""}`
+    : "Kein Ziel konfiguriert";
+
+  componentChecks.push({ category: "Disaster Recovery", id: "DR-Backup-Konfiguration", description, ok: configured });
+  if (!configured) {
+    componentFaults.push({ category: "Disaster Recovery", id: "DR-Backup-Konfiguration", description: "Kein DR-Backup-Ziel konfiguriert" });
+  }
+  metrics.push({ key: "dr_backup_not_configured", value: configured ? 0 : 1, unit: "count" });
+
+  return { metrics, componentFaults, componentChecks };
+}
+
 async function collect(config) {
   const cv = config.commvault ?? {};
   const required = ["baseUrl", "username", "password"];
@@ -475,13 +625,14 @@ async function collect(config) {
   const session = await login(config);
   try {
     const rawEndpoints = {};
-    const [commCellInfo, jobResult, clientResult, slaLicenseResult, storageResult, infrastructureResult] = await Promise.allSettled([
+    const [commCellInfo, jobResult, clientResult, slaLicenseResult, storageResult, infrastructureResult, drConfigResult] = await Promise.allSettled([
       collectCommCellInfo(config, session, rawEndpoints),
       collectJobMetrics(config, session, rawEndpoints),
       collectClientMetrics(config, session, rawEndpoints),
       collectSlaAndLicense(config, session, rawEndpoints),
       collectStorageMediaAndEvents(config, session, rawEndpoints),
       collectInfrastructureInventory(config, session, rawEndpoints),
+      collectDisasterRecoveryConfig(config, session, rawEndpoints),
     ]);
 
     const metrics = [];
@@ -489,11 +640,22 @@ async function collect(config) {
     const componentFaults = [];
     const componentChecks = [];
 
-    if (commCellInfo.status === "fulfilled") deviceInfo = commCellInfo.value;
-    else config.logger?.warn(`Commvault: CommCell-Info konnte nicht erhoben werden: ${commCellInfo.reason.message}`);
+    if (commCellInfo.status === "fulfilled") {
+      deviceInfo = commCellInfo.value;
+      metrics.push(...commCellInfo.value.metrics);
+      componentFaults.push(...commCellInfo.value.componentFaults);
+      componentChecks.push(...commCellInfo.value.componentChecks);
+    } else {
+      config.logger?.warn(`Commvault: CommCell-Info konnte nicht erhoben werden: ${commCellInfo.reason.message}`);
+    }
 
-    if (jobResult.status === "fulfilled") metrics.push(...jobResult.value);
-    else config.logger?.warn(`Commvault: Job-Kennzahlen konnten nicht erhoben werden: ${jobResult.reason.message}`);
+    if (jobResult.status === "fulfilled") {
+      metrics.push(...jobResult.value.metrics);
+      componentFaults.push(...jobResult.value.componentFaults);
+      componentChecks.push(...jobResult.value.componentChecks);
+    } else {
+      config.logger?.warn(`Commvault: Job-Kennzahlen konnten nicht erhoben werden: ${jobResult.reason.message}`);
+    }
 
     if (clientResult.status === "fulfilled") {
       metrics.push(...clientResult.value.metrics);
@@ -520,6 +682,14 @@ async function collect(config) {
       componentChecks.push(...infrastructureResult.value.componentChecks);
     } else {
       config.logger?.warn(`Commvault: Infrastruktur-Inventar konnte nicht erhoben werden: ${infrastructureResult.reason.message}`);
+    }
+
+    if (drConfigResult.status === "fulfilled") {
+      metrics.push(...drConfigResult.value.metrics);
+      componentFaults.push(...drConfigResult.value.componentFaults);
+      componentChecks.push(...drConfigResult.value.componentChecks);
+    } else {
+      config.logger?.warn(`Commvault: DR-Backup-Konfiguration konnte nicht erhoben werden: ${drConfigResult.reason.message}`);
     }
 
     if (metrics.length === 0) {
