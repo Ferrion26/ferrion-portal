@@ -224,6 +224,12 @@ Portal, damit dort automatisiert Quartalsberichte erstellt werden können.
    der regulären `backup_success_rate`/`backup_jobs_failed`-Berechnung
    ausgeschlossen, damit interne Admin-Jobs sie nicht verwässern.
 
+   **Lizenz-Ablauf**: `GET /api/cv/OpenAPI3/get-license-info` liefert neben
+   der bestehenden `license_expiring_soon`-Kennzahl (0/1) jetzt auch das
+   konkrete Ablaufdatum als `componentChecks`-Eintrag im Bericht
+   (Kategorie "Lizenz") — immer sichtbar, nicht nur bei drohendem Ablauf,
+   da es je CommCell nur eine Lizenz gibt.
+
    **Software-Lebenszyklus**: CommServe- (`/CommServ`) und Client-Versionen
    (`/V4/Servers`, dort bereits für den Netzwerkstatus abgerufen) werden
    gegen Commvaults eigene Deprecated-Releases-Tabelle

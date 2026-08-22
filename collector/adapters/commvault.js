@@ -308,6 +308,8 @@ async function collectClientMetrics(config, session, rawEndpoints) {
 // Schema bleibt die betroffene Kennzahl einfach weg, kein Absturz.
 async function collectSlaAndLicense(config, session, rawEndpoints) {
   const metrics = [];
+  const componentFaults = [];
+  const componentChecks = [];
 
   const slaRes = await fetchOptional(
     config,
@@ -338,7 +340,11 @@ async function collectSlaAndLicense(config, session, rawEndpoints) {
   // Lizenz-Ablauf: expiryDate-Einheit unklar (Sekunden vs. Millisekunden) —
   // dieselbe >1e12-Heuristik wie an anderer Stelle in diesem Codebase
   // (siehe oceanprotect.js, retention_time-Auswertung). 30 Tage Vorlauf wie
-  // beim bestehenden EXPIRY_WARNING_DAYS-Muster (oceanstor.js).
+  // beim bestehenden EXPIRY_WARNING_DAYS-Muster (oceanstor.js). Zusätzlich
+  // zur reinen Ja/Nein-Kennzahl wird das konkrete Ablaufdatum jetzt auch
+  // als componentChecks-Eintrag ausgegeben (immer sichtbar im Bericht,
+  // nicht nur wenn die Frist bereits läuft) — kein Mengen-Risiko, da es
+  // nur eine Lizenz je CommCell gibt.
   const EXPIRY_WARNING_DAYS = 30;
   const licenseRes = await fetchOptional(
     config,
@@ -351,11 +357,22 @@ async function collectSlaAndLicense(config, session, rawEndpoints) {
     if (Number.isFinite(expiry) && expiry > 0) {
       const expiryMs = expiry > 1e12 ? expiry : expiry * 1000;
       const daysUntil = Math.floor((expiryMs - Date.now()) / (1000 * 60 * 60 * 24));
-      metrics.push({ key: "license_expiring_soon", value: daysUntil <= EXPIRY_WARNING_DAYS ? 1 : 0, unit: "count" });
+      const expiryDateStr = new Date(expiryMs).toISOString().slice(0, 10);
+      const expiringSoon = daysUntil <= EXPIRY_WARNING_DAYS;
+      metrics.push({ key: "license_expiring_soon", value: expiringSoon ? 1 : 0, unit: "count" });
+
+      const description =
+        daysUntil < 0
+          ? `Abgelaufen am ${expiryDateStr} (vor ${Math.abs(daysUntil)} Tagen)`
+          : `Läuft ab am ${expiryDateStr} (in ${daysUntil} Tagen)`;
+      componentChecks.push({ category: "Lizenz", id: "Commvault-Lizenz", description, ok: !expiringSoon });
+      if (expiringSoon) {
+        componentFaults.push({ category: "Lizenz", id: "Commvault-Lizenz", description });
+      }
     }
   }
 
-  return metrics;
+  return { metrics, componentFaults, componentChecks };
 }
 
 // --- Storage-Kapazität + MediaAgent-Status + Ereignisse ---
@@ -665,8 +682,13 @@ async function collect(config) {
       config.logger?.warn(`Commvault: Client-Kennzahlen konnten nicht erhoben werden: ${clientResult.reason.message}`);
     }
 
-    if (slaLicenseResult.status === "fulfilled") metrics.push(...slaLicenseResult.value);
-    else config.logger?.warn(`Commvault: SLA-/Lizenz-Kennzahlen konnten nicht erhoben werden: ${slaLicenseResult.reason.message}`);
+    if (slaLicenseResult.status === "fulfilled") {
+      metrics.push(...slaLicenseResult.value.metrics);
+      componentFaults.push(...slaLicenseResult.value.componentFaults);
+      componentChecks.push(...slaLicenseResult.value.componentChecks);
+    } else {
+      config.logger?.warn(`Commvault: SLA-/Lizenz-Kennzahlen konnten nicht erhoben werden: ${slaLicenseResult.reason.message}`);
+    }
 
     if (storageResult.status === "fulfilled") {
       metrics.push(...storageResult.value.metrics);
